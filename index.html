@@ -183,196 +183,148 @@
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (!reduceMotion) {
-      const RADIUS = 40;
-      const STRENGTH = desktopHover ? 12 : 24;
+      const btn = document.querySelector('.btn');
+      const label = btn.querySelector('span');
+      const STEP = 26;
 
-      // Fixed overlay that holds per-character spans for the repulsion effect.
-      // The original text nodes are hidden in-place (visibility:hidden) so the
-      // browser still lays out the text — including kerning — and we measure each
-      // character's exact rect via the Range API, then position overlay spans on top.
-      const overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed;inset:0;pointer-events:none;';
-      document.body.appendChild(overlay);
-
-      let chars = []; // { span, tn, i } — tn = text node, i = char index
-
-      const processElement = (el) => {
-        // Collect all text nodes first — mutating the DOM during traversal causes
-        // the TreeWalker to skip nodes after each replacement.
-        const textNodes = [];
-        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-        let node;
-        while ((node = walker.nextNode())) {
-          if (node.textContent.trim()) textNodes.push(node);
+      const originalText = label.textContent;
+      const cells = [];
+      label.textContent = '';
+      [...originalText].forEach((ch) => {
+        if (ch === ' ') {
+          label.appendChild(document.createTextNode(' '));
+        } else {
+          const cell = document.createElement('span');
+          cell.className = 'cell';
+          cell.textContent = ch;
+          cells.push(cell);
+          label.appendChild(cell);
         }
+      });
 
-        textNodes.forEach((node) => {
-          const text = node.textContent;
-          const cs = getComputedStyle(node.parentElement);
+      const animateLabel = () => {
+        const eraseDone = cells.length * STEP;
+        cells.forEach((cell, i) => {
+          setTimeout(() => { cell.style.opacity = '0'; }, i * STEP);
+          setTimeout(() => { cell.style.opacity = '1'; }, eraseDone + i * STEP);
+        });
+      };
 
-          // Keep text in DOM (for layout/kerning) but make it invisible.
-          const hidden = document.createElement('span');
-          hidden.style.visibility = 'hidden';
-          const tn = document.createTextNode(text);
-          hidden.appendChild(tn);
-          node.replaceWith(hidden);
+      if (desktopHover) {
+        // Desktop: magnet effect on text + CTA animation on hover.
+        const RADIUS = 40;
+        const STRENGTH = 12;
 
-          for (let i = 0; i < text.length; i++) {
-            if (/\s/.test(text[i])) continue;
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;pointer-events:none;';
+        document.body.appendChild(overlay);
 
+        let chars = [];
+
+        const processElement = (el) => {
+          const textNodes = [];
+          const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+          let node;
+          while ((node = walker.nextNode())) {
+            if (node.textContent.trim()) textNodes.push(node);
+          }
+          textNodes.forEach((node) => {
+            const text = node.textContent;
+            const cs = getComputedStyle(node.parentElement);
+            const hidden = document.createElement('span');
+            hidden.style.visibility = 'hidden';
+            const tn = document.createTextNode(text);
+            hidden.appendChild(tn);
+            node.replaceWith(hidden);
+            for (let i = 0; i < text.length; i++) {
+              if (/\s/.test(text[i])) continue;
+              const range = document.createRange();
+              range.setStart(tn, i);
+              range.setEnd(tn, i + 1);
+              const r = range.getBoundingClientRect();
+              const span = document.createElement('span');
+              span.textContent = text[i];
+              span.style.cssText = [
+                'position:fixed',
+                `left:${r.left}px`,
+                `top:${r.top}px`,
+                `font-family:${cs.fontFamily}`,
+                `font-size:${cs.fontSize}`,
+                `font-weight:${cs.fontWeight}`,
+                `line-height:${cs.lineHeight}`,
+                `letter-spacing:${cs.letterSpacing}`,
+                `color:${cs.color}`,
+                'pointer-events:none',
+                'will-change:transform',
+                'transition:transform 0.5s cubic-bezier(0.16,1,0.3,1)',
+              ].join(';');
+              overlay.appendChild(span);
+              span._cx = r.left + r.width / 2;
+              span._cy = r.top + r.height / 2;
+              chars.push({ span, tn, i });
+            }
+          });
+        };
+
+        document.querySelectorAll('.title, .body-text p').forEach(processElement);
+
+        const remeasure = () => {
+          chars.forEach(({ span }) => {
+            span.style.transition = 'none';
+            span.style.transform = '';
+          });
+          document.body.offsetHeight;
+          chars.forEach(({ span, tn, i }) => {
             const range = document.createRange();
             range.setStart(tn, i);
             range.setEnd(tn, i + 1);
             const r = range.getBoundingClientRect();
-
-            const span = document.createElement('span');
-            span.textContent = text[i];
-            span.style.cssText = [
-              'position:fixed',
-              `left:${r.left}px`,
-              `top:${r.top}px`,
-              `font-family:${cs.fontFamily}`,
-              `font-size:${cs.fontSize}`,
-              `font-weight:${cs.fontWeight}`,
-              `line-height:${cs.lineHeight}`,
-              `letter-spacing:${cs.letterSpacing}`,
-              `color:${cs.color}`,
-              'pointer-events:none',
-              'will-change:transform',
-              'transition:transform 0.5s cubic-bezier(0.16,1,0.3,1)',
-            ].join(';');
-            overlay.appendChild(span);
+            span.style.left = r.left + 'px';
+            span.style.top = r.top + 'px';
             span._cx = r.left + r.width / 2;
             span._cy = r.top + r.height / 2;
-
-            chars.push({ span, tn, i });
-          }
-        });
-      };
-
-      document.querySelectorAll('.title, .body-text p').forEach(processElement);
-
-
-      // Re-measure after fonts load or on resize so overlay stays aligned.
-      const remeasure = () => {
-        chars.forEach(({ span }) => {
-          span.style.transition = 'none';
-          span.style.transform = '';
-        });
-        document.body.offsetHeight; // force reflow before measuring
-        chars.forEach(({ span, tn, i }) => {
-          const range = document.createRange();
-          range.setStart(tn, i);
-          range.setEnd(tn, i + 1);
-          const r = range.getBoundingClientRect();
-          span.style.left = r.left + 'px';
-          span.style.top = r.top + 'px';
-          span._cx = r.left + r.width / 2;
-          span._cy = r.top + r.height / 2;
-        });
-        requestAnimationFrame(() => {
-          chars.forEach(({ span }) => {
-            span.style.transition = 'transform 0.5s cubic-bezier(0.16,1,0.3,1)';
           });
-        });
-      };
-
-      document.fonts.ready.then(remeasure);
-      window.addEventListener('load', remeasure);
-      window.addEventListener('resize', remeasure);
-
-      const applyRepulsion = (clientX, clientY) => {
-        chars.forEach(({ span }) => {
-          const dx = span._cx - clientX;
-          const dy = span._cy - clientY;
-          const dist = Math.hypot(dx, dy);
-          if (dist < RADIUS) {
-            const force = (1 - dist / RADIUS) * STRENGTH;
-            span.style.transform = `translate(${(dx / (dist || 1)) * force}px,${(dy / (dist || 1)) * force}px)`;
-          } else {
-            span.style.transform = '';
-          }
-        });
-      };
-
-      const clearRepulsion = () => {
-        chars.forEach(({ span }) => { span.style.transform = ''; });
-      };
-
-      window.addEventListener('mousemove', (e) => applyRepulsion(e.clientX, e.clientY));
-      document.addEventListener('mouseleave', clearRepulsion);
-
-      window.addEventListener('touchmove', (e) => {
-        const t = e.touches[0];
-        applyRepulsion(t.clientX, t.clientY);
-      }, { passive: true });
-      window.addEventListener('touchend', clearRepulsion);
-      window.addEventListener('touchcancel', clearRepulsion);
-
-      window.addEventListener('orientationchange', remeasure);
-
-      // CTA: on desktop, animate on hover; on touch, play once on load.
-      if (desktopHover) {
-        const btn = document.querySelector('.btn');
-        const label = btn.querySelector('span');
-        const STEP = 26;
-
-        const originalText = label.textContent;
-        const cells = [];
-        label.textContent = '';
-        [...originalText].forEach((ch) => {
-          if (ch === ' ') {
-            label.appendChild(document.createTextNode(' '));
-          } else {
-            const cell = document.createElement('span');
-            cell.className = 'cell';
-            cell.textContent = ch;
-            cells.push(cell);
-            label.appendChild(cell);
-          }
-        });
-
-        let timers = [];
-        const animateLabel = () => {
-          timers.forEach(clearTimeout);
-          timers = [];
-          const eraseDone = cells.length * STEP;
-          cells.forEach((cell, i) => {
-            timers.push(setTimeout(() => { cell.style.opacity = '0'; }, i * STEP));
-            timers.push(setTimeout(() => { cell.style.opacity = '1'; }, eraseDone + i * STEP));
+          requestAnimationFrame(() => {
+            chars.forEach(({ span }) => {
+              span.style.transition = 'transform 0.5s cubic-bezier(0.16,1,0.3,1)';
+            });
           });
         };
 
-        btn.addEventListener('mouseenter', () => { animateLabel(); });
-        btn.addEventListener('mouseleave', () => { animateLabel(); });
-      } else {
-        // Touch devices: play the animation once on load.
-        const btn = document.querySelector('.btn');
-        const label = btn.querySelector('span');
-        const STEP = 26;
+        document.fonts.ready.then(remeasure);
+        window.addEventListener('load', remeasure);
+        window.addEventListener('resize', remeasure);
 
-        const originalText = label.textContent;
-        const cells = [];
-        label.textContent = '';
-        [...originalText].forEach((ch) => {
-          if (ch === ' ') {
-            label.appendChild(document.createTextNode(' '));
-          } else {
-            const cell = document.createElement('span');
-            cell.className = 'cell';
-            cell.textContent = ch;
-            cells.push(cell);
-            label.appendChild(cell);
-          }
-        });
-
-        document.fonts.ready.then(() => {
-          const eraseDone = cells.length * STEP;
-          cells.forEach((cell, i) => {
-            setTimeout(() => { cell.style.opacity = '0'; }, i * STEP);
-            setTimeout(() => { cell.style.opacity = '1'; }, eraseDone + i * STEP);
+        window.addEventListener('mousemove', (e) => {
+          chars.forEach(({ span }) => {
+            const dx = span._cx - e.clientX;
+            const dy = span._cy - e.clientY;
+            const dist = Math.hypot(dx, dy);
+            if (dist < RADIUS) {
+              const force = (1 - dist / RADIUS) * STRENGTH;
+              span.style.transform = `translate(${(dx / (dist || 1)) * force}px,${(dy / (dist || 1)) * force}px)`;
+            } else {
+              span.style.transform = '';
+            }
           });
         });
+
+        document.addEventListener('mouseleave', () => {
+          chars.forEach(({ span }) => { span.style.transform = ''; });
+        });
+
+        let timers = [];
+        btn.addEventListener('mouseenter', () => {
+          timers.forEach(clearTimeout); timers = [];
+          animateLabel();
+        });
+        btn.addEventListener('mouseleave', () => {
+          timers.forEach(clearTimeout); timers = [];
+          animateLabel();
+        });
+      } else {
+        // Mobile/tablet: no magnet effect, CTA animates once after fonts load.
+        document.fonts.ready.then(animateLabel);
       }
     }
   </script>
