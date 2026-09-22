@@ -17,7 +17,7 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; touch-action: manipulation; /* no double-tap zoom; pinch and pan still work */ }
 
 body {
   background: var(--bg);
@@ -321,7 +321,10 @@ ul { list-style: none; }
   width: calc(4 * var(--colw) + 3 * var(--g));
 }
 /* Notes mode only changes the size. The measure stays the same in em as on the main screen,
-   so the quote breaks into the same lines in both modes. */
+   so the quote breaks into the same lines in both modes — and to make sure of it, the notes
+   quote is rendered with the main quote's line breaks hard-coded (js/app.js → lockLines) and
+   must not be re-wrapped: `pre`, not `pre-line`. */
+.quote--locked { white-space: pre; } /* the shorthand also resets text-wrap: no re-wrapping at all */
 .notes .quote[data-tier="l"]  { --q-size: var(--quote-l-notes); }
 .notes .quote[data-tier="m"]  { --q-size: var(--quote-m-notes); }
 .notes .quote[data-tier="s"]  { --q-size: var(--quote-s-notes); }
@@ -407,6 +410,7 @@ ul { list-style: none; }
   .n-pin { position: static; height: auto; padding: 124px var(--m) 0; filter: none !important; }
   .app.is-dim .n-pin { filter: blur(25px) !important; }
   .n-from { position: static; }
+  .n-source { max-width: none; margin-right: 40px; } /* as wide as the notes body below */
   .notes .q-wrap { position: relative; top: auto; left: auto; width: auto; margin-top: 100px; }
   .notes .q-wrap.has-lang { margin-top: 128px; }
   #nVideoPin { display: block; }
@@ -551,8 +555,10 @@ ul { list-style: none; }
 }
 
 @media (max-width: 599px) {
-  .menu { --list-top: 18.5vh; }
-  .cat-row { width: 100%; } /* no side column on a phone: the whole row is the tap target */
+  /* Rows start 80px under the Back link (its top + one text line + underline gap). */
+  .menu { --list-top: calc(20px + var(--text-size) * var(--text-leading) + var(--link-gap) + 80px); }
+  .cat-row { width: 100%; padding-left: calc(var(--m) + var(--mark-large) + 40px); } /* no side column on a phone: the whole row is the tap target; 40px from the enlarged mark to the text */
+  .cat-row .cat-mark { left: calc(var(--m) + var(--mark-large) / 2); } /* the enlarged mark's left edge sits on the margin */
   .cat-desc { top: auto; left: var(--m); right: var(--m); bottom: 80px; width: auto; max-width: none; }
   .cat-desc-line, #catCount { display: none; }
 }
