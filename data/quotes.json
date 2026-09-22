@@ -1,0 +1,607 @@
+[
+  {
+    "id": 1,
+    "status": "live",
+    "text": "The amazing thing is that every atom in your body came from a star that exploded. And, the atoms in your left hand probably came from a different star than your right hand. It really is the most poetic thing I know about physics: You are all stardust.",
+    "originalLanguage": null,
+    "categories": [
+      "community"
+    ],
+    "author": {
+      "name": "Lawrence Krauss",
+      "nativeName": null,
+      "country": "US"
+    },
+    "source": {
+      "title": "A Universe from Nothing",
+      "year": null,
+      "kind": "book",
+      "link": null
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "Our lives are trivial, but we often give meaning to the meaningless. What unites us is our singular place in the universe. No one can escape it. No one can deny it.",
+    "keptBy": null,
+    "submittedAt": "2026-06-19T18:28:47",
+    "approvedAt": "2026-06-19T18:28:47"
+  },
+  {
+    "id": 2,
+    "status": "live",
+    "text": "I’ve missed more than 9000 shots in my career. I’ve lost almost 300 games. 26 times, I’ve been trusted to take the game winning shot and missed. I’ve failed over and over and over again in my life. And that is why I succeed.",
+    "originalLanguage": null,
+    "categories": [
+      "drive"
+    ],
+    "author": {
+      "name": "Michael Jordan",
+      "nativeName": null,
+      "country": "US"
+    },
+    "source": {
+      "title": "Nike Air Jordan Commercial",
+      "year": null,
+      "kind": "commercial",
+      "link": "https://www.youtube.com/watch?v=JA7G7AV-LT8"
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "People forget failure is necessary to succeed.",
+    "keptBy": null,
+    "submittedAt": "2026-06-19T18:30:56",
+    "approvedAt": "2026-06-19T18:30:56"
+  },
+  {
+    "id": 3,
+    "status": "live",
+    "text": "The illiterate of the twenty-first century will not be those who cannot read and write, but those who cannot learn, unlearn, and relearn.",
+    "originalLanguage": null,
+    "categories": [
+      "growth"
+    ],
+    "author": {
+      "name": "Alvin Toffler",
+      "nativeName": null,
+      "country": "US"
+    },
+    "source": {
+      "title": "Future Shock",
+      "year": null,
+      "kind": "book",
+      "link": null
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "We must raise the bar for society or be judged for those we leave behind. This is a stark reminder of what it means to exist in a modern society.",
+    "keptBy": null,
+    "submittedAt": "2026-06-19T18:36:09",
+    "approvedAt": "2026-06-19T18:36:09"
+  },
+  {
+    "id": 4,
+    "status": "live",
+    "text": "Nothing of me is original. I am the combined effort of everyone I’ve ever known.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "name": "Chuck Palahniuk",
+      "nativeName": null,
+      "country": "US"
+    },
+    "source": {
+      "title": "Invisible Monsters",
+      "year": null,
+      "kind": "book",
+      "link": "https://www.amazon.com/Invisible-Monsters-Novel-Chuck-Palahniuk/dp/0393355950"
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "Life is about the people who took the time to hold the door, listen to a story, or stick their neck out for you.",
+    "keptBy": null,
+    "submittedAt": "2026-06-19T18:38:28",
+    "approvedAt": "2026-06-19T18:38:28"
+  },
+  {
+    "id": 5,
+    "status": "live",
+    "text": "You know what’s weird? Day by day, nothing seems to change, but pretty soon...everything’s different.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "name": "Bill Watterson",
+      "nativeName": null,
+      "country": "US"
+    },
+    "source": {
+      "title": "Calvin and Hobbes",
+      "year": null,
+      "kind": "comic",
+      "link": "https://positron11.github.io/watterson/"
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "This is a universal truth that becomes more scary as your perception of time speeds up.",
+    "keptBy": null,
+    "submittedAt": "2026-06-19T18:42:50",
+    "approvedAt": "2026-06-19T18:42:50"
+  },
+  {
+    "id": 6,
+    "status": "live",
+    "text": "Horses don’t stop. They keep going.",
+    "originalLanguage": null,
+    "categories": [
+      "growth",
+      "drive"
+    ],
+    "author": {
+      "name": "young thug",
+      "nativeName": null,
+      "country": "US"
+    },
+    "source": {
+      "title": null,
+      "year": null,
+      "kind": null,
+      "link": null
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "to me it represents the need to stay resilient and continue to press forward",
+    "keptBy": null,
+    "submittedAt": "2026-06-27T10:22:56",
+    "approvedAt": "2026-06-27T10:22:56"
+  },
+  {
+    "id": 7,
+    "status": "live",
+    "text": "Let us cheerfully do all things that lie in our power; and then may we stand still, with the utmost assurance, to see the salvation of God, and for his arm to be revealed.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "name": "Joseph Smith",
+      "nativeName": null,
+      "country": "US"
+    },
+    "source": {
+      "title": "Doctrine and Covenants",
+      "year": null,
+      "kind": "scripture",
+      "link": "https://www.churchofjesuschrist.org/study/scriptures/dc-testament/dc/123?lang=eng"
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "I love how it illustrates the relationship of god and us, the relationship of work and rest, the relationship of joy and peace. it gives an assurance that god’s hand is in our lives and if we are still at times it will be revealed.",
+    "keptBy": "Harbor",
+    "submittedAt": "2026-06-27T11:14:12",
+    "approvedAt": "2026-06-27T11:14:12"
+  },
+  {
+    "id": 8,
+    "status": "live",
+    "text": "Thus, when Heaven is about to confer a great office on any man, it first exercises his mind with suffering, and his sinews and bones with toil. It exposes his body to hunger, and subjects him to extreme poverty. It confounds his undertakings. By all these methods it stimulates his mind, hardens his nature, and supplies his incompetencies.",
+    "originalLanguage": {
+      "lang": "zh",
+      "text": "故天将降大任于是人也，必先苦其心志，劳其筋骨，饿其体肤，空乏其身，行拂乱其所为，所以动心忍性，增益其所不能。"
+    },
+    "categories": [
+      "perspective",
+      "growth"
+    ],
+    "author": {
+      "name": "Mencius",
+      "nativeName": "孟子",
+      "country": "CN"
+    },
+    "source": {
+      "title": "The Works of Mencius",
+      "year": null,
+      "kind": "book",
+      "link": "https://en.wikisource.org/wiki/The_Chinese_Classics/Volume_2/The_Works_of_Mencius/chapter13"
+    },
+    "context": "Mencius is arguing that hardship is not a sign of misfortune but preparation: before entrusting someone with great responsibility, Heaven first tests them — straining their resolve, wearing down their body, disrupting their plans — so that their mind is stirred and their character made resilient.",
+    "annotations": [
+      {
+        "word": "confer a great office",
+        "explanation": "Assign someone a position of major responsibility"
+      },
+      {
+        "word": "sinews",
+        "explanation": "His physical body/muscles"
+      },
+      {
+        "word": "confounds his undertakings",
+        "explanation": "It disrupts or frustrates his plans and efforts"
+      },
+      {
+        "word": "supplies his incompetencies",
+        "explanation": "The hardship itself fills the gaps in his ability, like the difficulty builds the missing strength directly"
+      }
+    ],
+    "reflection": "This is one of the most memorable lines from my middle school Chinese class. Whenever life gets hard, my mind uses this line to remind me that hardship is what makes me stronger, so I keep moving forward.",
+    "keptBy": "Bill",
+    "submittedAt": "2026-07-07T12:12:48",
+    "approvedAt": "2026-07-07T12:12:48"
+  },
+  {
+    "id": 9,
+    "status": "live",
+    "text": "Who looks outside dreams; who looks inside awakes.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "name": "C.G. Jung",
+      "nativeName": null,
+      "country": "CH"
+    },
+    "source": {
+      "title": "Letter to Fanny Bowditch",
+      "year": 1916,
+      "kind": "letter",
+      "link": "https://www.angelikiyiassemides.com/en/news/misusing-jung-who-looks-outside-dreams-who-looks-inside-awakes"
+    },
+    "context": "“Your vision will become clear only when you can look into your own heart. Without, everything seems discordant; only within does it coalesce into unity. Who looks outside dreams; who looks inside awakes.”\n\nJung wrote this to a patient going through depression, urging her to stop projecting her inner turmoil outward and to withdraw her emotional dependency on him as her analyst — turning inward toward her own psyche instead.",
+    "annotations": [],
+    "reflection": "We often chase success defined by others, and lose ourselves in the process. This quote reminds me that clarity comes from turning inward, not outward. It also echoes another idea I carry around — “I am who I think you think I am” — how much of our self-image is shaped by imagining what others think, rather than real self-knowledge.",
+    "keptBy": "Bill",
+    "submittedAt": "2026-07-07T13:30:05",
+    "approvedAt": "2026-07-07T13:30:05"
+  },
+  {
+    "id": 10,
+    "status": "live",
+    "text": "Someone once told me the definition of Hell: The last day you have on earth, the person you became will meet the person you could have become.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "name": "Dan Sullivan",
+      "nativeName": null,
+      "country": "CA"
+    },
+    "source": {
+      "title": "Who Not How",
+      "year": 2020,
+      "kind": "book",
+      "link": "https://www.youtube.com/watch?v=wskoP7xVMXc"
+    },
+    "context": "This line gained wider resonance after Viola Davis referenced it in her Chairman’s Award acceptance speech at the 57th NAACP Image Awards (2026), using it to reflect on growth, living in one’s own truth, and becoming who we are meant to be.",
+    "annotations": [],
+    "reflection": "This quote puts life into perspective — it’s the ultimate question: are you satisfied with this version of you? It makes me think about who I can be and who I want to be, as opposed to who I’m expected to be. The only happy path is to stay true and be my own person.",
+    "keptBy": "Bill",
+    "submittedAt": "2026-07-07T14:05:57",
+    "approvedAt": "2026-07-07T14:05:57"
+  },
+  {
+    "id": 11,
+    "status": "live",
+    "text": "You’re the best person out there to put up a good fight for you.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective",
+      "growth"
+    ],
+    "author": {
+      "name": "Sheryl Lee Ralph",
+      "nativeName": null,
+      "country": "US"
+    },
+    "source": {
+      "title": "Emmys Red Carpet Interview",
+      "year": 2022,
+      "kind": "interview",
+      "link": "https://www.youtube.com/watch?v=xZFyT_8gukU"
+    },
+    "context": "Sheryl Lee Ralph got her 1st Emmy Nomination at the age of 65, and this was the advice for those who struggle with their dreams:  “Don’t you ever give up. Don’t you ever give up on you. Don’t you ever give up on your dreams. Because no matter what, if it is meant for you, it will not miss you… So you must believe in yourself. You must really get up off of the sidelines of your own life and get in there and fight for you.You’re the best person out there to put up a good fight for you. And just know, if you don’t make it at 10 you can make it at 30. You don’t make it at 30 you can make it at 50. You don’t make it at 50, you can make it at 60 and still give them goodness.”",
+    "annotations": [],
+    "reflection": "I came across this quote right after I learned my green card application had been denied, randomly, after two years of waiting. I was disappointed, angry, and helpless. Then I found this video, and it ignited something in me — to think of solutions, to try again. I have no doubt this setback will eventually lead to many great achievements in my life.",
+    "keptBy": "Bill",
+    "submittedAt": "2026-07-07T14:39:59",
+    "approvedAt": "2026-07-07T14:39:59"
+  },
+  {
+    "id": 12,
+    "status": "live",
+    "text": "Journey’s not just a band.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "name": "My Dad",
+      "nativeName": null,
+      "country": "US"
+    },
+    "source": {
+      "title": null,
+      "year": null,
+      "kind": null,
+      "link": null
+    },
+    "context": "My dad’s full of one liners and catch phrases. But this one’s always stuck with me.",
+    "annotations": [],
+    "reflection": "It reminds me that life’s a journey filled with ups, downs, small victories and unexpected turns. That phase always grounds me, and brings a smile to my face. It reminds me that tomorrow’s a new day, and its all part of the journey.",
+    "keptBy": "Katie",
+    "submittedAt": "2026-07-10T18:45:08",
+    "approvedAt": "2026-07-10T18:45:08"
+  },
+  {
+    "id": 13,
+    "status": "live",
+    "text": "Keep going.",
+    "originalLanguage": null,
+    "categories": [
+      "growth"
+    ],
+    "author": {
+      "name": "Li-Ying Bao",
+      "nativeName": null,
+      "country": "CN"
+    },
+    "source": {
+      "title": null,
+      "year": null,
+      "kind": null,
+      "link": null
+    },
+    "context": "Li-Ying Bao was one of my Design professors in college. Anytime she was done critiquing your work, she would smile at you, nod her head and say ‘keep going’.",
+    "annotations": [],
+    "reflection": "It was her way of telling you, you’re not there yet, but keep going, and you’ll get there. She taught me perseverance through iteration and problem solving. Late at night in the design lab, we’d write it on the whiteboard, and remember to keep going.",
+    "keptBy": "Katie",
+    "submittedAt": "2026-07-10T18:54:07",
+    "approvedAt": "2026-07-10T18:54:07"
+  },
+  {
+    "id": 14,
+    "status": "live",
+    "text": "When looking up, the universe is vast;\nWhen looking down, abundance fills the earth\nContentment greets the mind that wanders past\nA host of sights and sounds of pure delight.\nHow wonderful to know joy’s greatest height!",
+    "originalLanguage": {
+      "lang": "zh",
+      "text": "仰观宇宙之大，俯察品类之盛，所以游目骋怀，足以极视听之娱，信可乐也。"
+    },
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "name": "Wang Xizhi",
+      "nativeName": "王羲之",
+      "country": "CN"
+    },
+    "source": {
+      "title": "Preface to the Poems Composed at the Orchid Pavilion",
+      "year": null,
+      "kind": "essay",
+      "link": "https://www.classicalpoets.org/preface-to-the-poems-composed-at-the-orchid-pavilion-a-rhyming-poetry-translation/"
+    },
+    "context": "On the third day of the third lunar month of 353, Wang Xizhi invited a group of family and friends to his Orchid Pavilion for the Spring Purification Festival. Water and orchids were said to ward away the evil vapors of winter on this day, bringing good fortune in its place. The pavilion was surrounded on all sides by fresh bamboo and lofty mountains, and overlooked a winding stream. The day was sunny but cool—a refreshing breeze drifted through the air, and many of the guests settled themselves by the banks of the water.\n\nServants sent floating cups of wine flowing downstream, and where they stopped, the nearest guest had to compose a poem on the spot—or drink three cups as penalty. Of the 41 guests, 26 composed a total of 37 poems, inspiring Wang Xizhi to pen his famous Preface. Historical records state Wang used a weasel-whisker brush on cocoon paper.\n\nThis same work would be passed down in the Wang family for generations until its last surviving heir—a monk named Zhiyong—gave it to the care of his disciple Biancai. By that time, nearly three hundred years had passed and the Tang Dynasty (618-907) had just established its rule over China. Eventually, the manuscript found its way into the hands of Emperor Tang Taizong, who had previously only seen copies of the original.\n\nMore copies of the Preface were traced, written, and even engraved on stone, though legend states that the emperor took the original with him to the tomb.\n\nIn subject matter, the Preface is a simple description of the poet’s musings—but written so elegantly, so masterfully that it leaves a heavy impression on the reader. Many words appear in it multiple times: the character 之 (pronounced zhī, meaning “of,” and also part of his name, Wang Xizhi) shows up 20 times alone, but each time is written differently, carrying unique stylistic flavors.\n\nIn this work, too, lies an appeal to the present—and the future. A written prediction by the poet states that future generations “will look upon us just as we looked upon the past.” The joys and disappointments of living, the cherished memories of happiness, are but a blink of history’s eyes. But even though time may change, human sentiment will not. It is constant in its inconstancy, full of rhythm and cadence echoed in the Preface’s own handwritten characters.\n\nWang Xizhi writes, but not for history, and not wholly for himself. Rather, he observes life and shares it with us, his future readers, inviting us to live as he does in the past. The “causes for feelings and mood remain the same,” he says, metaphorically extending his hand to ours.\n\nFor a calligraphy sage, he is also a masterfully candid poet.\n\n“Read me and see,” the poet coaxes. “We are not so different, you and I.”",
+    "annotations": [],
+    "reflection": "Its boundless vision of the world reveals a remarkably expansive spirit. Whenever life feels heavy, I take on a trip and these words would lift my perspective, reminding me to embrace freedom of mind, a broader view, and the grace to let go.",
+    "keptBy": "Ruolin",
+    "submittedAt": "2026-07-12T08:13:52",
+    "approvedAt": "2026-07-12T08:13:52"
+  },
+  {
+    "id": 15,
+    "status": "live",
+    "text": "Never romanticize the path you didn’t choose; it is not paved with flowers.",
+    "originalLanguage": {
+      "lang": "zh",
+      "text": "人生没有选择的那条路，也并不会开满鲜花。"
+    },
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "name": "A character in Imperfect Us",
+      "nativeName": null,
+      "country": "TW"
+    },
+    "source": {
+      "title": "Imperfect Us",
+      "year": null,
+      "kind": "series",
+      "link": null
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "It aligns with another quote that I believe - regret nothing.",
+    "keptBy": "Lynn Tian",
+    "submittedAt": "2026-07-18T12:15:38",
+    "approvedAt": "2026-07-18T12:15:38"
+  },
+  {
+    "id": 16,
+    "status": "live",
+    "text": "When you’re young, you think you can take on the whole world. What you don’t realize is — in the end, the world takes down everyone.",
+    "originalLanguage": {
+      "lang": "zh",
+      "text": "年轻嘛，总觉得自己可以干掉世界，殊不知其实每个人的结局，都是要被这个世界干掉。"
+    },
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "name": "Gao Jiacheng",
+      "nativeName": "高嘉程",
+      "country": "CN"
+    },
+    "source": {
+      "title": "Smile and Keep Living",
+      "year": 2018,
+      "kind": "book",
+      "link": null
+    },
+    "context": "《笑着活下去》is a sharp, distinctly voiced essay collection by Gao Jiacheng — who first gained attention in 2017 for his savage wit on the show 奇葩大会 (Qipa Dahui), later transitioning from a casting director at Mi Wei Media to a signed talent there. The book gathers 27 personal essays — some about childhood absurdities, some about the fickleness of human relationships, some about the tearing pain of growing up.",
+    "annotations": [],
+    "reflection": "It’s so true. It reminds me of my younger self, full of energy and drive, excited for my dreams and future. But as we all learn, life sometimes hits you hard. Still — if we all die one day anyway, it won’t hurt to live a little.",
+    "keptBy": "Bill",
+    "submittedAt": "2026-07-24T15:47:55",
+    "approvedAt": "2026-07-24T15:47:55"
+  },
+  {
+    "id": 17,
+    "status": "live",
+    "text": "You be it. Be about it.",
+    "originalLanguage": null,
+    "categories": [
+      "drive"
+    ],
+    "author": {
+      "name": "Beyoncé",
+      "nativeName": null,
+      "country": "US"
+    },
+    "source": {
+      "title": "Dear Class of 2020 Commencement Speech",
+      "year": 2020,
+      "kind": "speech",
+      "link": "https://www.youtube.com/watch?v=vLo5XMjIJD8"
+    },
+    "context": "This line comes from Beyoncé’s speech at YouTube’s “Dear Class of 2020” virtual commencement — a star-studded event held for graduates whose ceremonies were cancelled during the pandemic. In the full passage, she says: “You be it. Be about it. Be about that action and go do it. Keep your eye on your intention. Don’t let any outside distraction or your own insecurity stop you from your goals. Embrace that struggle.” It follows her sharing her own experience of taking a leap to build her own company.",
+    "annotations": [],
+    "reflection": "I hung this quote on my wall. It reminds me that I have the ability to be the change I want to see, and it makes me feel powerful — like I want to get things done. I feel like it also sums up why Beyoncé is as successful as she is.",
+    "keptBy": "Bill",
+    "submittedAt": "2026-07-24T15:55:33",
+    "approvedAt": "2026-07-24T15:55:33"
+  },
+  {
+    "id": 18,
+    "status": "live",
+    "text": "Let your dog take you on a walk.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "name": "Jess",
+      "nativeName": null,
+      "country": "TW"
+    },
+    "source": {
+      "title": null,
+      "year": null,
+      "kind": null,
+      "link": null
+    },
+    "context": "As we are busy glued to our computers and screens, “let your dog take you on a walk” is a good reminder to myself that - instead of it feels like a responsibility / chore, it is an invitation, a gift to go outside an breathing fresh air.",
+    "annotations": [],
+    "reflection": "I have been working from home since 2020, and I’m guilty of never leaving my desk. The WFH is a privilege, but also a logistics challenge to not have separation between work and self. \n\nI used to have this phrase written on a post it, right on my monitor. It’s a little reminder daily that - hey, look up, and look out.",
+    "keptBy": "Jess",
+    "submittedAt": "2026-07-24T16:13:30",
+    "approvedAt": "2026-07-24T16:13:30"
+  },
+  {
+    "id": 19,
+    "status": "live",
+    "text": "That dying is what, to live, each has to do.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "name": "Alastair Reid",
+      "nativeName": null,
+      "country": "GB"
+    },
+    "source": {
+      "title": "Curiosity",
+      "year": null,
+      "kind": "poem",
+      "link": "https://poetryarchive.org/poem/curiosity/"
+    },
+    "context": "It’s a play on the idiom, “curiosity killed the cat.” But unlike the original intent of the idiom, the poet claims that curiosity is needed to live a full life, and reframes “death” as reinventions of oneself.",
+    "annotations": [],
+    "reflection": "It’s inspired my drive for not being afraid to challenge myself and try new things, even if it’s risky or scary.",
+    "keptBy": "David",
+    "submittedAt": "2026-07-24T21:00:22",
+    "approvedAt": "2026-07-24T21:00:22"
+  },
+  {
+    "id": 20,
+    "status": "live",
+    "text": "Remember to react.",
+    "originalLanguage": null,
+    "categories": [
+      "community"
+    ],
+    "author": {
+      "name": "Jenny Holzer",
+      "nativeName": null,
+      "country": "US"
+    },
+    "source": {
+      "title": "Survival Series",
+      "year": null,
+      "kind": "artwork",
+      "link": null
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "I came across this quote during the height of the BLM movement. At the time, there was constant bombardment on the news about violence against innocent people. It was easy to tune out and become numb to it. I got this statement tattooed to remind myself to remain impassioned about injustice, even if we feel like it would be easier to tune out.",
+    "keptBy": null,
+    "submittedAt": "2026-07-25T14:07:26",
+    "approvedAt": "2026-07-25T14:07:26"
+  },
+  {
+    "id": 21,
+    "status": "live",
+    "text": "Stay drunk on writing, so reality can’t destroy you.",
+    "originalLanguage": null,
+    "categories": [
+      "growth",
+      "drive"
+    ],
+    "author": {
+      "name": "Ray Bradbury",
+      "nativeName": null,
+      "country": "US"
+    },
+    "source": {
+      "title": null,
+      "year": null,
+      "kind": null,
+      "link": null
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "Creatives are often seen as second rate citizens, expected to be able to handle routines, practices and customs like non creatives would, but fail to see the need for this restriction. Leading to them being excluded form life. Yet, everything non-creative people consume every single day, often for hours, was made by people like this. The quote to me is a help for all creatives stuck in a reality that will destroy them if they can’t find a smart hack to survive it.",
+    "keptBy": "Petra Quilitz",
+    "submittedAt": "2026-07-27T17:53:06",
+    "approvedAt": "2026-07-27T17:53:06"
+  },
+  {
+    "id": 22,
+    "status": "live",
+    "text": "Anybody can play. The note is only 20 percent. The attitude of the motherfucker who plays it is 80 percent.",
+    "originalLanguage": null,
+    "categories": [
+      "drive"
+    ],
+    "author": {
+      "name": "Miles Davis",
+      "nativeName": null,
+      "country": "US"
+    },
+    "source": {
+      "title": null,
+      "year": null,
+      "kind": null,
+      "link": null
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "Besides being a fan of Miles Davis’ work, this quote spoke to me and my approach to my own life and work. Technical skills or doing things by the book can be learnt. Heart, soul, courage, confidence, character, personal touch or emotional intent comes from within.",
+    "keptBy": "RR",
+    "submittedAt": "2026-08-02T15:44:54",
+    "approvedAt": "2026-08-02T15:44:54"
+  }
+]

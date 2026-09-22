@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <!-- Staging: keep out of search engines until launch. Remove on publish. -->
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Words We Keep</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital@0;1&family=Instrument+Serif:ital@0;1&family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@500&display=swap" rel="stylesheet">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="app" id="app" data-mode="main">
+
+    <!-- Main: one quote per screen, snapping deck -->
+    <main class="deck" id="deck" aria-live="polite">
+      <div class="track" id="track"></div>
+    </main>
+
+    <!-- Notes mode -->
+    <section class="notes" id="notes" aria-label="Notes" hidden>
+      <ul class="n-cats" id="nCats"></ul>
+      <div class="n-pin" id="nPin">
+        <div class="n-meta n-from">
+          <p>Words from</p>
+          <p class="n-indent n-indent--from" id="nFrom"></p>
+        </div>
+        <div class="q-wrap" id="nQuoteWrap"></div>
+        <div id="nVideoPin"></div>
+      </div>
+      <div class="n-col" id="nCol">
+        <div id="nVideoCol"></div>
+        <div class="n-meta n-kept">
+          <p>Kept by</p>
+          <p class="n-indent n-indent--kept" id="nKept"></p>
+        </div>
+        <div class="n-body" id="nBody"></div>
+      </div>
+      <div class="n-topfade" aria-hidden="true"></div>
+    </section>
+
+    <!-- Chrome -->
+    <button class="chrome menu-btn" id="menuBtn" aria-label="Menu"><span class="icon icon-mark"></span></button>
+    <p class="chrome number" id="number"></p>
+    <button class="chrome link notes-btn" id="notesBtn">Notes</button>
+    <a class="chrome link add-btn" id="addBtn" href="https://forms.gle/uLNipYUT6cnNmigw5" target="_blank" rel="noopener">Add words</a>
+    <div class="chrome arrows">
+      <button id="prevBtn" aria-label="Previous quote"><span class="icon icon-arrow"></span></button>
+      <button id="nextBtn" aria-label="Next quote"><span class="icon icon-arrow icon-arrow--down"></span></button>
+    </div>
+
+    <!-- Word annotation overlay -->
+    <div class="overlay ann-overlay" id="annOverlay" hidden>
+      <button class="x-btn ann-back" id="annBack" aria-label="Close"></button>
+      <p class="ann-word" id="annWord"></p>
+      <p class="ann-text" id="annText"></p>
+    </div>
+
+    <!-- Video overlay -->
+    <div class="overlay video-overlay" id="videoOverlay" hidden>
+      <div class="video-box" id="videoBox">
+        <button class="x-btn video-close" id="videoClose" aria-label="Close"></button>
+        <div class="video-frame" id="videoFrame"></div>
+      </div>
+    </div>
+
+    <!-- Menu -->
+    <nav class="menu" id="menu" aria-label="Categories" hidden>
+      <button class="link menu-back" id="menuBack">Back</button>
+      <ul class="cat-list" id="catList"></ul>
+      <aside class="cat-desc">
+        <p id="catDescText"></p>
+        <span class="cat-desc-line" aria-hidden="true"></span>
+        <p id="catCount"></p>
+      </aside>
+      <button class="menu-apply" id="menuApply"></button>
+    </nav>
+  </div>
+
+  <!-- "Scan" effect for entering notes: RGB-split filters are generated into these defs by
+       js/app.js (scanIn), at a strength that depends on how far down the screen an item sits.
+       Native SVG filters — no library, no external code. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs id="rgbDefs"></defs>
+  </svg>
+
+  <noscript>Words We Keep needs JavaScript to show its quotes.</noscript>
+  <script src="js/app.js"></script>
+</body>
+</html>
