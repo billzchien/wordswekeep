@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Words We Keep — Styleguide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital@0;1&family=Instrument+Serif:ital@0;1&family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@500&display=swap" rel="stylesheet">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/tokens.css" id="tokensSheet">
+  <style>
+    /* Page scaffolding only — every color and type value shown is read from tokens.css. */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; scroll-padding-top: 40px; }
+    body { background: #f4f4f2; color: var(--ink); font-size: 17px; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; letter-spacing: 0; font-feature-settings: normal; }
+
+    .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh; }
+
+    /* Left nav */
+    nav { position: sticky; top: 0; height: 100vh; padding: 32px 24px; border-right: 1px solid rgba(0,0,0,0.12); display: flex; flex-direction: column; gap: 28px; overflow-y: auto; }
+    nav .brand { font-family: var(--font-display); font-style: italic; font-size: 26px; line-height: 1.1; }
+    nav h2 { font: inherit; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.45; margin-bottom: 8px; }
+    nav li { list-style: none; }
+    nav li a { display: block; padding: 5px 10px; margin-left: -10px; border-radius: 6px; }
+    nav li a:hover { background: rgba(0,0,0,0.05); }
+    nav li a.is-active { background: var(--ink); color: var(--white); }
+    nav .foot { margin-top: auto; font-size: 14px; opacity: 0.6; line-height: 1.35; }
+    nav .foot a { border-bottom: var(--hairline) solid currentColor; }
+    .demo-link { --line: var(--hairline); background: linear-gradient(currentColor, currentColor) left bottom / 100% var(--line) no-repeat; padding-bottom: var(--link-gap); cursor: pointer; }
+    .demo-link:hover { animation: link-draw 0.7s var(--ease); }
+    @keyframes link-draw {
+      0%      { background-position: right bottom; background-size: 100% var(--line); }
+      45%     { background-position: right bottom; background-size: 0% var(--line); }
+      45.01%  { background-position: left bottom;  background-size: 0% var(--line); }
+      100%    { background-position: left bottom;  background-size: 100% var(--line); }
+    }
+
+    /* Content */
+    main { padding: 32px 48px 160px; max-width: 1100px; }
+    .bp { display: inline-block; font-size: 14px; padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,0.06); margin-bottom: 48px; }
+    section { padding: 0 0 96px; }
+    section > h1 { font-family: var(--font-display); font-weight: 400; font-size: 44px; line-height: 1.1; margin-bottom: 8px; }
+    section > .lede { max-width: 560px; opacity: 0.65; margin-bottom: 32px; line-height: 1.35; }
+    h3 { font: inherit; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.45; margin: 40px 0 12px; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+    .card { border-radius: 10px; overflow: hidden; background: #fff; border: 1px solid rgba(0,0,0,0.1); }
+    .card .chip { height: 120px; background: var(--bg); color: var(--fg); padding: 16px; display: flex; align-items: flex-end; border-bottom: 1px solid rgba(0,0,0,0.1); }
+    .card .chip .t-quote { font-size: 30px; }
+    .card .info { padding: 12px 16px 14px; display: grid; gap: 4px; }
+    .card .name { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .tag { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: #ffe9a8; white-space: nowrap; }
+    .kv { display: flex; justify-content: space-between; gap: 12px; opacity: 0.7; font-size: 14px; }
+
+    .panel { background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 10px; overflow: hidden; }
+    .panel + .panel { margin-top: 16px; }
+    .panel > .meta { display: flex; flex-wrap: wrap; gap: 6px 20px; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid rgba(0,0,0,0.08); font-size: 14px; }
+    .panel > .meta span:last-child { opacity: 0.6; }
+    .panel > .body { padding: 24px 16px; background: var(--paper); overflow-wrap: break-word; }
+
+    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 10px; overflow: hidden; font-size: 15px; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid rgba(0,0,0,0.08); white-space: nowrap; }
+    th { font-weight: 400; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.5; }
+    tr:last-child td { border-bottom: 0; }
+    td.now, th.now { background: rgba(0,0,0,0.045); }
+    .scroll-x { overflow-x: auto; }
+
+    .glyph { width: 24px; height: 24px; display: inline-grid; place-items: center; border: var(--hairline) solid currentColor; font-family: var(--font-native-ui); font-weight: 500; font-size: var(--glyph-size); line-height: 1; letter-spacing: 0; }
+
+    @media (max-width: 800px) {
+      .layout { display: block; }
+      nav { position: sticky; z-index: 5; height: auto; flex-direction: row; align-items: center; gap: 16px; padding: 10px 16px; background: #f4f4f2; border-right: 0; border-bottom: 1px solid rgba(0,0,0,0.12); overflow-x: auto; white-space: nowrap; }
+      nav .brand { font-size: 18px; }
+      nav h2, nav .foot { display: none; }
+      nav ul { display: flex; gap: 4px; }
+      nav li a { margin: 0; }
+      main { padding: 24px 16px 120px; }
+      section > h1 { font-size: 34px; }
+      html { scroll-padding-top: 70px; }
+    }
+  </style>
+</head>
+<body class="t-text">
+  <div class="layout">
+    <nav id="nav">
+      <a class="brand" href="./">Words We Keep</a>
+      <div>
+        <h2>Color</h2>
+        <ul>
+          <li><a href="#base">Base</a></li>
+          <li><a href="#categories">Categories</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Type</h2>
+        <ul>
+          <li><a href="#families">Families</a></li>
+          <li><a href="#quote-scale">Quote scale</a></li>
+          <li><a href="#text">Text</a></li>
+          <li><a href="#original">Original language</a></li>
+        </ul>
+      </div>
+      <p class="foot">All values are read live from <code>css/tokens.css</code>. Edit that file and refresh.<br><br><a href="./">Back to site</a></p>
+    </nav>
+
+    <main>
+      <span class="bp" id="bp"></span>
+
+      <section id="base">
+        <h1>Base colors</h1>
+        <p class="lede">Used on the main screen and the menu. Components never use these directly; they use <code>--bg</code> and <code>--fg</code>, which default to paper and ink.</p>
+        <div class="cards" id="baseCards"></div>
+      </section>
+
+      <section id="categories">
+        <h1>Category palettes</h1>
+        <p class="lede">Notes mode takes the palette of the quote’s first category, in this order. Each palette is one background and one foreground.</p>
+        <div class="cards" id="themeCards"></div>
+      </section>
+
+      <section id="families">
+        <h1>Families</h1>
+        <p class="lede">Five families, each with one job.</p>
+        <div id="familyPanels"></div>
+      </section>
+
+      <section id="quote-scale">
+        <h1>Quote scale</h1>
+        <p class="lede">Fewer words, bigger type. A quote’s length picks its tier; each tier has a size for the main screen and one for notes mode, per breakpoint (desktop ≥ 1024, tablet 600–1023, mobile &lt; 600). Desktop sizes hold the Figma value up to 1440px wide, then grow with the window to 1.5× at 2160px; the spacing around the type grows by the same factor. The highlighted column is the one you’re viewing. A CJK character counts as four, and CJK runs at 80% of the tier size.</p>
+        <div class="scroll-x"><table id="scaleTable"></table></div>
+        <h3>Specimens at this window size</h3>
+        <div id="quoteSpecimens"></div>
+      </section>
+
+      <section id="text">
+        <h1>Text</h1>
+        <p class="lede">One style for everything that isn’t a quote: navigation, labels, metadata, notes, and context.</p>
+        <div id="textPanels"></div>
+      </section>
+
+      <section id="original">
+        <h1>Original language</h1>
+        <p class="lede">Shown when a quote has an original-language version. Upright rather than italic, with looser leading; it follows the same quote tiers.</p>
+        <div id="nativePanels"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const root = () => getComputedStyle(document.documentElement);
+    const raw = (name) => root().getPropertyValue(name).trim();
+    // Resolve a token to what the browser actually uses right now (sizes are N * --u).
+    const probe = document.createElement('i');
+    probe.style.cssText = 'position:absolute;visibility:hidden';
+    document.body.appendChild(probe);
+    const t = (name) => {
+      const v = raw(name);
+      if (!/var\(--u\)/.test(v)) return v;
+      probe.style.width = `var(${name})`;
+      return `${Math.round(parseFloat(getComputedStyle(probe).width) * 10) / 10}px`;
+    };
+    const panel = (title, detail, body, style = '') =>
+      `<div class="panel"><div class="meta"><span>${title}</span><span>${detail}</span></div><div class="body" style="${style}">${body}</div></div>`;
+
+    /* Colors */
+    const BASE = [['Paper', '--paper', '--ink', 'Main + menu background'], ['Ink', '--ink', '--white', 'Main + menu text'], ['White', '--white', '--ink', 'Text on ink']];
+    document.getElementById('baseCards').innerHTML = BASE.map(([name, bg, fg, use]) =>
+      `<div class="card"><div class="chip" style="--bg: var(${bg}); --fg: var(${fg})"></div>
+       <div class="info"><p class="name"><span>${name}</span></p><p class="kv"><code>${bg}</code><code>${t(bg)}</code></p><p class="kv"><span>${use}</span></p></div></div>`).join('');
+
+    const THEMES = [['Perspective', false], ['Growth', false], ['Drive', false], ['Community', false], ['Romance', false]];
+    document.getElementById('themeCards').innerHTML = THEMES.map(([name, placeholder], i) => {
+      const k = name.toLowerCase();
+      return `<div class="card"><div class="chip" data-theme="${k}"><p class="t-quote">Words we keep</p></div>
+        <div class="info"><p class="name"><span>${i + 1}. ${name}</span>${placeholder ? '<span class="tag">placeholder</span>' : ''}</p>
+        <p class="kv"><code>--${k}-bg</code><code>${t(`--${k}-bg`)}</code></p><p class="kv"><code>--${k}-fg</code><code>${t(`--${k}-fg`)}</code></p></div></div>`;
+    }).join('');
+
+    /* Families */
+    const first = (v) => v.split(',')[0].replace(/['"]/g, '').trim();
+    document.getElementById('familyPanels').innerHTML = [
+      ['--font-display', 'Quotes · always italic', '<p class="t-quote" style="font-size:48px">Who looks inside awakes.</p>'],
+      ['--font-text', 'Navigation, metadata, notes', '<p style="font-size:24px">Words from Steve Jobs, United States · No. 20</p>'],
+      ['--font-native-quote', 'Original-language quotes · medium', '<p class="t-quote-native" style="font-size:32px">信可乐也</p>'],
+      ['--font-native', 'Native-script author names', '<p style="font-family: var(--font-native); font-size:24px">王羲之</p>'],
+      ['--font-native-ui', 'Language button glyph', '<span class="glyph">中</span>'],
+    ].map(([tok, use, body]) => panel(`${first(t(tok))} <code>${tok}</code>`, use, body)).join('');
+
+    /* Quote scale table: read every breakpoint straight from the stylesheet. */
+    const TIERS = [
+      ['l', '≤ 64 chars', 'Who looks outside dreams; who looks inside awakes.'],
+      ['m', '≤ 160 chars', 'Nothing of me is original. I am the combined effort of everyone I’ve ever known.'],
+      ['s', '≤ 260 chars', 'The illiterate of the twenty-first century will not be those who cannot read and write, but those who cannot learn, unlearn, and relearn.'],
+      ['xs', 'longer', 'The amazing thing is that every atom in your body came from a star that exploded. And, the atoms in your left hand probably came from a different star than your right hand.'],
+    ];
+
+    function breakpointValues() {
+      const sheet = document.getElementById('tokensSheet').sheet;
+      const sets = { desktop: {}, tablet: {}, mobile: {} };
+      const grab = (rule, into) => { for (const p of rule.style) if (p.startsWith('--quote-')) into[p] = rule.style.getPropertyValue(p).trim(); };
+      for (const rule of sheet.cssRules) {
+        if (rule.selectorText === ':root') grab(rule, sets.desktop);
+        if (rule.media) {
+          const key = /599px/.test(rule.media.mediaText) ? 'mobile' : /1023px/.test(rule.media.mediaText) ? 'tablet' : null;
+          if (key) for (const r of rule.cssRules) if (r.selectorText === ':root') grab(r, sets[key]);
+        }
+      }
+      sets.tablet = { ...sets.desktop, ...sets.tablet };
+      sets.mobile = { ...sets.tablet, ...sets.mobile };
+      return sets;
+    }
+
+    function render() {
+      const w = window.innerWidth;
+      const bp = w < 600 ? 'mobile' : w < 1024 ? 'tablet' : 'desktop';
+      document.getElementById('bp').textContent = `Viewing at ${w}px — ${bp} values`;
+
+      const sets = breakpointValues();
+      const cols = [['desktop', 'Desktop'], ['tablet', 'Tablet'], ['mobile', 'Mobile']];
+      const short = (v, k) => { const m = /^calc\((\d+) \* var\(--u\)\)$/.exec(v || ''); return m ? (k === 'desktop' ? `${m[1]}px → ${m[1] * 1.5}px` : `${m[1]}px`) : (v || '—'); };
+      const cell = (k, name) => `<td class="${k === bp ? 'now' : ''}">${short(sets[k][name], k)}</td>`;
+      const rows = TIERS.flatMap(([tier, rule]) => [
+        `<tr><td><code>--quote-${tier}</code></td><td>${rule}</td><td>Main</td>${cols.map(([k]) => cell(k, `--quote-${tier}`)).join('')}</tr>`,
+        `<tr><td><code>--quote-${tier}-notes</code></td><td></td><td>Notes</td>${cols.map(([k]) => cell(k, `--quote-${tier}-notes`)).join('')}</tr>`,
+      ]);
+      rows.push(`<tr><td><code>--quote-annotation</code></td><td>Annotated word</td><td>Overlay</td>${cols.map(([k]) => cell(k, '--quote-annotation')).join('')}</tr>`);
+      document.getElementById('scaleTable').innerHTML =
+        `<tr><th>Token</th><th>Quote length</th><th>Where</th>${cols.map(([k, label]) => `<th class="${k === bp ? 'now' : ''}">${label}</th>`).join('')}</tr>${rows.join('')}`;
+
+      document.getElementById('quoteSpecimens').innerHTML = TIERS.map(([tier, rule, sample]) =>
+        panel(`Tier ${tier.toUpperCase()} · ${rule}`, `main ${t(`--quote-${tier}`)} · notes ${t(`--quote-${tier}-notes`)} · leading ${t('--quote-leading')}`,
+          `<p class="t-quote" style="font-size: var(--quote-${tier}); max-width: 860px">${sample}</p>`)).join('');
+
+      document.getElementById('textPanels').innerHTML =
+        panel('Text <code>.t-text</code>', `${t('--text-size')} / ${t('--text-leading')} · tracking ${t('--text-tracking')} · ss01 ss07 onum pnum`,
+          '<p style="max-width:400px">We often chase success defined by others, and lose ourselves in the process. This quote reminds me that clarity comes from turning inward, not outward. No. 20 · 1906–1950</p>') +
+        panel('Link', `hairline underline · ${t('--hairline')} · gap ${t('--link-gap')} · wipes out, then redraws left → right on hover`,
+          '<p><span class="demo-link">Notes</span> &nbsp;&nbsp; <span class="demo-link">Add words</span></p>') +
+        panel('On a category palette', 'same style, palette foreground',
+          '<p style="max-width:400px">Words from<br><span style="padding-left:40px">Wang Xizhi</span><br><span style="padding-left:40px">China</span></p>',
+          'background: var(--perspective-bg); color: var(--perspective-fg)');
+
+      document.getElementById('nativePanels').innerHTML =
+        panel('Quote <code>.t-quote-native</code>', `upright · leading ${t('--quote-native-leading')} · tier sizes`,
+          '<p class="t-quote-native" style="font-size: calc(var(--quote-s) * var(--quote-native-scale))">仰观宇宙之大，俯察品类之盛</p>') +
+        panel('Native author name', `${t('--text-native-size')} beside ${t('--text-size')} text`,
+          '<p>Wang Xizhi <span style="font-family: var(--font-native); font-size: var(--text-native-size); letter-spacing: 0">王羲之</span></p>') +
+        panel('Language button', `24px box · glyph ${t('--glyph-size')} medium`, '<span class="glyph">中</span>');
+    }
+    render();
+    window.addEventListener('resize', render);
+
+    /* Nav scroll-spy */
+    const links = [...document.querySelectorAll('nav li a')];
+    const spy = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        links.forEach((a) => a.classList.toggle('is-active', a.getAttribute('href') === `#${e.target.id}`));
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    document.querySelectorAll('main section').forEach((s) => spy.observe(s));
+  </script>
+</body>
+</html>

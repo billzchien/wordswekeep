@@ -1,0 +1,568 @@
+/* Words We Keep — main experience (layout + components; colors and type live in tokens.css)
+   Grid: 6 columns (desktop/tablet), 4 columns (mobile), 20px margin + 20px gutter. */
+
+:root {
+  --m: 20px;
+  --g: 20px;
+  --cols: 6;
+  --colw: calc((100vw - 2 * var(--m) - (var(--cols) - 1) * var(--g)) / var(--cols));
+  --step: calc(var(--colw) + var(--g));
+  --col1-mid: calc(var(--m) + var(--colw) / 2);
+  --col2: calc(var(--m) + var(--step));
+  --col3: calc(var(--m) + 2 * var(--step));
+  --col4: calc(var(--m) + 3 * var(--step));
+  --col6: calc(var(--m) + 5 * var(--step));
+
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+
+body {
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+ul { list-style: none; }
+[hidden] { display: none !important; }
+
+.app {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-text);
+  font-size: var(--text-size);
+  line-height: var(--text-leading);
+  letter-spacing: var(--text-tracking);
+  font-feature-settings: var(--text-features);
+}
+
+/* ---------- Shared bits ---------- */
+
+/* Focus: no ring for mouse/touch; a quiet hairline in the current color for Tab navigation. */
+:focus { outline: none; }
+:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; }
+
+/* Text links: hairline underline that redraws left → right on hover. */
+.link,
+.n-source a {
+  --line: var(--hairline);
+  background: linear-gradient(currentColor, currentColor) left bottom / 100% var(--line) no-repeat;
+  padding-bottom: var(--link-gap);
+}
+.link { display: inline-block; white-space: nowrap; }
+@media (max-resolution: 1.5dppx) { .link, .n-source a { --line: 1px; } }
+@media (hover: hover) {
+  .link:hover,
+  .n-source a:hover { animation: link-draw 0.7s var(--ease); }
+}
+@keyframes link-draw {
+  0%      { background-position: right bottom; background-size: 100% var(--line); }
+  45%     { background-position: right bottom; background-size: 0% var(--line); }
+  45.01%  { background-position: left bottom;  background-size: 0% var(--line); }
+  100%    { background-position: left bottom;  background-size: 100% var(--line); }
+}
+
+.icon {
+  display: block;
+  background: currentColor;
+  -webkit-mask: var(--src) center / 100% 100% no-repeat;
+  mask: var(--src) center / 100% 100% no-repeat;
+}
+.icon-mark  { --src: url(../../assets/icons/mark.svg); width: var(--mark); height: var(--mark); }
+.icon-arrow { --src: url(../../assets/icons/arrow-up.svg); width: 12px; height: 12px; }
+.icon-arrow--down { transform: rotate(180deg); }
+.icon-asterisk   { --src: url(../../assets/icons/asterisk.svg); width: 8px; height: 8px; }
+.icon-arrow-left { --src: url(../../assets/icons/arrow-left.svg); width: 8px; height: 8px; }
+
+/* ---------- Chrome ---------- */
+
+.chrome { position: absolute; z-index: 20; }
+.menu-btn  { top: 20px; left: var(--m); } /* same spot as the first category mark in notes mode */
+.number    { top: 18px; left: var(--col2); white-space: nowrap; }
+.notes-btn { top: 20px; right: var(--m); }
+.add-btn   { left: var(--m); bottom: 20px; }
+.arrows    { right: 16px; bottom: 16px; display: flex; }
+.arrows button { width: 32px; height: 32px; display: grid; place-items: center; }
+
+@media (max-width: 1023px) {
+  .number { top: 20px; }
+  .arrows { right: 12px; bottom: 12px; flex-direction: column; }
+  .arrows button { width: 40px; height: 40px; margin-top: -8px; }
+  .arrows button:first-child { margin-top: 0; }
+}
+
+.app[data-mode="notes"]:not(.is-revealing) .menu-btn,
+.app[data-mode="notes"]:not(.is-revealing) .number,
+.app[data-mode="notes"]:not(.is-revealing) .add-btn,
+.app[data-mode="notes"]:not(.is-revealing) .arrows { display: none; }
+
+/* While the notes frame is being cropped in, the page under it is still the grey main page
+   (palette held back on .app; the notes layer and Close carry their own), and the frame sits
+   above the main controls so it covers them as it drops. */
+.app.is-revealing { --bg: var(--paper); --fg: var(--ink); }
+.app.is-revealing .notes { z-index: 25; }
+.app.is-revealing .notes-btn { z-index: 26; }
+.notes-btn { color: var(--fg); }
+/* Leaving notes: the travelling quote, on a layer above the drop (cropped by the same edge). */
+.quote-float-layer { position: absolute; inset: 0; z-index: 27; color: var(--fg); pointer-events: none; }
+.quote-float { position: absolute; will-change: translate, scale; }
+
+/* Scanner head: sits with its bottom on the dropping edge (moved by js with a transform).
+   The "glow" is real, not painted on: a band above the edge blurs and brightens the content it
+   has just passed over, so the text's own color smears into light. js sets the band's height
+   through --band (a fraction of the 200px maximum, SCAN_BAND_MAX): it trails back to where the
+   edge was a moment ago, and closes to nothing as the edge lands. A hairline marks the edge. */
+.scan-edge {
+  --band: 0;
+  position: absolute;
+  left: 0; right: 0; top: -200px;
+  height: 200px;
+  z-index: 28;
+  pointer-events: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--fg) 70%, transparent);
+  /* transform only — NOT opacity: hinting opacity here makes this element a "backdrop root",
+     and the blur band inside it then has nothing behind it to blur (it silently does nothing). */
+  will-change: transform;
+}
+.scan-edge::before,
+.scan-edge::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 200px;
+  transform: scaleY(var(--band));
+  transform-origin: 50% 100%;
+}
+.scan-edge::before { background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--fg) 16%, transparent)); }
+.scan-edge::after {
+  -webkit-backdrop-filter: blur(10px) brightness(1.35) saturate(1.5);
+  backdrop-filter: blur(10px) brightness(1.35) saturate(1.5);
+  /* only the top third is feathered, so most of the band blurs at full strength */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 35%);
+  mask-image: linear-gradient(to bottom, transparent, #000 35%);
+}
+
+/* The quote's line-by-line stand-in during the scan (js/app.js → scanQuoteLines). */
+.quote.quote-lines { position: absolute; margin: 0; max-width: none; pointer-events: none; white-space: nowrap; }
+.quote-line { position: absolute; left: 0; top: 0; display: block; transform-origin: 0 0; will-change: transform; }
+
+/* Afterglow patches (one per scanned item), behind the notes content. Opacity-only animation. */
+.scan-glows { position: absolute; left: 0; top: 0; width: 100%; height: 0; z-index: 0; pointer-events: none; }
+.scan-glow {
+  position: absolute;
+  display: block;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--fg) 55%, transparent), color-mix(in srgb, var(--fg) 18%, transparent) 60%, transparent);
+  opacity: 0;
+  will-change: opacity;
+}
+
+
+.app.is-dim .notes-btn { opacity: 0; pointer-events: none; }
+
+/* Mode change: the quote cut into scraps (built in js/app.js → dadaQuote). */
+.dada { position: absolute; inset: 0; z-index: 15; overflow: hidden; pointer-events: none; font-feature-settings: normal; }
+.dada-scrap { position: absolute; white-space: nowrap; transform-origin: 0 0; }
+
+/* ---------- Deck (main) ---------- */
+
+.deck {
+  position: absolute;
+  inset: 0;
+  overflow: hidden; /* also crops the thrown quote at the screen edge */
+  touch-action: none;
+}
+.app[data-mode="notes"] .deck { pointer-events: none; }
+.app[data-mode="notes"]:not(.is-revealing) .deck { opacity: 0; }
+
+.track { position: absolute; inset: 0; will-change: transform; }
+.slide { position: absolute; left: 0; width: 100%; height: 100%; }
+.slide[data-pos="-1"] { top: -100%; }
+.slide[data-pos="0"]  { top: 0; }
+.slide[data-pos="1"]  { top: 100%; }
+
+.slide .q-wrap {
+  position: absolute;
+  left: var(--col2);
+  top: 50%;
+  transform: translateY(-50%);
+  padding-bottom: var(--main-quote-lift);
+  max-width: calc(100vw - var(--col2) - 120px);
+}
+
+/* ---------- Quote ---------- */
+
+.q-wrap { position: relative; }
+
+.quote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  line-height: var(--quote-leading);
+  letter-spacing: 0;
+  font-feature-settings: normal;
+  white-space: pre-line;
+  overflow-wrap: break-word;
+  text-wrap: pretty; /* no single-word last lines */
+  font-size: var(--q-size);
+  width: var(--q-width);
+  max-width: 100%;
+}
+.quote[data-tier="l"]  { --q-size: var(--quote-l);  --q-width: 10.94em; }  /* 700 / 64 */
+.quote[data-tier="m"]  { --q-size: var(--quote-m);  --q-width: 16.54em; }  /* 860 / 52 */
+.quote[data-tier="s"]  { --q-size: var(--quote-s);  --q-width: 21.5em; }   /* 860 / 40 */
+.quote[data-tier="xs"] { --q-size: var(--quote-xs); --q-width: 26.88em; }  /* 860 / 32 */
+
+.quote[data-native] {
+  font-size: calc(var(--q-size) * var(--quote-native-scale));
+  font-family: var(--font-native-quote);
+  font-weight: 500;
+  font-style: normal;
+  line-height: var(--quote-native-leading);
+  letter-spacing: 0.02em;
+}
+
+.lang {
+  position: absolute;
+  left: -44px;
+  top: -24px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: var(--hairline) solid currentColor;
+  font-family: var(--font-native-ui);
+  font-weight: 500;
+  font-size: var(--glyph-size);
+  line-height: 1;
+  letter-spacing: 0;
+  font-feature-settings: normal;
+}
+/* Showing the original: the button offers the way back, "EN". */
+.lang[aria-pressed="true"] { font-size: 10px; letter-spacing: 0.04em; }
+/* No underlines while the paragraph is changing; they are drawn back in afterwards. */
+.q-wrap.is-typing .quote:not(.quote-ghost) .ann,
+.q-wrap.is-typing .quote-ghost .ann { background-size: 0 0 !important; }
+/* The button steps aside while the quote is being retyped. */
+.q-wrap.is-typing .lang,
+.q-wrap.is-wiping .lang { visibility: hidden; }
+.quote-ghost { position: absolute; max-width: none; pointer-events: none; }
+
+@media (max-width: 1023px) {
+  .slide .q-wrap { max-width: none; right: calc(var(--m) + var(--step)); }
+  .quote { --q-width: 100% !important; }
+}
+
+@media (max-width: 599px) {
+  .slide .q-wrap { left: var(--m); right: var(--m); }
+  .quote[data-tier="l"] { --q-width: calc(100% - 40px) !important; }
+  .lang { left: 0; top: -48px; }
+}
+
+/* ---------- Notes mode ---------- */
+
+.notes {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: var(--bg); /* its own sheet of color, so it can be revealed over the page */
+  color: var(--fg);
+  overflow-x: hidden; /* the thrown quote is cropped by the screen edge */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.notes::-webkit-scrollbar { display: none; }
+
+@keyframes fade-in { from { opacity: 0; } }
+
+.n-cats {
+  position: sticky;
+  top: 20px;
+  height: 0;
+  margin-left: var(--m);
+  z-index: 3;
+  transition: filter 0.4s var(--ease);
+}
+.n-cats li { display: flex; align-items: center; gap: 1.333em; height: var(--mark); margin-bottom: calc(4 * var(--u)); white-space: nowrap; }
+
+.n-pin {
+  position: sticky;
+  top: 0;
+  height: 0;
+  z-index: 1;
+  transition: filter 0.4s var(--ease);
+}
+/* Filtered only while scrolled: an always-on filter rasterizes the quote differently, which
+   showed as a flicker when the travelling quote handed over to it. */
+.n-pin.is-blurred { filter: blur(var(--pin-blur, 0px)); }
+.notes.is-scrolling .n-pin { transition: none; }
+
+.n-meta p { white-space: nowrap; }
+/* Indents line the names up under the label's second word. */
+.n-indent--from { padding-left: 2.667em; } /* 40 / 15 */
+.n-indent--kept { padding-left: 2em; }     /* 30 / 15 */
+.n-native { font-family: var(--font-native); font-size: var(--text-native-size); letter-spacing: 0; }
+.n-source { white-space: normal; max-width: calc(2 * var(--colw) + var(--g) - 40px); display: block; text-wrap: balance; }
+
+.n-from { position: absolute; top: 22px; left: var(--col3); }
+
+.notes .q-wrap {
+  position: absolute;
+  top: var(--notes-quote-top);
+  left: var(--col2);
+  width: calc(4 * var(--colw) + 3 * var(--g));
+}
+/* Notes mode only changes the size. The measure stays the same in em as on the main screen,
+   so the quote breaks into the same lines in both modes. */
+.notes .quote[data-tier="l"]  { --q-size: var(--quote-l-notes); }
+.notes .quote[data-tier="m"]  { --q-size: var(--quote-m-notes); }
+.notes .quote[data-tier="s"]  { --q-size: var(--quote-s-notes); }
+.notes .quote[data-tier="xs"] { --q-size: var(--quote-xs-notes); }
+
+/* Annotated words: hairline dashed underline. */
+.ann {
+  cursor: pointer;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone; /* an underlined phrase may now wrap: each line gets its own full underline */
+  background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 4px) left bottom 0.08em / 100% 1px no-repeat;
+}
+@media (min-resolution: 2dppx) { .ann { background-size: 100% 0.5px; } }
+
+.n-col {
+  position: relative;
+  z-index: 2;
+  margin-left: var(--col3);
+  width: 26.667em; /* 400 / 15 — follows the text size */
+  max-width: calc(100vw - var(--col3) - var(--m));
+  padding-top: var(--notes-quote-gap);
+  padding-bottom: 160px;
+  transition: filter 0.4s var(--ease);
+}
+.n-body { margin-top: 2.667em; display: flex; flex-direction: column; gap: 1.333em; } /* 40, 20 at 15px text */
+.n-body p + p { margin-top: 1.067em; }
+.n-context { display: flex; flex-direction: column; gap: 0.533em; }
+.n-context p + p { margin-top: 1.067em; }
+
+.n-topfade { display: none; }
+
+/* Video thumbnail */
+.thumb {
+  position: relative;
+  display: block;
+  width: 160px;
+  aspect-ratio: 160 / 284; /* always the Figma portrait crop, whatever the video's shape */
+  overflow: hidden;
+  /* no fill colour: a black box must never show while the image is (re)painting */
+}
+/* Desktop hover: a slight lift. (`scale` is separate from the pointer-lean's `translate`.) */
+@media (hover: hover) and (pointer: fine) {
+  .thumb { transition: scale 600ms var(--ease); }
+  .thumb:hover { scale: 1.05; }
+}
+.thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.thumb::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.4)); }
+.thumb-play {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: var(--hairline) solid var(--white);
+  background: rgba(0, 0, 0, 0.05);
+  -webkit-backdrop-filter: blur(25px);
+  backdrop-filter: blur(25px);
+}
+.thumb-play img { position: static; width: 6px; height: 6.9282px; }
+
+#nVideoPin .thumb { position: absolute; top: var(--notes-quote-top); left: var(--col6); }
+#nVideoCol { display: none; }
+
+/* Overlays dim the notes underneath. */
+.app.is-dim .n-pin  { filter: blur(25px); }
+.app.is-dim .n-col,
+.app.is-dim .n-cats { filter: blur(10px); }
+.app.is-dim .notes  { pointer-events: none; }
+
+@media (max-width: 1023px) {
+  .n-col { width: auto; margin-right: calc(var(--m) + var(--step)); max-width: none; }
+  #nVideoPin { display: none; }
+  #nVideoCol { display: block; position: absolute; top: var(--notes-quote-gap); left: calc(var(--m) - var(--col3)); }
+  #nVideoCol .thumb { width: 120px; }
+}
+
+@media (max-width: 599px) {
+  /* Mobile: everything flows and scrolls together under a fading top bar. */
+  .n-cats { position: absolute; top: 20px; }
+  .n-pin { position: static; height: auto; padding: 124px var(--m) 0; filter: none !important; }
+  .app.is-dim .n-pin { filter: blur(25px) !important; }
+  .n-from { position: static; }
+  .notes .q-wrap { position: relative; top: auto; left: auto; width: auto; margin-top: 100px; }
+  .notes .q-wrap.has-lang { margin-top: 128px; }
+  #nVideoPin { display: block; }
+  #nVideoPin .thumb { position: relative; top: auto; left: auto; width: 120px; margin-left: auto; }
+  #nVideoCol { display: none; }
+  .n-col { margin: 80px var(--m) 0 !important; padding-top: 0; padding-bottom: 120px; }
+  .n-body { margin-right: 40px; }
+  .n-topfade {
+    display: block;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 58px;
+    z-index: 4;
+    pointer-events: none;
+    background: linear-gradient(to bottom, var(--bg) 30%, transparent);
+    opacity: 0; /* off at the top of the page, so it never veils the category label */
+    transition: opacity 0.2s var(--ease);
+  }
+  .notes.is-scrolled .n-topfade { opacity: 1; }
+}
+
+/* ---------- Overlays ---------- */
+
+.overlay { position: absolute; inset: 0; z-index: 30; animation: fade-in 0.35s var(--ease) both; }
+
+.ann-overlay { animation: none; } /* the word zooms; Back and the note fade (js/app.js) */
+/* Close (X): drawn in CSS to match the 1px arrow icons — swap for an SVG when there is one. */
+.x-btn { position: absolute; width: 32px; height: 32px; }
+.x-btn::before,
+.x-btn::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 15px; height: 1px;
+  background: currentColor;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.x-btn::after { transform: translate(-50%, -50%) rotate(-45deg); }
+.ann-word {
+  position: absolute;
+  transform-origin: 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--quote-annotation);
+  line-height: 1.2;
+  letter-spacing: 0;
+  font-feature-settings: normal;
+  white-space: nowrap;
+}
+.ann-text { position: absolute; width: min(20.4em, calc(100vw - 2 * var(--m))); }
+
+.video-overlay { display: grid; place-items: center; padding: 72px var(--m) 48px; }
+.video-box { position: relative; max-width: 100%; }
+.video-box[data-orientation="horizontal"] { width: min(1030px, 100% - 100px, calc((100vh - 140px) * 16 / 9)); aspect-ratio: 16 / 9; }
+.video-box[data-orientation="vertical"]   { height: min(711px, calc(100vh - 120px)); aspect-ratio: 9 / 16; }
+/* The X sits on the diagonal out of the video's top-right corner: its centre is the same
+   distance (20px) to the right of the video as it is above it. 32px box → 16px to centre. */
+.video-close { left: calc(100% + 4px); bottom: calc(100% + 4px); }
+/* The player box stays invisible while the thumbnail morphs into its place. */
+.video-box { opacity: 0; }
+.video-box.is-ready { opacity: 1; }
+.video-box .video-close { opacity: 0; transition: opacity 0.3s var(--ease); }
+.video-box.is-ready .video-close { opacity: 1; }
+.video-overlay { animation: none; }
+.video-frame { background: #000 center / cover no-repeat; }
+.video-morph { position: fixed; z-index: 35; overflow: hidden; background: #000; pointer-events: none; }
+.video-morph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.video-frame, .video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
+
+/* ---------- Menu ---------- */
+
+.menu {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background: var(--paper);
+  color: var(--ink);
+  overflow: hidden;
+  --list-top: 26.3vh; /* no overlay fade: same grey as the page, the rows animate in (js/app.js) */
+}
+.menu-back { position: absolute; top: 20px; left: var(--m); }
+
+.cat-list { position: absolute; top: var(--list-top); left: 0; right: 0; }
+.cat-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: calc(var(--col4) - var(--g)); /* rows stop before the descriptor column, so reading it never re-triggers a row */
+  height: 64px;
+  padding-left: var(--col2);
+  text-align: left;
+  white-space: nowrap;
+  transition: height 0.45s var(--ease), margin 0.45s var(--ease);
+}
+.cat-row .cat-mark {
+  position: absolute;
+  left: var(--col1-mid);
+  top: 50%;
+  width: var(--mark);
+  height: var(--mark);
+  translate: -50% -50%; /* not `transform`: a scale animation would shrink that offset too and pull the mark off-centre */
+  transition: width 0.45s var(--ease), height 0.45s var(--ease);
+}
+.cat-row[data-empty] { opacity: 0.35; cursor: default; }
+.cat-row.is-big { height: var(--mark-large); margin: 20px 0; }
+.cat-list li:first-child .cat-row.is-big { margin-top: 0; }
+.cat-row.is-big .cat-mark { width: var(--mark-large); height: var(--mark-large); }
+.cat-row .cat-ind { visibility: hidden; width: 8px; height: 8px; }
+.cat-row.is-selected .cat-ind,
+.cat-row.is-preview .cat-ind { visibility: visible; }
+.cat-row.is-selected .cat-ind { --src: url(../../assets/icons/asterisk.svg); }
+.cat-row.is-preview:not(.is-selected) .cat-ind { --src: url(../../assets/icons/arrow-left.svg); }
+
+.cat-desc {
+  position: absolute;
+  top: calc(var(--list-top) + 23px);
+  left: var(--col4);
+  width: 26.667em;
+  max-width: calc(100vw - var(--col4) - var(--m));
+  height: 394px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.333em;
+}
+.cat-desc-line { flex: 1; width: 0; border-left: var(--hairline) solid currentColor; }
+
+.menu-apply {
+  display: none;
+  position: absolute;
+  left: var(--m); right: var(--m); bottom: 20px;
+  height: 40px;
+  background: var(--ink);
+  color: var(--white);
+  text-align: center;
+}
+
+@media (max-width: 1023px) {
+  .menu { --list-top: 16.6vh; }
+  .cat-desc { top: calc(var(--list-top) + 9px); bottom: 110px; height: auto; width: 320px; }
+  .menu-apply { display: block; }
+}
+
+@media (max-width: 599px) {
+  .menu { --list-top: 18.5vh; }
+  .cat-row { width: 100%; } /* no side column on a phone: the whole row is the tap target */
+  .cat-desc { top: auto; left: var(--m); right: var(--m); bottom: 80px; width: auto; max-width: none; }
+  .cat-desc-line, #catCount { display: none; }
+}
+
+@media (max-width: 599px) {
+  /* No room beside the video on a phone: Close goes above its right edge. */
+  .video-box[data-orientation="horizontal"] { width: 100%; }
+  .video-close { left: auto; right: -9px; bottom: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

@@ -1,0 +1,127 @@
+/* Words We Keep — design tokens (color + type).
+   Single source of truth; app.css and styleguide.html only reference these.
+   Category palettes match the Figma "Colors" section (node 227:4163). */
+
+:root {
+  /* ---------- Color: base ---------- */
+  --paper: #d2d2d2;   /* main + menu background */
+  --ink:   #000000;   /* main + menu text */
+  --white: #ffffff;   /* text on ink (menu button, video play) */
+
+  /* ---------- Color: category palettes (notes mode) ---------- */
+  --perspective-bg: #05071f;  --perspective-fg: #dba5ff;
+  --growth-bg:      #1e1812;  --growth-fg:      #f9cd49;
+  --drive-bg:       #230505;  --drive-fg:       #ccdf70;
+  --community-bg:   #141f00;  --community-fg:   #f38284;
+  --romance-bg:     #210726;  --romance-fg:     #f15c5c;
+
+  /* ---------- Color: semantic (what components use) ---------- */
+  --bg: var(--paper);
+  --fg: var(--ink);
+
+  /* ---------- Type: families ---------- */
+  --font-display:   'Instrument Serif', 'Noto Serif SC', Georgia, serif;  /* quotes, always italic */
+  --font-text:      'Crimson Pro', Georgia, serif;                        /* navigation, meta, notes */
+  --font-native:    'Noto Sans SC', 'PingFang SC', sans-serif;            /* native-script names (sans) */
+  --font-native-quote: 'Noto Serif SC', 'Songti SC', serif;               /* original-language quotes, medium */
+  --font-native-ui: 'Noto Sans SC', 'PingFang SC', sans-serif;            /* language button glyph */
+
+  /* ---------- Fluid unit ----------
+     --u is "one design pixel". It is exactly 1px up to a 1440px-wide window, then grows with
+     the window and stops at 1.5px (reached at 2160px). Type sizes AND the spacing around type
+     are written as N * --u, so they always grow together. Tablet/mobile are always 1px.
+     e.g. text is 15px at ≤1440, 16px at 1536, 18px at 1728, 20px at 1920. */
+  --u: clamp(1px, 0.069444vw, 1.5px);   /* 100vw / 1440 */
+
+  /* ---------- Type: text style (Figma "Serif") ---------- */
+  --text-size: calc(15 * var(--u));
+  --text-leading: 1.2;
+  --text-tracking: -0.01em;
+  --text-features: "ss01" 1, "ss07" 1, "onum" 1, "pnum" 1;
+  --text-native-size: calc(12 * var(--u));   /* native-script author name beside Latin text */
+  --glyph-size: 12px;         /* language button */
+
+  /* ---------- Type: quote scale ----------
+     Tier is picked by quote length (js/app.js → tier()):
+     l ≤ 64 chars · m ≤ 160 · s ≤ 260 · xs longer. CJK characters count double.
+     Each tier has a main size and a notes-mode size. */
+  --quote-leading: 1.1;
+  --quote-native-leading: 1.5;
+  --quote-native-scale: 0.8;   /* CJK glyphs fill the whole em, so they run at 80% of the tier size */
+  --quote-l: calc(64 * var(--u));   --quote-l-notes: calc(60 * var(--u));
+  --quote-m: calc(52 * var(--u));   --quote-m-notes: calc(48 * var(--u));
+  --quote-s: calc(40 * var(--u));   --quote-s-notes: calc(32 * var(--u));
+  --quote-xs: calc(32 * var(--u));  --quote-xs-notes: calc(28 * var(--u));
+  --quote-annotation: calc(64 * var(--u));   /* enlarged word in the annotation overlay */
+
+  /* ---------- Motion ---------- */
+  --ease: cubic-bezier(0.4, 0, 0, 1);   /* the one curve for every transitional animation */
+  --ease-drop: cubic-bezier(0.2, 0.6, 0.1, 1);   /* the notes backdrop only: off at full speed, then a long brake into the bottom edge */
+
+  /* ---------- Line ---------- */
+  /* ---------- Spacing around type (scales with --u) ---------- */
+  --notes-quote-top: calc(240 * var(--u));   /* top of the pinned quote in notes mode */
+  --notes-quote-gap: calc(120 * var(--u));   /* quote → "Kept by" */
+  --main-quote-lift: calc(40 * var(--u));    /* main quote sits this much above true center */
+
+  /* ---------- Mark (logo / category mark) — grows with the type ---------- */
+  --mark: calc(20 * var(--u));
+  --mark-large: calc(80 * var(--u));   /* highlighted category in the menu */
+
+  --hairline: 0.5px;
+  --link-gap: 2px;   /* space between a link's text box and its underline */
+}
+
+/* Tablet */
+@media (max-width: 1023px) {
+  :root {
+    --text-size: calc(15 * var(--u));  --text-native-size: calc(12 * var(--u));
+    --quote-l: calc(48 * var(--u));   --quote-l-notes: calc(48 * var(--u));
+    --quote-m: calc(40 * var(--u));   --quote-m-notes: calc(40 * var(--u));
+    --quote-s: calc(32 * var(--u));   --quote-s-notes: calc(32 * var(--u));
+    --quote-xs: calc(26 * var(--u));  --quote-xs-notes: calc(26 * var(--u));
+    --quote-annotation: calc(48 * var(--u));
+  }
+}
+
+/* Mobile */
+@media (max-width: 599px) {
+  :root {
+    --quote-l: calc(40 * var(--u));   --quote-l-notes: calc(40 * var(--u));
+    --quote-m: calc(32 * var(--u));   --quote-m-notes: calc(32 * var(--u));
+    --quote-s: calc(28 * var(--u));   --quote-s-notes: calc(28 * var(--u));
+    --quote-xs: calc(22 * var(--u));  --quote-xs-notes: calc(22 * var(--u));
+    --quote-annotation: calc(40 * var(--u));
+  }
+}
+
+/* Notes mode takes the palette of the quote's first category. */
+[data-theme="perspective"] { --bg: var(--perspective-bg); --fg: var(--perspective-fg); }
+[data-theme="growth"]      { --bg: var(--growth-bg);      --fg: var(--growth-fg); }
+[data-theme="drive"]       { --bg: var(--drive-bg);       --fg: var(--drive-fg); }
+[data-theme="community"]   { --bg: var(--community-bg);   --fg: var(--community-fg); }
+[data-theme="romance"]     { --bg: var(--romance-bg);     --fg: var(--romance-fg); }
+
+/* ---------- Text style classes ---------- */
+.t-text {
+  font-family: var(--font-text);
+  font-size: var(--text-size);
+  line-height: var(--text-leading);
+  letter-spacing: var(--text-tracking);
+  font-feature-settings: var(--text-features);
+}
+.t-quote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  line-height: var(--quote-leading);
+  letter-spacing: 0;
+  font-feature-settings: normal;
+}
+.t-quote-native {
+  font-family: var(--font-native-quote);
+  font-weight: 500;
+  font-style: normal;
+  line-height: var(--quote-native-leading);
+  letter-spacing: 0.02em;
+}
