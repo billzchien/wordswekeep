@@ -87,6 +87,7 @@
 /* Mobile */
 @media (max-width: 599px) {
   :root {
+    --text-size: calc(16 * var(--u));   /* a touch larger on a phone */
     --quote-l: calc(40 * var(--u));   --quote-l-notes: calc(40 * var(--u));
     --quote-m: calc(32 * var(--u));   --quote-m-notes: calc(32 * var(--u));
     --quote-s: calc(28 * var(--u));   --quote-s-notes: calc(28 * var(--u));

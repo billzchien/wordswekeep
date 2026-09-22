@@ -103,7 +103,7 @@
 
   // Wrap annotated words (first occurrence each) in the English text.
   function annotate(text, annotations) {
-    const lower = text.replace(/\u00a0/g, ' ').toLowerCase(); // tied words still match (same length)
+    const lower = text.replace(/[\u00a0\n]/g, ' ').toLowerCase(); // tied words and locked line breaks still match (same length)
     const ranges = [];
     annotations.forEach((a, i) => {
       const start = lower.indexOf(a.word.toLowerCase());
@@ -124,18 +124,42 @@
     return html + esc(text.slice(pos));
   }
 
-  function quoteHTML(q, { original = false, withAnnotations = false } = {}) {
+  // The notes quote keeps the main quote's line breaks. Both are set at the same measure (in em),
+  // but a fresh paragraph can still wrap differently (Safari's `text-wrap: pretty` in
+  // particular re-balances lines), and then a word jumps rows as the modes change. So, before
+  // the change, the lines of the quote on screen are recorded, and the notes quote is rendered
+  // with those breaks hard-coded (a newline; the quote is `white-space: pre-line`).
+  let lockedLines = null; // { text, html-free text with '\n' at the breaks }
+  function lockLines(quoteEl) {
+    lockedLines = null;
+    if (!quoteEl || quoteEl.querySelector('.ann')) return; // one text node expected
+    const words = measureWords(quoteEl);
+    if (words.length < 2) return;
+    const text = quoteEl.textContent;
+    let out = text;
+    for (let i = words.length - 1; i > 0; i--) {
+      if (Math.abs(words[i].top - words[i - 1].top) < 4) continue;
+      const at = words[i].start;
+      // Replace the space before the break (CJK has none: insert).
+      out = /[ \u00a0]/.test(out[at - 1] || '') ? out.slice(0, at - 1) + '\n' + out.slice(at) : out.slice(0, at) + '\n' + out.slice(at);
+    }
+    lockedLines = { text, broken: out };
+  }
+
+  function quoteHTML(q, { original = false, withAnnotations = false, keepLines = false } = {}) {
     const orig = q.originalLanguage;
     const showOrig = original && orig;
     const raw = showOrig ? orig.text : q.text;
-    const text = noOrphans(raw);
+    let text = noOrphans(raw);
+    const locked = keepLines && lockedLines && lockedLines.text === text;
+    if (locked) text = lockedLines.broken;
     const body = withAnnotations && !showOrig && q.annotations && q.annotations.length
       ? annotate(text, q.annotations) : esc(text);
     const langBtn = orig
       ? `<button class="lang" data-lang aria-pressed="${showOrig ? 'true' : 'false'}" aria-label="${showOrig ? 'Show English' : 'Show original language'}">${showOrig ? 'EN' : esc(LANG_GLYPH[orig.lang] || orig.lang.toUpperCase())}</button>`
       : '';
     const nativeAttr = showOrig ? ` data-native lang="${esc(orig.lang)}"` : '';
-    return `${langBtn}<blockquote class="quote" data-tier="${tier(raw)}"${nativeAttr}>${body}</blockquote>`;
+    return `${langBtn}<blockquote class="quote${locked ? ' quote--locked' : ''}" data-tier="${tier(raw)}"${nativeAttr}>${body}</blockquote>`;
   }
 
   /* ---------- Deck ---------- */
@@ -167,23 +191,24 @@
     const leaving = buildScraps(currentWrap(), false);
     currentWrap().style.visibility = 'hidden';
     let arriving;
+    // Beats 0..GROUPS-1 out, beat GROUPS the swap, beats GROUPS+1..2*GROUPS home.
     for (let g = 0; g < GROUPS; g++) {
-      if (g === 0) leaving.pose(0, true); else setTimeout(() => leaving.pose(g, true), g * BEAT_MS);   // out
+      if (g === 0) leaving.pose(0, true); else setTimeout(() => leaving.pose(g, true), beatAt(g));   // out
     }
     setTimeout(() => {                                                                                // swap
       advance();
       arriving = buildScraps(currentWrap(), true);
       currentWrap().style.visibility = 'hidden';
       leaving.dissolve();
-    }, GROUPS * BEAT_MS);
+    }, beatAt(GROUPS));
     for (let g = 0; g < GROUPS; g++) {
-      setTimeout(() => arriving.pose(g, false), (GROUPS + 1 + g) * BEAT_MS);                          // home
+      setTimeout(() => arriving.pose(g, false), beatAt(GROUPS + 1 + g));                             // home
     }
     setTimeout(() => {
       arriving.layer.remove();
       currentWrap().style.visibility = '';
       state.animating = false;
-    }, (2 * GROUPS) * BEAT_MS + SCRAP_FADE_MS + 20);
+    }, beatAt(2 * GROUPS) + SCRAP_FADE_MS + 20);
   }
 
   // Wheel: exactly one step per gesture. A trackpad swipe is not one event but a stream that
@@ -212,17 +237,15 @@
     go(e.deltaY > 0 ? 1 : -1);
   }, { passive: false });
 
-  // Touch: the quote follows the finger, then snaps.
+  // Touch: a swipe (distance or flick) steps to the next quote.
   let touch = null;
   deck.addEventListener('touchstart', (e) => {
     if (state.animating || e.touches.length !== 1 || e.target.closest('button')) return;
     touch = { y: e.touches[0].clientY, t: performance.now(), dy: 0 };
-    track.style.transition = 'none';
   }, { passive: true });
   deck.addEventListener('touchmove', (e) => {
     if (!touch) return;
-    touch.dy = e.touches[0].clientY - touch.y;
-    track.style.transform = `translateY(${touch.dy * 0.2}px)`; // a light tug; the change itself is the cut-up
+    touch.dy = e.touches[0].clientY - touch.y; // the quote does not follow the finger: the change itself is the cut-up
   }, { passive: true });
   const endTouch = () => {
     if (!touch) return;
@@ -230,8 +253,6 @@
     touch = null;
     const velocity = Math.abs(dy) / Math.max(1, performance.now() - t);
     const swiped = state.list.length > 1 && (Math.abs(dy) > deck.clientHeight * 0.12 || (Math.abs(dy) > 24 && velocity > 0.5));
-    track.style.transition = swiped ? 'none' : 'transform 300ms var(--ease)';
-    track.style.transform = '';
     if (swiped) go(dy < 0 ? 1 : -1);
   };
   deck.addEventListener('touchend', endTouch);
@@ -296,7 +317,7 @@
 
   function renderNotesQuote() {
     const wrap = $('nQuoteWrap');
-    wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true });
+    wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true, keepLines: true });
     wrap.classList.toggle('has-lang', !!current().originalLanguage);
     layoutNotes();
   }
@@ -327,8 +348,15 @@
      random groups that jump OUT one beat apart and scatter over the screen (some cropped by the
      edge); one beat later the words swap to the next quote, already scattered; then its groups
      jump HOME one beat apart and the new quote is whole. */
-  const BEAT_MS = 50;
   const GROUPS = 3;
+  const CUT_MS = 300;           // the whole cut-up, first jump to last (6 gaps of 50ms at the default)
+  const CUT_SLOWMO = 1;         // beat spacing: 1 = even; higher = faster ends, longer hold in the middle
+                                // (tried 2.2 over 700ms: a held beat reads as a freeze/lag, not slow-mo, since nothing moves between jumps)
+  function beatAt(n) {
+    const x = n / (2 * GROUPS), p = CUT_SLOWMO;
+    const f = x < 0.5 ? 0.5 * Math.pow(2 * x, p) : 1 - 0.5 * Math.pow(2 * (1 - x), p);
+    return Math.round(CUT_MS * f);
+  }
   const SCRAP_FADE_MS = 100;    // softness of each jump — characters only; the page still cuts
   const SCRAP_SCALE = 1.15;     // scattered scraps are only slightly larger than the landed quote
   const SCRAP_GAP = 14;         // breathing room kept between scraps (px)
@@ -703,6 +731,7 @@
 
     let scanEnds = 0;
     if (toNotes) {
+      lockLines(fromEl);
       applyMode('notes');
       scanEnds = scanIn(dropCurve, fromSize);
     } else {
@@ -1176,6 +1205,22 @@
   $('videoClose').addEventListener('click', closeOverlays);
   [$('annOverlay'), $('videoOverlay')].forEach((o) =>
     o.addEventListener('click', (e) => { if (e.target === o) closeOverlays(); }));
+
+  /* ---------- Browser chrome colour ----------
+     iOS Safari tints its toolbars and shows the overscroll area from the page's own colour
+     (theme-color, and the html background), so both follow the page: the palette in notes mode,
+     paper on the main page and in the menu. */
+  const menuEl = $('menu');
+  function syncChromeColor() {
+    const root = document.documentElement;
+    const inNotes = !menuEl.hidden ? false : !!app.dataset.theme;
+    const color = inNotes ? getComputedStyle(notes).backgroundColor : getComputedStyle(root).getPropertyValue('--paper').trim();
+    root.style.backgroundColor = color;
+    $('themeColor').setAttribute('content', color);
+  }
+  new MutationObserver(syncChromeColor).observe(app, { attributes: true, attributeFilter: ['data-theme'] });
+  new MutationObserver(syncChromeColor).observe(menuEl, { attributes: true, attributeFilter: ['hidden'] });
+  syncChromeColor();
 
   /* ---------- Menu ---------- */
 
