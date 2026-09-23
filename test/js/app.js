@@ -1268,13 +1268,15 @@
 
   function renderMenu() {
     const big = state.preview;
+    // The description may be inside a list row (phone); the list is about to be rebuilt.
+    menuEl.insertBefore(document.querySelector('.cat-desc'), $('menuApply'));
     $('catList').innerHTML = [ALL, ...CATEGORIES].map((c) => {
       const cls = ['cat-row', c.key === big && 'is-big', c.key === state.filter && 'is-selected',
         c.key === state.preview && 'is-preview'].filter(Boolean).join(' ');
       const empty = countFor(c.key) === 0;
       return `<li><button class="${cls}" data-cat="${c.key}"${empty ? ' data-empty' : ''}>
         <span class="icon icon-mark cat-mark"></span>
-        <span>${esc(c.name)}</span><span class="icon cat-ind"></span></button></li>`;
+        <span class="cat-name">${esc(c.name)}</span><span class="icon cat-ind"></span></button></li>`;
     }).join('');
     updateMenuPreview();
   }
@@ -1289,12 +1291,85 @@
       row.classList.toggle('is-selected', k === state.filter);
     });
     const n = countFor(key);
-    $('catDescText').textContent = noOrphans(cat.desc);
-    $('catCount').textContent = `${n} quote${n === 1 ? '' : 's'} total`;
+    placeDesc(key, () => {
+      $('catDescText').textContent = noOrphans(cat.desc);
+      $('catCount').textContent = `${n} quote${n === 1 ? '' : 's'} total`;
+    });
     const apply = $('menuApply');
     apply.textContent = key === 'all' ? 'See all words' : `See ${cat.name.toLowerCase()} words`;
     apply.disabled = n === 0;
     apply.style.opacity = n === 0 ? 0.3 : '';
+  }
+
+  /* Phone: the description lives in the list, under the previewed row, and moves with the
+     preview like an accordion, in step with the mark growing and the row changing height (the
+     0.45s row transition in app.css): under the old row a copy of the text simply fades out, fast
+     (DESC_OUT_MS), while its space closes up; under the new row the space opens and the text's
+     lines fade in one after another, top to bottom, LINE_STAGGER_MS apart. The text is never
+     clipped. Tablet/desktop: it stays in the menu's own column. */
+  const DESC_MS = 450; // matches the row's height/mark transition
+  const DESC_OUT_MS = 100; // the old description is gone almost at once
+  const LINE_MS = 250, LINE_STAGGER_MS = 50;
+  // Wrap each rendered line of the description in a plain inline span (no layout effect).
+  function wrapLines(p) {
+    const words = measureWords(p);
+    const lines = [];
+    words.forEach((w) => {
+      const line = lines[lines.length - 1];
+      if (line && Math.abs(line.top - w.top) < 4) line.last = w; else lines.push({ top: w.top, first: w, last: w });
+    });
+    const range = document.createRange();
+    return lines.reverse().map((line) => { // last line first: earlier offsets stay valid
+      range.setStart(line.first.node, line.first.start);
+      range.setEnd(line.last.node, line.last.end);
+      const span = document.createElement('span');
+      try { range.surroundContents(span); } catch (e) { return null; }
+      return span;
+    }).filter(Boolean).reverse();
+  }
+  function placeDesc(key, setText) {
+    const desc = document.querySelector('.cat-desc');
+    const home = mqMobile.matches ? document.querySelector(`.cat-row[data-cat="${key}"]`)?.closest('li') : menuEl;
+    const moving = home && desc.parentNode !== home;
+    const animate = moving && mqMobile.matches && !reduceMotion.matches && !$('menu').hidden;
+    const shut = { height: '0px', marginTop: '0px', marginBottom: '0px' };
+    const open = (el) => ({ height: `${el.offsetHeight}px`, marginTop: '24px', marginBottom: '46px' });
+    const fold = (el, show) => {
+      const easing = easeCurve();
+      const from = open(el);                                     // measured at full height, before folding
+      if (!show) {
+        // Shutting: the whole text fades out at once, quickly; the space closes with the row.
+        el.querySelector('p').animate([{ opacity: 1 }, { opacity: 0 }], { duration: DESC_OUT_MS, easing, fill: 'both' });
+        el.animate([from, shut], { duration: DESC_MS, easing, fill: 'both' });
+        return new Promise((r) => setTimeout(r, DESC_MS + 20));
+      }
+      // Opening: the space opens with the row; the lines fade in top to bottom as it does.
+      const lines = wrapLines(el.querySelector('p'));
+      el.animate([shut, from], { duration: DESC_MS, easing, fill: 'both' });
+      lines.forEach((span, i) => span.animate([{ opacity: 0 }, { opacity: 1 }],
+        { duration: LINE_MS, delay: i * LINE_STAGGER_MS, easing, fill: 'both' }));
+      return new Promise((r) => setTimeout(r, Math.max(DESC_MS, LINE_MS + (lines.length - 1) * LINE_STAGGER_MS) + 20));
+    };
+    if (animate && desc.parentNode !== menuEl) {
+      // A copy stays behind and folds shut while the real one moves on.
+      const ghost = desc.cloneNode(true);
+      ghost.setAttribute('aria-hidden', 'true');
+      ghost.querySelectorAll('[id]').forEach((el) => { if (el.id === 'catCount') el.remove(); else el.removeAttribute('id'); }); // the real one keeps the ids; the count is hidden by id on a phone
+      desc.after(ghost);
+      fold(ghost, false).then(() => ghost.remove());
+    }
+    if (moving) { if (home === menuEl) menuEl.insertBefore(desc, $('menuApply')); else home.appendChild(desc); }
+    setText();
+    if (animate && home !== menuEl) {
+      desc.getAnimations({ subtree: true }).forEach((a) => a.cancel());
+      const p = desc.querySelector('p');
+      p.normalize();
+      fold(desc, true).then(() => {
+        desc.getAnimations({ subtree: true }).forEach((a) => a.cancel());
+        p.querySelectorAll('span').forEach((span) => span.replaceWith(...span.childNodes)); // wrappers off
+        p.normalize();
+      });
+    }
   }
 
   /* Menu motion: the menu icon shrinks to nothing, then the list arrives — each row fades in
@@ -1380,7 +1455,10 @@
     const row = e.target.closest('[data-cat]');
     if (!row) return;
     if (mqHoverDesktop.matches) return applyFilter(row.dataset.cat);
-    state.preview = row.dataset.cat; // touch: preview first, apply with the button
+    // Touch: the first tap previews (the row grows, its name is underlined, the description
+    // shows); a tap on the underlined row applies.
+    if (state.preview === row.dataset.cat) return applyFilter(row.dataset.cat);
+    state.preview = row.dataset.cat;
     updateMenuPreview();
   });
   catList.addEventListener('mouseover', (e) => {
@@ -1417,6 +1495,7 @@
     // under the notes), so the two never disagree after a resize — now, and again once fluid
     // type has settled.
     const relock = () => {
+      if (!$('menu').hidden) updateMenuPreview(); // the description's place depends on the breakpoint
       if (state.mode === 'notes' && !modeBusy && !langBusy) {
         lockLines(track.querySelector('.slide[data-pos="0"] .quote'));
         renderNotesQuote();
