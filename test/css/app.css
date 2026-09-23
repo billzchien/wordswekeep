@@ -269,6 +269,7 @@ ul { list-style: none; }
 
 @media (max-width: 599px) {
   .slide .q-wrap { left: var(--m); right: var(--m); }
+  .slide .quote { max-width: 100%; } /* the notes quote is full width on a phone, not 4 columns */
   .quote[data-tier="l"] { --q-width: calc(100% - 40px) !important; }
   .lang { left: 0; top: -48px; }
 }
