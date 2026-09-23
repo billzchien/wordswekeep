@@ -337,7 +337,7 @@
     const blur = Math.min(25, notes.scrollTop / 8);
     $('nPin').style.setProperty('--pin-blur', `${blur.toFixed(1)}px`);
     $('nPin').classList.toggle('is-blurred', blur > 0);
-    $('nPin').style.pointerEvents = blur > 4 ? 'none' : '';
+    $('nPin').style.pointerEvents = blur > 4 && !mqMobile.matches ? 'none' : ''; // phone: nothing is pinned or blurred, and the thumbnail lives in here
     notes.classList.add('is-scrolling');
     clearTimeout(scrollIdle);
     scrollIdle = setTimeout(() => notes.classList.remove('is-scrolling'), 150);
