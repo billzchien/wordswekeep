@@ -193,7 +193,11 @@ ul { list-style: none; }
 .app[data-mode="notes"] .deck { pointer-events: none; }
 .app[data-mode="notes"]:not(.is-revealing) .deck { opacity: 0; }
 
-.track { position: absolute; inset: 0; } /* no will-change: on iOS it put the quote on its own layer, clipping the italic overhang at its left edge */
+.track { position: absolute; inset: 0; pointer-events: none; } /* no will-change: on iOS it put the quote on its own layer, clipping the italic overhang at its left edge.
+   pointer-events: a touch must land on the deck itself — iOS keeps sending a touch's events to the
+   element it started on, and the quote's nodes are replaced mid-change (the swap), which stranded
+   the finger (the scrub froze scattered). Only the language button takes pointer events. */
+.track .lang { pointer-events: auto; }
 .slide { position: absolute; left: 0; width: 100%; height: 100%; }
 .slide[data-pos="-1"] { top: -100%; }
 .slide[data-pos="0"]  { top: 0; }
