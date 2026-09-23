@@ -226,6 +226,12 @@
       c.leaving.pose(--c.n, false);
       if (c.n === 0) setTimeout(() => { if (c.n === 0) end(); }, SCRAP_FADE_MS + 60); // all home again (and still so): no change after all
     };
+    c.rewind = () => { // before the swap: the groups that are out jump home at the normal pace
+      if (c.playing || c.ended || c.n > GROUPS) return;
+      c.playing = true;
+      const tick = () => { if (c.n === 0) return; const b = c.n; c.back(); setTimeout(tick, beatAt(b) - beatAt(b - 1)); };
+      tick();
+    };
     c.play = () => { // the rest of the beats at the normal pace
       if (c.playing || c.ended) return;
       c.playing = true;
@@ -271,16 +277,16 @@
   /* ---------- Touch: the cut-up follows the finger ----------
      On a touch screen the change is not played but scrubbed: every SCRUB_TRAVEL / 7 beats of the
      screen height the finger travels fires the next beat (out, out, out, swap, home, home, home).
-     Lift the finger and it stays where it is — words scattered, even — and the next drag carries
-     on from there. Before the swap a drag back undoes beats; the swap is one-way. A quick flick
-     plays the rest at the normal pace. (Reduced motion: a swipe just changes the quote.) */
+     Lift the finger and it settles: past the swap (or on a flick) the rest plays out at the normal
+     pace; before it, the groups jump back home and nothing changes. Before the swap a drag back
+     undoes beats; the swap is one-way. (Reduced motion: a swipe just changes the quote.) */
   const SCRUB_TRAVEL = 0.5;   // screen heights of travel for the whole change
   const FLICK_MIN_PX = 24, FLICK_VELOCITY = 0.5; // px, px/ms
   let touch = null;
   deck.addEventListener('touchstart', (e) => {
     if (e.touches.length !== 1 || e.target.closest('button') || state.mode !== 'main' || modeBusy || langBusy || state.list.length < 2) return;
-    if (state.animating && (!cut || cut.playing)) return; // a change is playing out
-    touch = { y: e.touches[0].clientY, t: performance.now(), dy: 0, dir: cut ? cut.dir : 0, n0: cut ? cut.n : 0, lastY: e.touches[0].clientY, lastT: performance.now(), v: 0 };
+    if (state.animating) return; // a change is playing out (a lifted cut always settles)
+    touch = { y: e.touches[0].clientY, t: performance.now(), dy: 0, dir: 0, n0: 0, lastY: e.touches[0].clientY, lastT: performance.now(), v: 0 };
   }, { passive: true });
   deck.addEventListener('touchmove', (e) => {
     if (!touch) return;
@@ -304,9 +310,11 @@
     touch = null;
     const flick = Math.abs(dy) > FLICK_MIN_PX && Math.abs(v) > FLICK_VELOCITY;
     if (reduceMotion.matches) { if (flick || Math.abs(dy) > deck.clientHeight * 0.12) go(dy < 0 ? 1 : -1); return; }
-    if (!flick) return; // lifted: it stays where it is
-    if (cut) { if (!cut.playing && (dy < 0 ? 1 : -1) === cut.dir) cut.play(); }
-    else go(dy < 0 ? 1 : -1);
+    if (!cut) { if (flick) go(dy < 0 ? 1 : -1); return; }
+    if (cut.playing) return;
+    // Lifted: it settles. A flick in the change's direction, or being past the swap, completes it;
+    // otherwise the groups jump back home and nothing changes.
+    if ((flick && (dy < 0 ? 1 : -1) === cut.dir) || cut.n > GROUPS) cut.play(); else cut.rewind();
   };
   deck.addEventListener('touchend', endTouch);
   deck.addEventListener('touchcancel', endTouch);
