@@ -30,11 +30,11 @@
      --u is "one design pixel". It is exactly 1px up to a 1440px-wide window, then grows with
      the window and stops at 1.5px (reached at 2160px). Type sizes AND the spacing around type
      are written as N * --u, so they always grow together. Tablet/mobile are always 1px.
-     e.g. text is 15px at ≤1440, 16px at 1536, 18px at 1728, 20px at 1920. */
+     e.g. text is 16px at ≤1440, 17px at 1536, 19px at 1728, 21px at 1920. */
   --u: clamp(1px, 0.069444vw, 1.5px);   /* 100vw / 1440 */
 
   /* ---------- Type: text style (Figma "Serif") ---------- */
-  --text-size: calc(15 * var(--u));
+  --text-size: calc(16 * var(--u));
   --text-leading: 1.2;
   --text-tracking: -0.01em;
   --text-features: "ss01" 1, "ss07" 1, "onum" 1, "pnum" 1;
@@ -75,7 +75,7 @@
 /* Tablet */
 @media (max-width: 1023px) {
   :root {
-    --text-size: calc(15 * var(--u));  --text-native-size: calc(12 * var(--u));
+    --text-size: calc(16 * var(--u));  --text-native-size: calc(12 * var(--u));
     --quote-l: calc(48 * var(--u));   --quote-l-notes: calc(48 * var(--u));
     --quote-m: calc(40 * var(--u));   --quote-m-notes: calc(40 * var(--u));
     --quote-s: calc(32 * var(--u));   --quote-s-notes: calc(32 * var(--u));
@@ -87,7 +87,6 @@
 /* Mobile */
 @media (max-width: 599px) {
   :root {
-    --text-size: calc(16 * var(--u));   /* a touch larger on a phone */
     --quote-l: calc(40 * var(--u));   --quote-l-notes: calc(40 * var(--u));
     --quote-m: calc(32 * var(--u));   --quote-m-notes: calc(32 * var(--u));
     --quote-s: calc(28 * var(--u));   --quote-s-notes: calc(28 * var(--u));
