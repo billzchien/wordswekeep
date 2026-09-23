@@ -534,6 +534,8 @@ ul { list-style: none; }
   translate: -50% -50%; /* not `transform`: a scale animation would shrink that offset too and pull the mark off-centre */
   transition: width 0.45s var(--ease), height 0.45s var(--ease);
 }
+.cat-row .cat-name { display: inline-block; padding-bottom: var(--link-gap); --line: var(--hairline); }
+@media (max-resolution: 1.5dppx) { .cat-row .cat-name { --line: 1px; } }
 .cat-row[data-empty] { opacity: 0.35; cursor: default; }
 .cat-row.is-big { height: var(--mark-large); margin: 20px 0; }
 .cat-list li:first-child .cat-row.is-big { margin-top: 0; }
@@ -567,18 +569,26 @@ ul { list-style: none; }
   text-align: center;
 }
 
+/* Touch layouts (tablet, phone): a tap grows a row and draws a hairline under its name — that is
+   the preview, with the description; a tap on the underlined row applies it. No apply button. */
 @media (max-width: 1023px) {
-  .menu { --list-top: 16.6vh; }
-  .cat-desc { top: calc(var(--list-top) + 9px); bottom: 110px; height: auto; width: 320px; }
-  .menu-apply { display: block; }
+  .menu { --list-top: 23.8vh; }
+  .cat-desc { top: calc(var(--list-top) + 9px); bottom: 22vh; height: auto; width: 320px; }
+  .cat-row.is-preview .cat-name {
+    background: linear-gradient(currentColor, currentColor) left bottom / 100% var(--line) no-repeat;
+    animation: link-in 0.5s var(--ease);
+  }
 }
+@keyframes link-in { from { background-size: 0% var(--line); } }
 
 @media (max-width: 599px) {
   /* Rows start 80px under the Back link (its top + one text line + underline gap). */
   .menu { --list-top: calc(20px + var(--text-size) * var(--text-leading) + var(--link-gap) + 80px); }
   .cat-row { width: 100%; padding-left: calc(var(--m) + var(--mark-large) + 40px); } /* no side column on a phone: the whole row is the tap target; 40px from the enlarged mark to the text */
   .cat-row .cat-mark { left: calc(var(--m) + var(--mark-large) / 2); } /* the enlarged mark's left edge sits on the margin */
-  .cat-desc { top: auto; left: var(--m); right: var(--m); bottom: 80px; width: auto; max-width: none; }
+  .cat-row.is-big { margin: 14px 0 0; }
+  /* The description sits in the list, under the grown row (js/app.js moves it into that row's li). */
+  .cat-desc { position: static; margin: 24px var(--m) 46px; padding-right: 40px; width: auto; max-width: none; height: auto; } /* folds open/shut by height (js/app.js → placeDesc); the text is never clipped, its lines fade in */
   .cat-desc-line, #catCount { display: none; }
 }
 
