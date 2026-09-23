@@ -414,7 +414,7 @@ ul { list-style: none; }
   .notes .q-wrap { position: relative; top: auto; left: auto; width: auto; margin-top: 100px; }
   .notes .q-wrap.has-lang { margin-top: 128px; }
   #nVideoPin { display: block; }
-  #nVideoPin .thumb { position: relative; top: auto; left: auto; width: 120px; margin-left: auto; }
+  #nVideoPin .thumb { position: relative; top: auto; left: auto; width: 120px; margin: 40px 0 0 auto; } /* 40px under the quote */
   #nVideoCol { display: none; }
   .n-col { margin: 80px var(--m) 0 !important; padding-top: 0; padding-bottom: 120px; }
   .n-body { margin-right: 40px; }
