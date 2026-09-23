@@ -141,7 +141,8 @@
       if (Math.abs(words[i].top - words[i - 1].top) < 4) continue;
       const at = words[i].start;
       // Replace the whitespace before the break — a space, or a newline the text already had
-      // (a poem's own line breaks) — with a newline; CJK has none, so insert one.
+      // (a poem's own line breaks) — with a newline; after a hyphen or a CJK character there is
+      // none, so insert one.
       out = /[ \u00a0\n]/.test(out[at - 1] || '') ? out.slice(0, at - 1) + '\n' + out.slice(at) : out.slice(0, at) + '\n' + out.slice(at);
     }
     lockedLines = { text, broken: out };
@@ -387,9 +388,20 @@
       const re = /\S+/g;
       let m;
       while ((m = re.exec(node.data))) {
-        const parts = CJK_CHAR.test(m[0])
+        let parts = CJK_CHAR.test(m[0])
           ? [...m[0]].map((ch, k) => ({ text: ch, start: m.index + k, cjk: true }))
           : [{ text: m[0], start: m.index, cjk: false }];
+        // A hyphenated word may be broken across lines at a hyphen ("twenty-" / "first"): then
+        // each part is its own word, on its own line. (Measured as one, the word would be put
+        // on the first line whole, and every line after would be recorded wrong.)
+        parts = parts.flatMap((p) => {
+          if (p.cjk || !/-./.test(p.text)) return [p];
+          range.setStart(node, p.start);
+          range.setEnd(node, p.start + p.text.length);
+          if (range.getClientRects().length < 2) return [p];
+          let at = 0;
+          return p.text.split(/(?<=-)/).map((piece) => { const part = { text: piece, start: p.start + at, cjk: false }; at += piece.length; return part; });
+        });
         parts.forEach((p) => {
           range.setStart(node, p.start);
           range.setEnd(node, p.start + p.text.length);
