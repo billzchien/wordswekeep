@@ -207,10 +207,13 @@
       setTimeout(() => arriving.pose(g, false), beatAt(GROUPS + 1 + g));                             // home
     }
     setTimeout(() => {
-      arriving.layer.remove();
+      // Hand over from the scraps to the real quote with a dissolve, not a swap: the scraps sit
+      // on their words to a fraction of a pixel, but Safari snaps the two to whole pixels
+      // differently, and a swap showed as a slight jump at the end of every change.
       currentWrap().style.visibility = '';
+      arriving.dissolve();
       state.animating = false;
-    }, beatAt(2 * GROUPS) + SCRAP_FADE_MS + 20);
+    }, beatAt(2 * GROUPS) + SCRAP_FADE_MS + 60); // slack: Safari runs the last fade a frame or two late
   }
 
   // Wheel: exactly one step per gesture. A trackpad swipe is not one event but a stream that
