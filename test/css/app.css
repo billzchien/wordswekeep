@@ -322,9 +322,10 @@ ul { list-style: none; }
 }
 /* Notes mode only changes the size. The measure stays the same in em as on the main screen,
    so the quote breaks into the same lines in both modes — and to make sure of it, the notes
-   quote is rendered with the main quote's line breaks hard-coded (js/app.js → lockLines) and
-   must not be re-wrapped: `pre`, not `pre-line`. */
-.quote--locked { white-space: pre; } /* the shorthand also resets text-wrap: no re-wrapping at all */
+   quote is rendered with the main quote's line breaks hard-coded (js/app.js → lockLines). */
+.quote--locked { white-space: pre-line; text-wrap: auto; } /* plain greedy wrapping, not `pretty`: a
+   line that fit on the main screen is left alone, and a line that no longer fits (the window
+   changed size) wraps instead of running off the edge — the quote is never cut */
 .notes .quote[data-tier="l"]  { --q-size: var(--quote-l-notes); }
 .notes .quote[data-tier="m"]  { --q-size: var(--quote-m-notes); }
 .notes .quote[data-tier="s"]  { --q-size: var(--quote-s-notes); }

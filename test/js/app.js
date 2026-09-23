@@ -1381,9 +1381,19 @@
     // Only the annotation overlay is positioned from window metrics. Leave the video alone:
     // entering native fullscreen fires a resize too.
     if (!$('annOverlay').hidden) closeOverlays({ instant: true });
-    layoutNotes();
+    // The notes quote takes the main quote's new line breaks (the main deck is still laid out
+    // under the notes), so the two never disagree after a resize — now, and again once fluid
+    // type has settled.
+    const relock = () => {
+      if (state.mode === 'notes' && !modeBusy && !langBusy) {
+        lockLines(track.querySelector('.slide[data-pos="0"] .quote'));
+        renderNotesQuote();
+      }
+      layoutNotes();
+    };
+    relock();
     clearTimeout(relayoutTimer);
-    relayoutTimer = setTimeout(layoutNotes, 200); // again once fluid type has settled
+    relayoutTimer = setTimeout(relock, 200);
   });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutNotes);
   document.addEventListener('visibilitychange', layoutNotes); // a hidden tab gets no resize events
