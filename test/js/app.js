@@ -1036,9 +1036,15 @@
   }
 
   // Stagger the characters left to right so the last one finishes exactly at LANG_MS.
+  // The blur is a text-shadow, not a filter: a filter animation on each of a hundred-odd inline
+  // spans is composited per span, and Safari drops most of them (only a few characters blurred,
+  // at random). A text-shadow is painted in place and animates reliably everywhere: the glyph's
+  // colour goes to transparent while its shadow spreads, so it reads as the glyph blurring away.
   function sweep(chars, show) {
     const easing = getComputedStyle(document.documentElement).getPropertyValue('--ease').trim() || 'ease';
-    const clear = { opacity: 1, filter: 'blur(0px)' }, gone = { opacity: 0, filter: `blur(${LANG_BLUR}px)` };
+    const ink = getComputedStyle(chars[0] || document.body).color;
+    const clear = { opacity: 1, color: ink, textShadow: `0 0 0 ${ink}` };
+    const gone = { opacity: 0, color: 'transparent', textShadow: `0 0 ${LANG_BLUR}px ${ink}` };
     const span = Math.max(0, LANG_MS - LANG_CHAR_MS);
     chars.forEach((c, i) => {
       c.animate(show ? [gone, clear] : [clear, gone], {
