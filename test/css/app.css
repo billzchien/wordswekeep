@@ -32,7 +32,11 @@ ul { list-style: none; }
 [hidden] { display: none !important; }
 
 .app {
-  position: fixed;
+  /* absolute, not fixed: iOS 26 Safari colours its toolbars from a position: fixed element that
+     touches a viewport edge, re-sampled on its own schedule (mostly on scroll) — which left the
+     bars in the wrong colour after leaving notes. With nothing fixed at the edges, Safari uses
+     the body background, which js/app.js keeps in step with the page (syncChromeColor). */
+  position: absolute;
   inset: 0;
   background: var(--bg);
   color: var(--fg);
@@ -425,16 +429,17 @@ ul { list-style: none; }
   .n-body { margin-right: 40px; }
   .n-topfade {
     display: block;
-    position: fixed;
+    position: absolute; /* a child of .app, so not fixed (see .app) and not inside the scrolling notes */
     top: 0; left: 0; right: 0;
     height: 58px;
-    z-index: 4;
+    z-index: 15; /* over the notes (10), under the Close link (20) */
     pointer-events: none;
     background: linear-gradient(to bottom, var(--bg) 30%, transparent);
     opacity: 0; /* off at the top of the page, so it never veils the category label */
     transition: opacity 0.2s var(--ease);
   }
-  .notes.is-scrolled .n-topfade { opacity: 1; }
+  .app.is-scrolled .n-topfade { opacity: 1; }
+  .app:not([data-mode="notes"]) .n-topfade { display: none; } /* it belongs to the notes */
 }
 
 /* ---------- Overlays ---------- */
@@ -481,7 +486,7 @@ ul { list-style: none; }
 .video-box.is-ready .video-close { opacity: 1; }
 .video-overlay { animation: none; }
 .video-frame { background: #000 center / cover no-repeat; }
-.video-morph { position: fixed; z-index: 35; overflow: hidden; background: #000; pointer-events: none; }
+.video-morph { position: absolute; z-index: 35; /* inside .app, whose origin is the viewport's */ overflow: hidden; background: #000; pointer-events: none; }
 .video-morph img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .video-frame, .video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
 

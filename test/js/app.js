@@ -343,7 +343,7 @@
 
   let scrollIdle, pinBlur = -1;
   notes.addEventListener('scroll', () => {
-    notes.classList.toggle('is-scrolled', notes.scrollTop > 2); // the mobile top fade only exists once something can slide under it
+    app.classList.toggle('is-scrolled', notes.scrollTop > 2); // the mobile top fade only exists once something can slide under it
     // Blur in half-pixel steps, and only touch the style when the step changes: a blur filter is
     // re-rasterized whenever its value changes, and once the cap is reached (200px down) nothing
     // needs to change at all. Keeps the glide cheap on weaker (integrated) GPUs.
@@ -514,12 +514,13 @@
       renderNotes();
       notes.scrollTop = 0;
       dropGlide();
-      notes.classList.remove('is-scrolled');
+      app.classList.remove('is-scrolled');
       $('nPin').style.setProperty('--pin-blur', '0px');
       $('nPin').classList.remove('is-blurred');
       pinBlur = 0;
       layoutNotes();
     } else {
+      app.classList.remove('is-scrolled');
       delete app.dataset.theme;
       delete notes.dataset.theme;
       delete $('notesBtn').dataset.theme;
@@ -1235,15 +1236,16 @@
     o.addEventListener('click', (e) => { if (e.target === o) closeOverlays(); }));
 
   /* ---------- Browser chrome colour ----------
-     iOS Safari tints its toolbars and shows the overscroll area from the page's own colour
-     (theme-color, and the html background), so both follow the page: the palette in notes mode,
-     paper on the main page and in the menu. */
+     iOS Safari tints its toolbars and the overscroll area from the page's own colour: Safari 15–18
+     from theme-color, Safari 26+ from the body background (theme-color is ignored there, and a
+     position: fixed element at a viewport edge would take over — so nothing on the page is fixed).
+     All three follow the page: the palette in notes mode, paper on the main page and in the menu. */
   const menuEl = $('menu');
   function syncChromeColor() {
     const root = document.documentElement;
     const inNotes = !menuEl.hidden ? false : !!app.dataset.theme;
     const color = inNotes ? getComputedStyle(notes).backgroundColor : getComputedStyle(root).getPropertyValue('--paper').trim();
-    root.style.backgroundColor = color;
+    root.style.backgroundColor = document.body.style.backgroundColor = color;
     $('themeColor').setAttribute('content', color);
   }
   new MutationObserver(syncChromeColor).observe(app, { attributes: true, attributeFilter: ['data-theme'] });
