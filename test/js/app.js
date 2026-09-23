@@ -179,41 +179,67 @@
     history.replaceState(null, '', `#${q.id}`);
   }
 
-  function go(dir) {
-    if (state.animating || modeBusy || langBusy || state.mode !== 'main' || state.list.length < 2) return;
-    const advance = () => {
-      state.idx = mod(state.idx + dir, state.list.length);
-      state.original = false;
-      renderDeck();
-    };
-    if (reduceMotion.matches) return advance();
+  const advance = (dir) => {
+    state.idx = mod(state.idx + dir, state.list.length);
+    state.original = false;
+    renderDeck();
+  };
+  const currentWrap = () => track.querySelector('.slide[data-pos="0"] .q-wrap');
 
-    state.animating = true;
-    const currentWrap = () => track.querySelector('.slide[data-pos="0"] .q-wrap');
-    const leaving = buildScraps(currentWrap(), false);
+  /* The cut-up as a sequence of beats that can be stepped one at a time (the finger does that on
+     a touch screen) or played at the normal pace (`play`). Beats 0..GROUPS-1: the leaving quote's
+     groups jump out. Beat GROUPS: the swap — the words become the next quote, still scattered.
+     Beats GROUPS+1..2*GROUPS: the new quote's groups jump home. Before the swap a beat can be
+     undone (`back`); the swap is one-way. */
+  const beats = () => 2 * GROUPS + 1; // (GROUPS is declared further down, with the cut-up)
+  let cut = null; // the cut-up in progress
+  function startCut(dir) {
+    const c = { dir, n: 0, leaving: buildScraps(currentWrap(), false), arriving: null, playing: false, ended: false };
     currentWrap().style.visibility = 'hidden';
-    let arriving;
-    // Beats 0..GROUPS-1 out, beat GROUPS the swap, beats GROUPS+1..2*GROUPS home.
-    for (let g = 0; g < GROUPS; g++) {
-      if (g === 0) leaving.pose(0, true); else setTimeout(() => leaving.pose(g, true), beatAt(g));   // out
-    }
-    setTimeout(() => {                                                                                // swap
-      advance();
-      arriving = buildScraps(currentWrap(), true);
-      currentWrap().style.visibility = 'hidden';
-      leaving.dissolve();
-    }, beatAt(GROUPS));
-    for (let g = 0; g < GROUPS; g++) {
-      setTimeout(() => arriving.pose(g, false), beatAt(GROUPS + 1 + g));                             // home
-    }
-    setTimeout(() => {
+    state.animating = true;
+    cut = c;
+    const end = () => {
+      if (c.ended) return;
+      c.ended = true;
       // Hand over from the scraps to the real quote with a dissolve, not a swap: the scraps sit
       // on their words to a fraction of a pixel, but Safari snaps the two to whole pixels
       // differently, and a swap showed as a slight jump at the end of every change.
       currentWrap().style.visibility = '';
-      arriving.dissolve();
+      (c.arriving || c.leaving).dissolve();
       state.animating = false;
-    }, beatAt(2 * GROUPS) + SCRAP_FADE_MS + 60); // slack: Safari runs the last fade a frame or two late
+      if (cut === c) cut = null;
+    };
+    c.forward = () => {
+      if (c.ended || c.n >= beats()) return;
+      const b = c.n++;
+      if (b < GROUPS) c.leaving.pose(b, true);                                   // out
+      else if (b === GROUPS) {                                                   // swap
+        advance(dir);
+        c.arriving = buildScraps(currentWrap(), true);
+        currentWrap().style.visibility = 'hidden';
+        c.leaving.dissolve();
+      } else c.arriving.pose(b - GROUPS - 1, false);                             // home
+      if (c.n === beats()) setTimeout(end, SCRAP_FADE_MS + 60); // slack: Safari runs the last fade a frame or two late
+    };
+    c.back = () => {
+      if (c.n === 0 || c.n > GROUPS) return; // nothing to undo, or past the swap
+      c.leaving.pose(--c.n, false);
+      if (c.n === 0) setTimeout(() => { if (c.n === 0) end(); }, SCRAP_FADE_MS + 60); // all home again (and still so): no change after all
+    };
+    c.play = () => { // the rest of the beats at the normal pace
+      if (c.playing || c.ended) return;
+      c.playing = true;
+      const tick = () => { if (c.n >= beats()) return; const b = c.n; c.forward(); setTimeout(tick, beatAt(b + 1) - beatAt(b)); };
+      tick();
+    };
+    return c;
+  }
+
+  function go(dir) {
+    if (cut) return cut.play(); // a change left mid-way by the finger completes first
+    if (state.animating || modeBusy || langBusy || state.mode !== 'main' || state.list.length < 2) return;
+    if (reduceMotion.matches) return advance(dir);
+    startCut(dir).play();
   }
 
   // Wheel: exactly one step per gesture. A trackpad swipe is not one event but a stream that
@@ -236,29 +262,51 @@
       && abs > Math.max(WHEEL_PUSH_MIN, wheel.floor * WHEEL_PUSH_RATIO);
     wheel.floor = Math.min(wheel.floor, abs);
 
-    if (state.animating || abs < WHEEL_MIN || (stepped && !freshPush)) return;
+    if ((state.animating && !cut) || abs < WHEEL_MIN || (stepped && !freshPush)) return;
     wheel.steppedAt = now;
     wheel.floor = abs;
     go(e.deltaY > 0 ? 1 : -1);
   }, { passive: false });
 
-  // Touch: a swipe (distance or flick) steps to the next quote.
+  /* ---------- Touch: the cut-up follows the finger ----------
+     On a touch screen the change is not played but scrubbed: every SCRUB_TRAVEL / 7 beats of the
+     screen height the finger travels fires the next beat (out, out, out, swap, home, home, home).
+     Lift the finger and it stays where it is — words scattered, even — and the next drag carries
+     on from there. Before the swap a drag back undoes beats; the swap is one-way. A quick flick
+     plays the rest at the normal pace. (Reduced motion: a swipe just changes the quote.) */
+  const SCRUB_TRAVEL = 0.5;   // screen heights of travel for the whole change
+  const FLICK_MIN_PX = 24, FLICK_VELOCITY = 0.5; // px, px/ms
   let touch = null;
   deck.addEventListener('touchstart', (e) => {
-    if (state.animating || e.touches.length !== 1 || e.target.closest('button')) return;
-    touch = { y: e.touches[0].clientY, t: performance.now(), dy: 0 };
+    if (e.touches.length !== 1 || e.target.closest('button') || state.mode !== 'main' || modeBusy || langBusy || state.list.length < 2) return;
+    if (state.animating && (!cut || cut.playing)) return; // a change is playing out
+    touch = { y: e.touches[0].clientY, t: performance.now(), dy: 0, dir: cut ? cut.dir : 0, n0: cut ? cut.n : 0, lastY: e.touches[0].clientY, lastT: performance.now(), v: 0 };
   }, { passive: true });
   deck.addEventListener('touchmove', (e) => {
     if (!touch) return;
-    touch.dy = e.touches[0].clientY - touch.y; // the quote does not follow the finger: the change itself is the cut-up
+    const y = e.touches[0].clientY, now = performance.now();
+    touch.v = (y - touch.lastY) / Math.max(1, now - touch.lastT); // latest velocity, for the flick
+    touch.lastY = y; touch.lastT = now;
+    touch.dy = y - touch.y;
+    if (reduceMotion.matches) return;
+    if (!touch.dir) { if (Math.abs(touch.dy) < 8) return; touch.dir = touch.dy < 0 ? 1 : -1; }
+    const travel = -touch.dy * touch.dir; // in the direction of the change
+    const beatPx = deck.clientHeight * SCRUB_TRAVEL / beats();
+    const target = Math.max(0, Math.min(beats(), touch.n0 + Math.trunc(travel / beatPx))); // trunc: a beat back takes a full beat of travel too
+    if (!cut && target > 0) startCut(touch.dir);
+    if (!cut || cut.playing) return;
+    while (cut.n < target) cut.forward();
+    while (cut.n > target && cut.n <= GROUPS) cut.back();
   }, { passive: true });
   const endTouch = () => {
     if (!touch) return;
-    const { dy, t } = touch;
+    const { dy, v } = touch;
     touch = null;
-    const velocity = Math.abs(dy) / Math.max(1, performance.now() - t);
-    const swiped = state.list.length > 1 && (Math.abs(dy) > deck.clientHeight * 0.12 || (Math.abs(dy) > 24 && velocity > 0.5));
-    if (swiped) go(dy < 0 ? 1 : -1);
+    const flick = Math.abs(dy) > FLICK_MIN_PX && Math.abs(v) > FLICK_VELOCITY;
+    if (reduceMotion.matches) { if (flick || Math.abs(dy) > deck.clientHeight * 0.12) go(dy < 0 ? 1 : -1); return; }
+    if (!flick) return; // lifted: it stays where it is
+    if (cut) { if (!cut.playing && (dy < 0 ? 1 : -1) === cut.dir) cut.play(); }
+    else go(dy < 0 ? 1 : -1);
   };
   deck.addEventListener('touchend', endTouch);
   deck.addEventListener('touchcancel', endTouch);
