@@ -440,6 +440,11 @@
   const SCRAP_GAP = 14;         // breathing room kept between scraps (px)
   let modeBusy = false;
 
+  // A range's first box with ink in it. Safari lists, first, a zero-width box at the end of the
+  // previous line for a word that follows a preserved line break (the break's own box) — taking
+  // that put the word on the wrong line and joined lines in the scan-in stand-in.
+  const inkRect = (range) => { const rects = range.getClientRects(); return [...rects].find((r) => r.width > 0) || rects[0]; };
+
   // Measure every word of the rendered quote (each CJK character counts as a word).
   function measureWords(quoteEl) {
     const words = [];
@@ -467,7 +472,7 @@
         parts.forEach((p) => {
           range.setStart(node, p.start);
           range.setEnd(node, p.start + p.text.length);
-          const r = range.getClientRects()[0];
+          const r = inkRect(range);
           if (r) words.push({ text: p.text, cjk: p.cjk, left: r.left, top: r.top, right: r.right, node, start: p.start, end: p.start + p.text.length });
         });
       }
@@ -517,7 +522,7 @@
       layer.appendChild(el);
       // Line boxes and glyph boxes differ; nudge so the scrap's glyphs sit exactly on the word.
       range.selectNodeContents(el);
-      const own = range.getClientRects()[0];
+      const own = inkRect(range);
       if (own) { el.style.left = `${2 * scrap.left - own.left}px`; el.style.top = `${2 * scrap.top - own.top}px`; }
       return { el, scrap, w: el.offsetWidth * SCRAP_SCALE, h: el.offsetHeight * SCRAP_SCALE };
     });
@@ -698,7 +703,7 @@
       // Put the line's first glyph exactly on the real line's first glyph (measured both ways),
       // whatever the real line box happens to be.
       range.selectNodeContents(el);
-      const own = range.getClientRects()[0] || el.getBoundingClientRect();
+      const own = inkRect(range) || el.getBoundingClientRect();
       const first = line.words[0];
       el.style.left = `${first.left - own.left}px`;
       el.style.top = `${first.top - own.top}px`;
@@ -1146,7 +1151,7 @@
     const glyphBox = (el) => {
       const r = document.createRange();
       r.selectNodeContents(el);
-      const b = r.getClientRects()[0] || el.getBoundingClientRect();
+      const b = inkRect(r) || el.getBoundingClientRect();
       return { left: b.left, top: b.top };
     };
     const src = glyphBox(source);
