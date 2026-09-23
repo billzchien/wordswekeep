@@ -140,8 +140,9 @@
     for (let i = words.length - 1; i > 0; i--) {
       if (Math.abs(words[i].top - words[i - 1].top) < 4) continue;
       const at = words[i].start;
-      // Replace the space before the break (CJK has none: insert).
-      out = /[ \u00a0]/.test(out[at - 1] || '') ? out.slice(0, at - 1) + '\n' + out.slice(at) : out.slice(0, at) + '\n' + out.slice(at);
+      // Replace the whitespace before the break — a space, or a newline the text already had
+      // (a poem's own line breaks) — with a newline; CJK has none, so insert one.
+      out = /[ \u00a0\n]/.test(out[at - 1] || '') ? out.slice(0, at - 1) + '\n' + out.slice(at) : out.slice(0, at) + '\n' + out.slice(at);
     }
     lockedLines = { text, broken: out };
   }
@@ -331,13 +332,19 @@
     col.style.marginTop = `${wrap.offsetTop + wrap.offsetHeight}px`; // the gap below is --notes-quote-gap
   }
 
-  let scrollIdle;
+  let scrollIdle, pinBlur = -1;
   notes.addEventListener('scroll', () => {
     notes.classList.toggle('is-scrolled', notes.scrollTop > 2); // the mobile top fade only exists once something can slide under it
-    const blur = Math.min(25, notes.scrollTop / 8);
-    $('nPin').style.setProperty('--pin-blur', `${blur.toFixed(1)}px`);
-    $('nPin').classList.toggle('is-blurred', blur > 0);
-    $('nPin').style.pointerEvents = blur > 4 && !mqMobile.matches ? 'none' : ''; // phone: nothing is pinned or blurred, and the thumbnail lives in here
+    // Blur in half-pixel steps, and only touch the style when the step changes: a blur filter is
+    // re-rasterized whenever its value changes, and once the cap is reached (200px down) nothing
+    // needs to change at all. Keeps the glide cheap on weaker (integrated) GPUs.
+    const blur = Math.round(Math.min(25, notes.scrollTop / 8) * 2) / 2;
+    if (blur !== pinBlur) {
+      pinBlur = blur;
+      $('nPin').style.setProperty('--pin-blur', `${blur}px`);
+      $('nPin').classList.toggle('is-blurred', blur > 0);
+      $('nPin').style.pointerEvents = blur > 4 && !mqMobile.matches ? 'none' : ''; // phone: nothing is pinned or blurred, and the thumbnail lives in here
+    }
     notes.classList.add('is-scrolling');
     clearTimeout(scrollIdle);
     scrollIdle = setTimeout(() => notes.classList.remove('is-scrolling'), 150);
@@ -490,6 +497,7 @@
       notes.classList.remove('is-scrolled');
       $('nPin').style.setProperty('--pin-blur', '0px');
       $('nPin').classList.remove('is-blurred');
+      pinBlur = 0;
       layoutNotes();
     } else {
       delete app.dataset.theme;
