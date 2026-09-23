@@ -214,10 +214,14 @@ ul { list-style: none; }
   width: var(--q-width);
   max-width: 100%;
 }
-.quote[data-tier="l"]  { --q-size: var(--quote-l);  --q-width: 10.94em; }  /* 700 / 64 */
-.quote[data-tier="m"]  { --q-size: var(--quote-m);  --q-width: 16.54em; }  /* 860 / 52 */
-.quote[data-tier="s"]  { --q-size: var(--quote-s);  --q-width: 21.5em; }   /* 860 / 40 */
-.quote[data-tier="xs"] { --q-size: var(--quote-xs); --q-width: 26.88em; }  /* 860 / 32 */
+/* --q-ratio: main size ÷ notes size. The notes quote is boxed by four columns; the main quote is
+   boxed by the same four columns × this ratio, so its measure in em is never wider than the notes
+   quote's, and the two always break into the same lines (at any window width). */
+.quote[data-tier="l"]  { --q-size: var(--quote-l);  --q-width: 10.94em; --q-ratio: 1.0667; }  /* 700 / 64 · 64/60 */
+.quote[data-tier="m"]  { --q-size: var(--quote-m);  --q-width: 16.54em; --q-ratio: 1.0834; }  /* 860 / 52 · 52/48 */
+.quote[data-tier="s"]  { --q-size: var(--quote-s);  --q-width: 21.5em;  --q-ratio: 1.25; }    /* 860 / 40 · 40/32 */
+.quote[data-tier="xs"] { --q-size: var(--quote-xs); --q-width: 26.88em; --q-ratio: 1.1429; }  /* 860 / 32 · 32/28 */
+.slide .quote { max-width: min(100%, calc((4 * var(--colw) + 3 * var(--g)) * var(--q-ratio))); }
 
 .quote[data-native] {
   font-size: calc(var(--q-size) * var(--quote-native-scale));
@@ -256,7 +260,7 @@ ul { list-style: none; }
 
 @media (max-width: 1023px) {
   .slide .q-wrap { max-width: none; right: calc(var(--m) + var(--step)); }
-  .quote { --q-width: 100% !important; }
+  .quote { --q-width: 100% !important; --q-ratio: 1; } /* same size in both modes */
 }
 
 @media (max-width: 599px) {

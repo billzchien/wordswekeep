@@ -319,6 +319,14 @@
   function renderNotesQuote() {
     const wrap = $('nQuoteWrap');
     wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true, keepLines: true });
+    // Belt and braces: if a locked line does not fit here after all (it would wrap into an
+    // orphan), let the quote wrap naturally rather than show a broken line.
+    const locked = wrap.querySelector('.quote--locked');
+    if (locked) {
+      const wanted = locked.textContent.split('\n').length;
+      const got = new Set(measureWords(locked).map((w) => Math.round(w.top))).size;
+      if (got !== wanted) wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true });
+    }
     wrap.classList.toggle('has-lang', !!current().originalLanguage);
     layoutNotes();
   }
