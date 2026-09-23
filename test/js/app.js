@@ -492,16 +492,23 @@
     // the scrap dissolves out of its old spot while it dissolves into the new one.
     const easing = getComputedStyle(document.documentElement).getPropertyValue('--ease').trim() || 'ease';
     const fade = (el, from, to) => el.animate([{ opacity: from }, { opacity: to }], { duration: SCRAP_FADE_MS, easing, fill: 'forwards' });
+    // A scrap that has finished fading in goes back to being plain text: while the (filled)
+    // animation is attached, Safari keeps the scrap on a composited layer and shows a reused,
+    // scaled, clipped raster of it — lighter and softer than the real quote, which then
+    // "snapped" crisp at the handover. Cancelling the finished animation drops the layer.
+    const settle = (el) => setTimeout(() => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = ''; }, SCRAP_FADE_MS + 30);
+    const fadeIn = (el) => { fade(el, 0, 1); settle(el); };
     const pose = (group, out) => pieces.forEach((p) => {
       if (p.group !== group) return;
       const ghost = p.el.cloneNode(true);
+      ghost.getAnimations?.().forEach((a) => a.cancel());
       layer.appendChild(ghost);
       fade(ghost, 1, 0);
       setTimeout(() => ghost.remove(), SCRAP_FADE_MS + 30); // timers, not onfinish: animations stall in hidden tabs
       p.el.style.transform = out ? p.out : 'none';
-      fade(p.el, 0, 1);
+      fadeIn(p.el);
     });
-    if (startOut) pieces.forEach((p) => { p.el.style.transform = p.out; fade(p.el, 0, 1); });
+    if (startOut) pieces.forEach((p) => { p.el.style.transform = p.out; fadeIn(p.el); });
     const dissolve = () => { fade(layer, 1, 0); setTimeout(() => layer.remove(), SCRAP_FADE_MS + 30); };
     return { layer, pose, dissolve };
   }
