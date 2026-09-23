@@ -299,15 +299,18 @@
     const travel = -touch.dy * touch.dir; // in the direction of the change
     const beatPx = deck.clientHeight * SCRUB_TRAVEL / beats();
     const target = Math.max(0, Math.min(beats(), touch.n0 + Math.trunc(travel / beatPx))); // trunc: a beat back takes a full beat of travel too
+    if (touch.done) return; // one drag, one change: past the last beat the finger is ignored until it lifts
     if (!cut && target > 0) startCut(touch.dir);
     if (!cut || cut.playing) return;
     while (cut.n < target) cut.forward();
     while (cut.n > target && cut.n <= GROUPS) cut.back();
+    if (cut.n >= beats()) touch.done = true;
   }, { passive: true });
   const endTouch = () => {
     if (!touch) return;
-    const { dy, v } = touch;
+    const { dy, v, done } = touch;
     touch = null;
+    if (done) return; // this drag already made its change
     const flick = Math.abs(dy) > FLICK_MIN_PX && Math.abs(v) > FLICK_VELOCITY;
     if (reduceMotion.matches) { if (flick || Math.abs(dy) > deck.clientHeight * 0.12) go(dy < 0 ? 1 : -1); return; }
     if (!cut) { if (flick) go(dy < 0 ? 1 : -1); return; }
