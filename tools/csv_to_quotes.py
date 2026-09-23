@@ -26,7 +26,8 @@ OVERRIDES = {
         "author": {"name": "Mencius", "nativeName": "孟子"},
         "annotations_from_context": True,
     },
-    15: {"split_original": "zh", "author": {"name": "Wang Xizhi", "nativeName": "王羲之"}},
+    15: {"split_original": "zh", "join_lines": True,  # the English reads as one paragraph, not verse
+        "author": {"name": "Wang Xizhi", "nativeName": "王羲之"}},
     16: {  # submitted in Chinese only; the contributor's English rendering was in the context field
         "text_from_context": True, "lang": "zh",
         "author": {"name": "A character in Imperfect Us"},
@@ -114,6 +115,8 @@ def main(path):
             text, original = "\n".join(en), {"lang": o["split_original"], "text": "\n".join(zh)}
         if o.get("text_from_context"):
             original, text, context = {"lang": o["lang"], "text": text}, context, None
+        if o.get("join_lines"):
+            text = " ".join(line.strip() for line in text.split("\n") if line.strip())
         for wrong, right in o.get("fix", []):
             text = text.replace(wrong, right)
         text = polish_quote(strip_wrapping_quotes(text))
