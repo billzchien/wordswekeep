@@ -84,6 +84,8 @@ def polish_quote(s, cjk=False):
     """House style for the quote itself: every sentence starts with a capital, curly quotes,
     closing punctuation."""
     s = curly(s.strip())
+    s = re.sub(r"\.{3}", "…", s)                      # three dots → an ellipsis…
+    s = re.sub(r"…(?=[A-Za-zÀ-ÿ“‘(])", "… ", s)        # …followed by a space when a word runs straight on
     m = re.search(r"[A-Za-zÀ-ÿ]", s)
     if m and not cjk:
         s = s[:m.start()] + s[m.start()].upper() + s[m.start() + 1:]
