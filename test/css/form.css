@@ -265,7 +265,9 @@ textarea.field--taller { height: var(--ta-l); }
    The archive fades everything but the logo out (100ms) and opens this page; here the chrome
    fades in and, 50ms behind it, the form fades up. The logo never moves. */
 .form.is-arriving .count, .form.is-arriving .arrows { animation: fade-in 0.3s var(--ease) both; }
-.form.is-arriving .content { animation: rise-in 0.4s var(--ease) 50ms both; }
+/* The form's blocks (title, field, toggle, button) fade up one by one: 300ms each, all starting
+   together but 50ms apart (js sets --k, the block's place in the sequence). */
+.form.is-arriving .rise { animation: rise-in 0.3s var(--ease) calc(var(--k) * 50ms) both; }
 @keyframes rise-in { from { opacity: 0; translate: 0 calc(12 * var(--u)); } to { opacity: 1; translate: 0 0; } }
 
 /* ---------- Breakpoints ---------- */
