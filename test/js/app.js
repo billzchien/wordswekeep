@@ -1447,6 +1447,7 @@
      (and Back / the apply button) fade in together with the first row. */
   const MENU_ICON_MS = 200, MENU_ITEM_MS = 400, MENU_STAGGER_MS = 50;
   const MENU_OUT_MS = 250, MENU_BG_MS = 250; // leaving: each row's fade, then the background's
+  const MENU_RETURN_MS = 400;              // closing with nothing changed: the quote fades back in (Notes + arrows: css, 400ms)
   let menuBusy = false;
   const easeCurve = () => getComputedStyle(document.documentElement).getPropertyValue('--ease').trim() || 'ease';
 
@@ -1456,10 +1457,12 @@
       state.preview = state.filter;
       renderMenu();
       $('menu').hidden = false;
+      if (state.mode === 'main') app.classList.add('is-typing'); // Notes and the arrows go under the menu already hidden: they type back in with the quote on close
       menuBusy = false;
       if (reduceMotion.matches) return;
       const easing = easeCurve();
-      const fadeIn = (el, delay) => el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MENU_ITEM_MS, delay, easing, fill: 'backwards' });
+      // Each element fades up to its own opacity (an empty category's row is dimmed by css), not to 1.
+      const fadeIn = (el, delay) => el.animate([{ opacity: 0 }, { opacity: getComputedStyle(el).opacity }], { duration: MENU_ITEM_MS, delay, easing, fill: 'backwards' });
       document.querySelectorAll('#catList .cat-row').forEach((row, i) => {
         fadeIn(row, i * MENU_STAGGER_MS);
         row.querySelector('.cat-mark').animate([{ scale: 0 }, { scale: 1 }], { duration: MENU_ITEM_MS, delay: i * MENU_STAGGER_MS, easing, fill: 'backwards' });
@@ -1474,7 +1477,9 @@
 
   // Leaving mirrors arriving: rows fade out one after another (marks shrink to nothing, the
   // descriptor goes with the first row), the grey background fades last, and the icon grows back.
-  function closeMenu() {
+  // `changed`: a new category was applied — the (new) quote types itself in. Otherwise the page
+  // comes back as it was: the quote, Notes and the arrows simply fade in with the background.
+  function closeMenu(changed = false) {
     const menu = $('menu');
     if (menu.hidden || menuBusy) return;
     const icon = $('menuBtn').querySelector('.icon');
@@ -1483,12 +1488,13 @@
       menu.getAnimations({ subtree: true }).forEach((a) => a.cancel());
       icon.getAnimations().forEach((a) => a.cancel());
       menuBusy = false;
+      if (!state.animating) app.classList.remove('is-typing'); // no arrival ran (reduced motion / notes): show them at once
     };
     if (reduceMotion.matches) return finish();
 
     menuBusy = true;
     const easing = easeCurve();
-    const fadeOut = (el, delay) => el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MENU_OUT_MS, delay, easing, fill: 'forwards' });
+    const fadeOut = (el, delay) => el.animate([{ opacity: getComputedStyle(el).opacity }, { opacity: 0 }], { duration: MENU_OUT_MS, delay, easing, fill: 'forwards' });
     const rows = [...document.querySelectorAll('#catList .cat-row')];
     rows.forEach((row, i) => {
       fadeOut(row, i * MENU_STAGGER_MS);
@@ -1497,7 +1503,16 @@
     [document.querySelector('.cat-desc'), $('menuBack'), $('menuApply')].forEach((el) => fadeOut(el, 0));
 
     const itemsGone = MENU_OUT_MS + Math.max(0, rows.length - 1) * MENU_STAGGER_MS;
+    const wrap = currentWrap();
+    if (wrap && state.mode === 'main' && changed) wrap.style.visibility = 'hidden'; // the new quote types in (arrive) as the background goes
     setTimeout(() => {
+      if (state.mode === 'main') {
+        if (changed) arrive();
+        else { // nothing changed: the quote fades back in with Notes and the arrows
+          if (wrap) wrap.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MENU_RETURN_MS, easing, fill: 'backwards' });
+          app.classList.remove('is-typing');
+        }
+      }
       fadeOut(menu, 0).effect.updateTiming({ duration: MENU_BG_MS });                     // background last…
       icon.animate([{ scale: 0 }, { scale: 1 }], { duration: MENU_BG_MS, easing });        // …as the icon returns
       setTimeout(finish, MENU_BG_MS);
@@ -1506,18 +1521,19 @@
 
   function applyFilter(key) {
     if (menuBusy || countFor(key) === 0) return;
-    if (key !== state.filter) {
+    const changed = key !== state.filter;
+    if (changed) {
       state.filter = key;
       state.list = key === 'all' ? state.all : state.all.filter((q) => q.categories.includes(key));
       state.idx = 0;
       state.original = false;
       renderDeck();
     }
-    closeMenu();
+    closeMenu(changed);
   }
 
   $('menuBtn').addEventListener('click', openMenu);
-  $('menuBack').addEventListener('click', closeMenu);
+  $('menuBack').addEventListener('click', () => closeMenu(false));
   $('menuApply').addEventListener('click', () => applyFilter(state.preview));
 
   const catList = $('catList');
@@ -1592,11 +1608,114 @@
       const found = state.all.findIndex((q) => q.id === wanted);
       state.idx = found >= 0 ? found : Math.floor(Math.random() * state.all.length);
       renderDeck();
+      arrive();
     })
     .catch((err) => {
       console.error(err);
+      app.classList.remove('is-typing');
       track.innerHTML = '<div class="slide" data-pos="0"><div class="q-wrap"><blockquote class="quote" data-tier="m">The words couldn’t be loaded. Please refresh.</blockquote></div></div>';
     });
+
+  /* ---------- Arrival: the quote types itself in, letter by letter ----------
+     On every load, coming back from the form, and as the menu closes: the letters appear one
+     after another, left to right, top to bottom — a copy of each letter (measured off the
+     rendered quote, like the cut-up's scraps) sits exactly on its place and switches on in one
+     frame, ARRIVE_STAGGER_MS after the one before (tightened for long quotes so the whole thing
+     stays under ARRIVE_MAX_MS, never closer than ARRIVE_MIN_STAGGER_MS). ARRIVE_LETTER_MS > 0
+     fades each letter instead. Then the copies are swapped for the real quote. Waits for the
+     fonts: the letters are measured off the rendered text. */
+  // Typing rhythm. Every gap is ARRIVE_STAGGER_MS give or take ARRIVE_JITTER (a human is never even),
+  // plus a breath at a word break and a longer one after punctuation. If the whole quote would
+  // take longer than ARRIVE_MAX_MS the gaps are scaled down together, so the rhythm keeps its shape.
+  const ARRIVE_LETTER_MS = 0;        // 0 = each letter simply appears; > 0 = fades in over this long
+  const ARRIVE_STAGGER_MS = 50;      // base gap between letters
+  const ARRIVE_JITTER = 0.4;         // ± this fraction of the gap, at random
+  const ARRIVE_SPACE_MS = 40;        // extra before the first letter of a word
+  const ARRIVE_COMMA_MS = 120;       // extra after , ; : — and their CJK forms
+  const ARRIVE_STOP_MS = 260;        // extra after . ! ? … and a line break
+  const ARRIVE_MAX_MS = 2600;        // budget for the letter gaps of the whole quote (the breaths and
+                                     // pauses are never compressed — they are what makes it read
+                                     // as typing); a long quote types faster, never below…
+  const ARRIVE_MIN_GAP_MS = 24;      // …this gap between letters
+  const COMMA_RE = /[,;:—–、；：]/, STOP_RE = /[.!?…。！？]/;
+  function typingSchedule(letters) {
+    // Letter gaps (jittered) are budgeted; pauses are added on top, unscaled.
+    const gaps = [], pauses = [];
+    letters.forEach((l, i) => {
+      if (i === 0) { gaps.push(0); pauses.push(0); return; }
+      const prev = letters[i - 1];
+      gaps.push(ARRIVE_STAGGER_MS * (1 + ARRIVE_JITTER * (2 * Math.random() - 1)));
+      let pause = l.wordStart ? ARRIVE_SPACE_MS : 0;
+      if (STOP_RE.test(prev.text) || l.top - prev.top > 4) pause += ARRIVE_STOP_MS;
+      else if (COMMA_RE.test(prev.text)) pause += ARRIVE_COMMA_MS;
+      pauses.push(pause);
+    });
+    const sum = gaps.reduce((a, b) => a + b, 0);
+    const scale = sum > ARRIVE_MAX_MS ? Math.max(ARRIVE_MIN_GAP_MS / ARRIVE_STAGGER_MS, ARRIVE_MAX_MS / sum) : 1;
+    const at = [];
+    let t = 0;
+    gaps.forEach((g, i) => { t += g * scale + pauses[i]; at.push(t); });
+    return at;
+  }
+  function measureLetters(quoteEl) {
+    const letters = [], range = document.createRange();
+    measureWords(quoteEl).forEach((w) => {
+      for (let i = w.start; i < w.end; i++) {
+        range.setStart(w.node, i); range.setEnd(w.node, i + 1);
+        const r = inkRect(range);
+        if (r) letters.push({ text: w.node.data[i], left: r.left, top: r.top, wordStart: i === w.start });
+      }
+    });
+    return letters;
+  }
+  function arrive() {
+    const wrap = currentWrap();
+    if (!wrap || reduceMotion.matches) { app.classList.remove('is-typing'); return; }
+    wrap.style.visibility = 'hidden';
+    state.animating = true;
+    app.classList.add('is-typing'); // Notes and the arrows wait for the last letter, then fade in
+    const done = () => { state.animating = false; app.classList.remove('is-typing'); };
+    const ready = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+    ready.then(() => requestAnimationFrame(() => {
+      if (currentWrap() !== wrap) { done(); return; } // the deck was rebuilt meanwhile
+      const quoteEl = wrap.querySelector('.quote');
+      const letters = measureLetters(quoteEl);
+      const cs = getComputedStyle(quoteEl);
+      const layer = document.createElement('div');
+      layer.className = 'dada';
+      layer.setAttribute('aria-hidden', 'true');
+      Object.assign(layer.style, { fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontStyle: cs.fontStyle, lineHeight: cs.lineHeight, letterSpacing: cs.letterSpacing });
+      app.appendChild(layer);
+      const range = document.createRange();
+      const easing = getComputedStyle(document.documentElement).getPropertyValue('--ease').trim() || 'ease';
+      const at = typingSchedule(letters);
+      letters.forEach((l, i) => {
+        const el = document.createElement('span');
+        el.className = 'dada-scrap';
+        el.textContent = l.text;
+        el.style.left = `${l.left}px`; el.style.top = `${l.top}px`;
+        if (ARRIVE_LETTER_MS > 0) el.style.opacity = '0'; else el.style.visibility = 'hidden';
+        layer.appendChild(el);
+        range.selectNodeContents(el);
+        const own = inkRect(range);
+        if (own) { el.style.left = `${2 * l.left - own.left}px`; el.style.top = `${2 * l.top - own.top}px`; }
+        if (ARRIVE_LETTER_MS > 0) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ARRIVE_LETTER_MS, delay: at[i], easing, fill: 'forwards' });
+        else setTimeout(() => { el.style.visibility = ''; }, at[i]); // typewriter: visibility, which cannot fade, in one frame
+      });
+      const total = (at[at.length - 1] || 0) + ARRIVE_LETTER_MS;
+      setTimeout(() => {
+        wrap.style.visibility = '';
+        layer.remove(); // the copies sit on the letters to a fraction of a pixel; a plain swap keeps the typewriter crisp
+        wrap.querySelector('.lang')?.classList.add('is-in'); // the 中 / EN button fades up as the last letter lands
+        done();
+      }, total + 30);
+    }));
+  }
+  if (sessionStorage.getItem('wwk-home')) { // back from the form: the chrome fades in around the logo
+    sessionStorage.removeItem('wwk-home');
+    app.classList.add('is-arriving');
+    setTimeout(() => app.classList.remove('is-arriving'), 600);
+  }
 
   /* ---------- Add words: hand over to the form ---------- */
   const LEAVE_MS = 100;
