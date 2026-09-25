@@ -1597,4 +1597,16 @@
       console.error(err);
       track.innerHTML = '<div class="slide" data-pos="0"><div class="q-wrap"><blockquote class="quote" data-tier="m">The words couldn’t be loaded. Please refresh.</blockquote></div></div>';
     });
+
+  /* ---------- Add words: hand over to the form ---------- */
+  const LEAVE_MS = 100;
+  $('addBtn').addEventListener('click', (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // let the browser open a tab
+    e.preventDefault();
+    const href = e.currentTarget.href;
+    sessionStorage.setItem('wwk-arrive', '1');
+    app.classList.add('is-leaving');
+    setTimeout(() => { location.href = href; }, reduceMotion.matches ? 0 : LEAVE_MS);
+  });
+  window.addEventListener('pageshow', () => app.classList.remove('is-leaving')); // back button (bfcache)
 })();
