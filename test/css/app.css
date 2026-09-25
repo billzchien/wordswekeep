@@ -102,6 +102,10 @@ ul { list-style: none; }
   .arrows button:first-child { margin-top: 0; }
 }
 
+/* Leaving for the form ("Add words"): everything but the logo fades out in 100ms, then the
+   page changes; the form page fades its content in around the same logo (js/form.js). */
+.app.is-leaving > :not(.menu-btn) { opacity: 0; transition: opacity 0.1s var(--ease); }
+
 .app[data-mode="notes"]:not(.is-revealing) .menu-btn,
 .app[data-mode="notes"]:not(.is-revealing) .number,
 .app[data-mode="notes"]:not(.is-revealing) .add-btn,

@@ -483,4 +483,11 @@
   document.querySelectorAll('.q-desc').forEach((p) => { p.textContent = noOrphans(p.textContent); });
   steps.forEach((s, i) => s.style.setProperty('--i', i));
   refresh();
+
+  // Opened from the archive's "Add words": play the entrance (css .is-arriving).
+  if (sessionStorage.getItem('wwk-arrive')) {
+    sessionStorage.removeItem('wwk-arrive');
+    form.classList.add('is-arriving');
+    form.addEventListener('animationend', () => form.classList.remove('is-arriving'), { once: true });
+  }
 })();
