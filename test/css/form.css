@@ -1,0 +1,278 @@
+/* Words We Keep — "Add words" submission form (Figma: Form submission 227:3457, input states
+   284:307, breakpoints 287:786). Layout + components only; colors and type come from tokens.css,
+   the chrome (mark, arrows, links, icons, reset) from app.css.
+
+   Every size here is N * --u (tokens.css: 1px up to a 1440px window, 1.5px at 2160), so the
+   fields, icons, checkboxes and the spacing grow with the type. Tablet/mobile: --u is 1px. */
+
+:root {
+  /* Form surfaces (Figma values; not in tokens.css because only the form uses them) */
+  --field:        #f3f3f3;   /* input at rest */
+  --field-hover:  #ffffff;   /* input hovered / focused */
+  --placeholder:  #565656;   /* placeholders and question descriptions */
+  --cat-desc:     #696969;   /* category descriptions */
+  --btn-line:     #757575;   /* outlined button border */
+  --btn-off:      #757575;   /* disabled primary button */
+  --btn-off-text: #a8a8a8;   /* disabled outlined button text */
+  --btn-off-line: #c4c4c4;   /* disabled outlined button border */
+  --sheet:        #000242;   /* annotation sheet */
+  --step-ms: 600ms;          /* one step slide */
+  --list-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);   /* open dropdown list — exact Figma value not readable via MCP, tune here */
+
+  /* Sizes (design px, scaled by --u) */
+  --fh: calc(48 * var(--u));      /* field + button height (desktop 48, tablet/phone 40) */
+  --fpad: calc(12 * var(--u));    /* field side padding */
+  --ta-s: calc(100 * var(--u));   /* textarea heights: words */
+  --ta-m: calc(160 * var(--u));   /* context */
+  --ta-l: calc(200 * var(--u));   /* reflection */
+  --ic: calc(18 * var(--u));      /* small icons: plus, ×, required */
+  --ic-chevron: calc(24 * var(--u));
+  --box: calc(12 * var(--u));     /* checkbox */
+  --cat-mark: calc(16 * var(--u));
+  --gap-1: calc(1 * var(--u));    /* between stacked fields */
+  --gap-4: calc(4 * var(--u));
+  --gap-12: calc(12 * var(--u));
+  --gap-16: calc(16 * var(--u));
+  --gap-24: calc(24 * var(--u));
+  --gap-40: calc(40 * var(--u));
+}
+@media (max-width: 1023px) { :root { --fh: 40px; } }
+
+.form {
+  position: absolute;
+  inset: 0;
+  overflow: clip; /* clip, not hidden: a hidden box can still be scrolled by focus / scrollIntoView, and the stack of steps below the screen would let it */
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: var(--text-size);
+  line-height: var(--text-leading);
+  letter-spacing: var(--text-tracking);
+  font-feature-settings: var(--text-features);
+}
+
+/* The UA stylesheet gives <button> and <input> letter-spacing: normal (the reset in app.css only
+   covers font and color), which dropped the -1% tracking on the category rows and buttons. */
+.form button, .form input, .form textarea { letter-spacing: inherit; font-feature-settings: inherit; }
+
+/* ---------- Steps: a stack of screens, slid by js (translateY) ---------- */
+
+.steps { --dy: 0px; position: absolute; inset: 0; transition: transform var(--step-ms) var(--ease); will-change: transform; }
+.step {
+  position: absolute; left: 0; right: 0; height: 100%;
+  top: calc(var(--i) * 100%);
+  display: flex; flex-direction: column;
+  overflow-y: auto;            /* a step taller than the screen (small phone, keyboard up) scrolls */
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.step::-webkit-scrollbar { display: none; }
+
+/* The column: 2 columns from col3 (desktop, 400 at 1280), 4 columns from col2 (tablet),
+   margin to margin (phone). Vertically centred; --dy nudges a step's centre (step 2: +15px). */
+.content {
+  width: calc(2 * var(--colw) + var(--g));
+  margin: auto 0 auto var(--col3);
+  padding: calc(72 * var(--u) + 2 * var(--dy)) 0 calc(72 * var(--u));
+  display: flex; flex-direction: column; gap: var(--gap-24);
+  flex-shrink: 0;
+}
+.content--40 { gap: var(--gap-40); }
+
+.group { display: flex; flex-direction: column; gap: var(--gap-12); width: 100%; }
+.group--16 { gap: var(--gap-16); }
+.group--24 { gap: var(--gap-24); }
+.group--11 { gap: calc(11 * var(--u)); }
+
+.q { display: flex; flex-direction: column; width: 100%; position: relative; }
+.q--pad { padding-right: var(--gap-40); gap: calc(2 * var(--u)); }
+.q-title { display: flex; justify-content: space-between; align-items: center; }
+.q-desc { color: var(--placeholder); }
+/* Required: the asterisk glyph as an icon (Figma "required"), centred on the title's first line. */
+.req {
+  position: absolute; right: 0;
+  top: calc(var(--text-size) * var(--text-leading) / 2); transform: translateY(-50%);
+  --src: url(../../assets/icons/required.svg); width: var(--ic); height: var(--ic);
+}
+
+/* ---------- Fields ---------- */
+
+.stack { display: flex; flex-direction: column; gap: var(--gap-1); width: 100%; }
+.stack--4 { gap: var(--gap-4); }
+.row { display: flex; gap: var(--gap-1); width: 100%; }
+.row > * { flex: 1 1 0; min-width: 0; }
+.fw { position: relative; width: 100%; }
+
+.field {
+  display: block; width: 100%; height: var(--fh);
+  padding: 0 var(--fpad);
+  border: 0; border-radius: 0; outline: none;
+  background: var(--field); color: var(--ink);
+  font: inherit; letter-spacing: inherit; font-feature-settings: inherit; line-height: var(--text-leading);
+  -webkit-appearance: none; appearance: none;
+  transition: background 0.15s var(--ease);
+}
+textarea.field { height: var(--ta-s); padding: var(--fpad); resize: none; }
+textarea.field--tall { height: var(--ta-m); }
+textarea.field--taller { height: var(--ta-l); }
+.field::placeholder { color: var(--placeholder); opacity: 1; }
+@media (hover: hover) { .field:hover { background: var(--field-hover); } }
+.field:focus { background: var(--field-hover); }
+.field:focus-visible { outline: none; }
+/* Warning: white, a hairline black frame, an ⓘ on the right. Set by js on a required field a
+   visitor tried to skip; cleared as soon as they type (a combobox: as soon as they open it). */
+.fw.is-warn .field { background: var(--field-hover); box-shadow: inset 0 0 0 0.5px var(--ink); padding-right: calc(2 * var(--fpad) + var(--ic)); }
+.fw.is-warn::after {
+  content: ""; position: absolute; right: var(--fpad); top: calc((var(--fh) - var(--ic)) / 2); width: var(--ic); height: var(--ic);
+  background: currentColor;
+  -webkit-mask: url(../../assets/icons/info.svg) center / 100% 100% no-repeat;
+  mask: url(../../assets/icons/info.svg) center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+.fw.is-warn .combo-btn { display: none; } /* the ⓘ takes the chevron's place until the field is opened */
+
+/* Combobox (country, source kind, year): a text field that filters a list. */
+.combo { position: relative; width: 100%; }
+.combo .field { padding-right: calc(var(--fpad) + var(--ic-chevron) + 8 * var(--u)); text-overflow: ellipsis; }
+.combo-btn { position: absolute; right: calc(8 * var(--u)); top: 50%; transform: translateY(-50%); width: var(--ic-chevron); height: var(--ic-chevron); display: grid; place-items: center; color: var(--placeholder); }
+.combo.is-open .icon-chevron { transform: rotate(180deg); } /* instant, no spin */
+.combo.has-value .combo-btn { color: var(--ink); }
+.combo-list {
+  position: absolute; left: 0; right: 0; top: calc(100% + var(--gap-1)); z-index: 5;
+  max-height: calc(4 * var(--fh)); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--field-hover); /* white; rows shade to the idle field colour on hover */
+  box-shadow: var(--list-shadow);
+}
+/* Firefox only: 'thin' is the narrowest it allows. Not for WebKit/Blink, where the standard
+   property would override the 2px bar below and leave the system overlay bar. */
+@supports not selector(::-webkit-scrollbar) { .combo-list { scrollbar-width: thin; scrollbar-color: var(--ink) var(--field-hover); } }
+/* The native scrollbar is hidden (it takes a 2px column of its own, and rows can't paint under
+   it); js draws a 2px black bar over the list's right edge instead (.combo-bar). */
+.combo-list { scrollbar-width: none; }
+.combo-list::-webkit-scrollbar { display: none; }
+.combo-bar { position: absolute; right: 0; width: 2px; background: var(--ink); z-index: 6; pointer-events: none; }
+
+.combo-item {
+  display: flex; align-items: center; justify-content: space-between;
+  height: var(--fh); padding: 0 calc(16 * var(--u)) 0 var(--fpad); width: 100%; text-align: left; /* right: the 8px asterisk centres on the ×/chevron's centreline (8 + 24/2 = 20 from the edge) */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.combo-item.is-hover, .combo-item:hover, .combo-item[aria-selected="true"] { background: var(--field); }
+.combo-item .icon-asterisk { flex-shrink: 0; width: calc(8 * var(--u)); height: calc(8 * var(--u)); }
+.combo-empty { height: var(--fh); padding: 0 var(--fpad); display: flex; align-items: center; color: var(--placeholder); }
+
+/* ---------- Category rows (step 2) ---------- */
+
+/* Rows are a grid so they all take the tallest row's height. */
+.cat-grid { display: grid; grid-auto-rows: 1fr; gap: var(--gap-1); width: 100%; }
+.cat {
+  position: relative;
+  display: grid; grid-template-columns: var(--cat-mark) 1fr; grid-template-rows: auto auto; column-gap: var(--gap-24); align-content: start;
+  width: 100%; padding: var(--gap-16); text-align: left;
+  background: var(--field);
+  transition: background 0.15s var(--ease);
+}
+@media (hover: hover) { .cat:hover { background: var(--field-hover); } }
+.cat .icon-mark { width: var(--cat-mark); height: var(--cat-mark); align-self: center; grid-row: 1; grid-column: 1; }
+.cat-title { grid-column: 2; grid-row: 1; display: flex; align-items: center; min-height: var(--cat-mark); } /* mark and name share one centred row */
+.cat-blurb { grid-column: 2; grid-row: 2; margin-top: var(--gap-4); color: var(--cat-desc); max-width: 75%; text-wrap: pretty; } /* wraps at ¾ of the column; the last two words are tied (form.js → noOrphans) */
+.q-desc, .ann-quote { text-wrap: pretty; }
+.cat-box {
+  position: absolute; right: var(--fpad); top: var(--fpad); width: var(--box); height: var(--box);
+  box-shadow: inset 0 0 0 0.5px var(--ink);
+  display: grid; place-items: center;
+}
+.cat-box .icon-check { width: var(--box); height: var(--box); color: var(--white); display: none; }
+.cat[aria-checked="true"] .cat-box { background: var(--ink); box-shadow: none; }
+.cat[aria-checked="true"] .icon-check { display: block; }
+
+/* ---------- Small actions ---------- */
+
+/* "In original language +", "Annotate specific words +", "Another +" */
+.more { display: inline-flex; align-items: center; gap: calc(2 * var(--u)); height: calc(32 * var(--u)); align-self: flex-start; white-space: nowrap; }
+.more--flat { height: auto; }
+.icon-plus     { --src: url(../../assets/icons/plus.svg); width: var(--ic); height: var(--ic); }
+.icon-chevron  { --src: url(../../assets/icons/chevron.svg); width: var(--ic-chevron); height: var(--ic-chevron); }
+.icon-check    { --src: url(../../assets/icons/check.svg); width: var(--box); height: var(--box); }
+/* The navigation arrow, turned to point right, inside the same 18px box as the plus (Figma 226:3107). */
+.more .icon-arrow--right { width: calc(12 * var(--u)); height: calc(12 * var(--u)); margin: calc(3 * var(--u)); transform: rotate(90deg); }
+.icon-x        { --src: url(../../assets/icons/x-small.svg); width: calc(12 * var(--u)); height: calc(12 * var(--u)); }
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: var(--fh); min-width: calc(100 * var(--u)); padding: 0 var(--fpad);
+  border: 0.5px solid var(--btn-line); color: var(--ink);
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease), background 0.15s var(--ease), color 0.15s var(--ease);
+  white-space: nowrap;
+}
+@media (hover: hover) { .btn:not(:disabled):hover { border-color: var(--ink); box-shadow: inset 0 0 0 0.5px var(--ink); } }
+.btn:not(:disabled):active { border-color: var(--ink); box-shadow: inset 0 0 0 0.5px var(--ink); }
+.btn:disabled { color: var(--btn-off-text); border-color: var(--btn-off-line); cursor: default; }
+.btn--primary { background: var(--ink); color: var(--white); border-color: var(--ink); }
+@media (hover: hover) { .btn--primary:not(:disabled):hover { box-shadow: none; } }
+.btn--primary:disabled { background: var(--btn-off); border-color: var(--btn-off); color: var(--white); }
+
+/* ---------- Chrome ---------- */
+
+.home { top: 21px; left: var(--m); display: block; }
+.count { left: var(--m); bottom: 20px; white-space: nowrap; } /* old-style figures like "No. 8" on the archive; lining figures read too big */
+.form.is-done .count, .form.is-done .arrows { display: none; }
+.arrows button:disabled { opacity: 0.3; cursor: default; }
+
+/* Honeypot: off-screen, never displayed. */
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* ---------- Annotation sheet (step 4) ---------- */
+
+.ann-sheet {
+  position: absolute; inset: 0; z-index: 40;
+  background: var(--sheet); color: var(--white);
+  display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain;
+  /* Enters like notes mode: the finished sheet is cropped in from the top edge down over the
+     page (REVEAL_MS 600, --ease-drop); leaves the same way, the edge travelling down and
+     uncovering the page. Content never moves, only the crop. */
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path var(--sheet-ms) var(--ease-drop);
+  --sheet-ms: 600ms;
+  --field: rgba(255, 255, 255, 0.1);
+  --field-hover: rgba(255, 255, 255, 0.16);
+  --placeholder: rgba(255, 255, 255, 0.6);
+  --btn-line: rgba(255, 255, 255, 0.5);
+  --ink: #ffffff;
+}
+.ann-sheet.is-in { clip-path: inset(0); }
+.ann-sheet.is-out { clip-path: inset(100% 0 0 0); }
+.ann-sheet .btn { color: var(--white); }
+@media (hover: hover) { .ann-sheet .btn:not(:disabled):hover { border-color: var(--white); box-shadow: inset 0 0 0 0.5px var(--white); } }
+.ann-cancel { top: 20px; left: var(--m); }
+.ann-quote { padding-left: var(--gap-40); }
+.ann-rows { display: block; }
+/* A row is a one-cell grid so its height can animate (0fr → 1fr) when it is added or removed:
+   nothing ever overlaps, the rows below simply move. --ann-ms: fade + drop. */
+.ann-row { display: grid; grid-template-rows: 1fr; width: 100%; --ann-ms: 200ms; }
+.ann-row + .ann-row { margin-top: var(--gap-24); }
+.ann-row > div { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: var(--gap-4); }
+.ann-row.is-new { animation: ann-in var(--ann-ms) var(--ease) both; }
+.ann-row.is-leaving { animation: ann-out var(--ann-ms) var(--ease) both; pointer-events: none; }
+@keyframes ann-in  { from { grid-template-rows: 0fr; margin-top: 0; opacity: 0; translate: 0 calc(-8 * var(--u)); } to { grid-template-rows: 1fr; opacity: 1; translate: 0 0; } }
+@keyframes ann-out { from { grid-template-rows: 1fr; opacity: 1; translate: 0 0; } to { grid-template-rows: 0fr; margin-top: 0; opacity: 0; translate: 0 calc(-8 * var(--u)); } }
+.ann-row-head { display: flex; justify-content: space-between; align-items: center; gap: calc(8 * var(--u)); }
+.ann-remove { width: var(--ic); height: var(--ic); display: flex; align-items: center; justify-content: flex-end; margin-right: calc(-3 * var(--u)); color: var(--white); } /* the × glyph has 3px of air inside its 12px box; pulled out by that much, its ink ends exactly on the field's right edge */
+
+/* ---------- Breakpoints ---------- */
+
+@media (max-width: 1023px) {
+  .content { width: calc(4 * var(--colw) + 3 * var(--g)); margin-left: var(--col2); }
+}
+@media (max-width: 599px) {
+  .content { width: auto; margin-left: var(--m); margin-right: var(--m); padding-top: calc(60px + 2 * var(--dy)); padding-bottom: 96px; }
+  .home { top: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .steps { transition: none; }
+  .ann-sheet { transition: none; }
+  .ann-row.is-new, .ann-row.is-leaving { animation-duration: 0s; }
+}
