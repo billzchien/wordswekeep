@@ -217,7 +217,7 @@ textarea.field--taller { height: var(--ta-l); }
 /* ---------- Chrome ---------- */
 
 .home { top: 20px; left: var(--m); display: block; } /* same spot as the archive's menu button: no hop between pages */
-.count { left: var(--m); bottom: 20px; white-space: nowrap; } /* old-style figures like "No. 8" on the archive; lining figures read too big */
+.count { left: var(--m); bottom: 20px; padding-bottom: var(--link-gap); white-space: nowrap; } /* the archive's "Add words" link has this gap under its text: same baseline across pages */ /* old-style figures like "No. 8" on the archive; lining figures read too big */
 .form.is-done .count, .form.is-done .arrows { display: none; }
 .arrows button:disabled { opacity: 0.3; cursor: default; }
 
