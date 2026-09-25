@@ -487,7 +487,8 @@
   // Opened from the archive's "Add words": play the entrance (css .is-arriving).
   if (sessionStorage.getItem('wwk-arrive')) {
     sessionStorage.removeItem('wwk-arrive');
+    steps[0].querySelectorAll('.content > .group > *, .content > .btn').forEach((el, k) => { el.classList.add('rise'); el.style.setProperty('--k', k); });
     form.classList.add('is-arriving');
-    form.addEventListener('animationend', () => form.classList.remove('is-arriving'), { once: true });
+    setTimeout(() => form.classList.remove('is-arriving'), 900);
   }
 })();
