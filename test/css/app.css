@@ -105,6 +105,11 @@ ul { list-style: none; }
 /* Leaving for the form ("Add words"): everything but the logo fades out in 100ms, then the
    page changes; the form page fades its content in around the same logo (js/form.js). */
 .app.is-leaving > :not(.menu-btn) { opacity: 0; transition: opacity 0.1s var(--ease); }
+.app.is-arriving > .chrome:not(.menu-btn):not(.notes-btn):not(.arrows) { animation: fade-in 0.3s var(--ease) both; } /* back from the form (Notes and the arrows wait for the typing) */
+/* While the quote types itself in (js/app.js → arrive), Notes and the arrows are held back; as
+   the last letter lands they fade in over 400ms. */
+.app.is-typing .notes-btn, .app.is-typing .arrows { opacity: 0; pointer-events: none; }
+.notes-btn, .arrows { transition: opacity 0.4s var(--ease); }
 
 .app[data-mode="notes"]:not(.is-revealing) .menu-btn,
 .app[data-mode="notes"]:not(.is-revealing) .number,
@@ -270,6 +275,9 @@ ul { list-style: none; }
 }
 /* Showing the original: the button offers the way back, "EN". */
 .lang[aria-pressed="true"] { font-size: 10px; letter-spacing: 0.04em; }
+/* After the quote has typed itself in (js/app.js → arrive) the button fades up into place. */
+.lang.is-in { animation: lang-in 0.3s var(--ease) both; }
+@keyframes lang-in { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
 /* No underlines while the paragraph is changing; they are drawn back in afterwards. */
 .q-wrap.is-typing .quote:not(.quote-ghost) .ann,
 .q-wrap.is-typing .quote-ghost .ann { background-size: 0 0 !important; }

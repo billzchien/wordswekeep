@@ -484,6 +484,17 @@
   steps.forEach((s, i) => s.style.setProperty('--i', i));
   refresh();
 
+  // The logo goes home: the form fades out around it first (css .is-leaving).
+  document.querySelector('.home').addEventListener('click', (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    const href = e.currentTarget.href;
+    sessionStorage.setItem('wwk-home', '1');
+    form.classList.add('is-leaving');
+    setTimeout(() => { location.href = href; }, reduceMotion.matches ? 0 : 100);
+  });
+  window.addEventListener('pageshow', () => form.classList.remove('is-leaving'));
+
   // Opened from the archive's "Add words": play the entrance (css .is-arriving).
   if (sessionStorage.getItem('wwk-arrive')) {
     sessionStorage.removeItem('wwk-arrive');
