@@ -4,7 +4,7 @@
 
 :root {
   /* ---------- Color: base ---------- */
-  --paper: #d2d2d2;   /* main + menu background */
+  --paper: #E6E6E6;   /* main + menu background */
   --ink:   #000000;   /* main + menu text */
   --white: #ffffff;   /* text on ink (menu button, video play) */
 
