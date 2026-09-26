@@ -174,8 +174,8 @@
     const acts = { live: '<button type="button" data-act="edit" aria-label="Edit"><span class="icon icon-edit"></span></button><button type="button" data-act="archive" aria-label="Archive"><span class="icon icon-x16"></span></button>',
                    pending: '<button type="button" data-act="edit" aria-label="Review"><span class="icon icon-eye"></span></button>',
                    archive: '<button type="button" data-act="revert" aria-label="Put back"><span class="icon icon-revert"></span></button><button type="button" data-act="remove" aria-label="Remove"><span class="icon icon-x16"></span></button>' }[tab];
-    const swipe = { live: 'archive', pending: '', archive: 'revert' }[tab];
-    const swipeLabel = { archive: 'Archive', revert: 'Put back' };
+    const swipe = { live: 'archive', pending: '', archive: 'remove' }[tab]; // touch: what a swipe to the left reveals (the archive's Put back is out in the open, in the number column)
+    const swipeLabel = { archive: 'Archive', remove: 'Remove' };
     $('rows').innerHTML = items.map((q) => `
       <div class="row" data-key="${q.key}" tabindex="0">
         <div class="row-inner">
@@ -219,8 +219,11 @@
   async function doAction(act, key, row) {
     if (act === 'edit') { location.hash = `#edit/${key}`; return; }
     if (act === 'archive') leaveRow(row, () => archiveItem(key));
-    if (act === 'revert') leaveRow(row, () => revertItem(key));
-    if (act === 'remove' && (await ask('Remove this quote for good?', 'Remove', 'Not yet'))) leaveRow(row, () => { take(key); persist(); });
+    if (act === 'revert') { // it goes back onto the site (or into the queue): worth a second look
+      const f = findItem(key); const to = f && f.q.archivedFrom === 'live' ? 'live' : 'pending';
+      if (await ask(`Put this quote back in ${to === 'live' ? 'Live' : 'Pending'}?`, 'Put back', 'Not yet')) leaveRow(row, () => revertItem(key));
+    }
+    if (act === 'remove') leaveRow(row, () => { take(key); persist(); }); // one click: it was archived already
   }
 
   /* ---------- Moves between the lists ---------- */
