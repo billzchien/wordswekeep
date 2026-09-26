@@ -1386,6 +1386,7 @@
       $('catCount').textContent = `${n} quote${n === 1 ? '' : 's'} total`;
       sizeDescLine();
     });
+    sizeRows();
     const apply = $('menuApply');
     apply.textContent = key === 'all' ? 'See all words' : `See ${cat.name.toLowerCase()} words`;
     apply.disabled = n === 0;
@@ -1408,13 +1409,49 @@
     line.animate([{ transform: `scaleY(${from / to})` }, { transform: 'scaleY(1)' }], { duration: DESC_LINE_MS, easing: easeCurve() });
   }
   const DESC_LINE_MS = 150; // the hairline's stretch from its centre
-  window.addEventListener('resize', () => sizeDescLine(true));
+
+  // Phone: the list spans MENU_SPAN of the window's height, centred (app.css). The grown mark is
+  // MARK_MAX when there is room — room being what is left with plain rows of MENU_ROW and the
+  // longest description open — and gives way down to MARK_MIN on a short window; one size for
+  // every category. The plain rows then share what the grown row and the current description
+  // leave (css transition on their height, in step with the accordion, so the list's height
+  // never changes on the way).
+  const MENU_SPAN = 0.65;            // the list's height, as a share of the window's
+  const MENU_ROW = 64;               // a plain row when the mark is sized (Figma 305:2859)
+  const MENU_ROW_MIN = 44;           // a plain row is never shorter (the list then outgrows the span)
+  const MARK = 20, MARK_MAX = 80, MARK_MIN = 40; // the plain mark; the grown mark's range
+  const DESC_GAP = 24;               // above and below the description (app.css: .cat-desc margin)
+  let tallest = { width: 0, height: 0 };
+  function tallestDesc() {           // the longest description's height at this width
+    const p = $('catDescText'), width = p.offsetWidth;
+    if (tallest.width === width) return tallest.height;
+    const probe = p.cloneNode(false);
+    probe.removeAttribute('id');
+    probe.style.cssText = `position:absolute;visibility:hidden;width:${width}px`;
+    p.after(probe);
+    const height = Math.max(...[ALL, ...CATEGORIES].map((c) => { probe.textContent = noOrphans(c.desc); return probe.offsetHeight; }));
+    probe.remove();
+    return (tallest = { width, height }).height;
+  }
+  function sizeRows() {
+    const plain = document.querySelectorAll('.cat-row').length - 1;
+    if (!mqMobile.matches || plain < 1 || !menuEl.clientHeight) {
+      menuEl.style.removeProperty('--row');
+      return menuEl.style.removeProperty('--mark-large');
+    }
+    const span = menuEl.clientHeight * MENU_SPAN - 2 * DESC_GAP;
+    const mark = Math.min(MARK_MAX, Math.max(MARK_MIN, span - tallestDesc() - plain * MENU_ROW - (MENU_ROW - MARK) / 2));
+    // span = (row - MARK) / 2 + mark + description + plain × row
+    const row = (span - mark - $('catDescText').offsetHeight + MARK / 2) / (plain + 0.5);
+    menuEl.style.setProperty('--mark-large', `${mark}px`);
+    menuEl.style.setProperty('--row', `${Math.max(MENU_ROW_MIN, row)}px`);
+  }
 
   /* Phone: the description lives in the list, under the previewed row, and moves with the
      preview like an accordion, in step with the mark growing and the row changing height (the
      0.45s row transition in app.css): under the old row a copy of the text simply fades out, fast
      (DESC_OUT_MS), while its space closes up; under the new row the space opens and the text's
-     lines fade in one after another, top to bottom, LINE_STAGGER_MS apart. The text is never
+     lines fade in top to bottom, each as the space reaches it. The text is never
      clipped. Tablet/desktop: it stays in the menu's own column. */
   const DESC_MS = 450; // matches the row's height/mark transition
   const DESC_OUT_MS = 100; // the old description is gone almost at once
@@ -1442,7 +1479,7 @@
     const moving = home && desc.parentNode !== home;
     const animate = moving && mqMobile.matches && !reduceMotion.matches && !$('menu').hidden;
     const shut = { height: '0px', marginTop: '0px', marginBottom: '0px' };
-    const open = (el) => ({ height: `${el.offsetHeight}px`, marginTop: '24px', marginBottom: '46px' });
+    const open = (el) => ({ height: `${el.offsetHeight}px`, marginTop: `${DESC_GAP}px`, marginBottom: `${DESC_GAP}px` });
     const fold = (el, show) => {
       const easing = easeCurve();
       const from = open(el);                                     // measured at full height, before folding
@@ -1452,12 +1489,19 @@
         el.animate([from, shut], { duration: DESC_MS, easing, fill: 'both' });
         return new Promise((r) => setTimeout(r, DESC_MS + 20));
       }
-      // Opening: the space opens with the row; the lines fade in top to bottom as it does.
+      // Opening: the space opens with the row; each line starts to fade in only once the space
+      // has opened down to its bottom edge, so no line ever shows over the row below (nothing
+      // is cropped), and never sooner than LINE_STAGGER_MS after the line above.
       const lines = wrapLines(el.querySelector('p'));
+      const height = el.offsetHeight, room = height + 2 * DESC_GAP;
       el.animate([shut, from], { duration: DESC_MS, easing, fill: 'both' });
-      lines.forEach((span, i) => span.animate([{ opacity: 0 }, { opacity: 1 }],
-        { duration: LINE_MS, delay: i * LINE_STAGGER_MS, easing, fill: 'both' }));
-      return new Promise((r) => setTimeout(r, Math.max(DESC_MS, LINE_MS + (lines.length - 1) * LINE_STAGGER_MS) + 20));
+      let last = 0;
+      lines.forEach((span, i) => {
+        const reached = easeTimeFor((DESC_GAP + height * (i + 1) / lines.length) / room, easing) * DESC_MS;
+        last = i ? Math.max(reached, last + LINE_STAGGER_MS) : reached;
+        span.animate([{ opacity: 0 }, { opacity: 1 }], { duration: LINE_MS, delay: last, easing, fill: 'both' });
+      });
+      return new Promise((r) => setTimeout(r, Math.max(DESC_MS, last + LINE_MS) + 20));
     };
     if (animate && desc.parentNode !== menuEl) {
       // A copy stays behind and folds shut while the real one moves on.
@@ -1496,6 +1540,7 @@
       state.preview = state.filter;
       renderMenu();
       $('menu').hidden = false;
+      sizeRows();
       sizeDescLine(true); // the hairline is at full length as the menu appears; it glides only between items
       if (state.mode === 'main') app.classList.add('is-typing'); // Notes and the arrows go under the menu already hidden: they type back in with the quote on close
       menuBusy = false;

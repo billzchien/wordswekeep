@@ -590,6 +590,7 @@ ul { list-style: none; }
 .cat-row.is-preview .cat-ind { visibility: visible; }
 .cat-row.is-selected .cat-ind { --src: url(../../assets/icons/asterisk.svg); }
 .cat-row.is-preview:not(.is-selected) .cat-ind { --src: url(../../assets/icons/arrow-left.svg); }
+.cat-row[data-empty] .cat-ind { visibility: hidden; } /* nothing to go to: no arrow */
 
 .cat-desc {
   position: absolute;
@@ -618,7 +619,7 @@ ul { list-style: none; }
    the preview, with the description; a tap on the underlined row applies it. No apply button. */
 @media (max-width: 1023px) {
   .cat-desc { width: 320px; } /* list span, row height and the column's alignment: the ≥600px block above */
-  .cat-row.is-preview .cat-name {
+  .cat-row.is-preview:not([data-empty]) .cat-name { /* an empty category can't be applied: no underline */
     background: linear-gradient(currentColor, currentColor) left bottom / 100% var(--line) no-repeat;
     animation: link-in 0.5s var(--ease);
   }
@@ -626,13 +627,33 @@ ul { list-style: none; }
 @keyframes link-in { from { background-size: 0% var(--line); } }
 
 @media (max-width: 599px) {
-  /* Rows start 80px under the Back link (its top + one text line + underline gap). */
-  .menu { --list-top: calc(20px + var(--text-size) * var(--text-leading) + var(--link-gap) + 80px); }
-  .cat-row { width: 100%; padding-left: calc(var(--m) + var(--mark-large) + 40px); } /* no side column on a phone: the whole row is the tap target; 40px from the enlarged mark to the text */
-  .cat-row .cat-mark { left: calc(var(--m) + var(--mark-large) / 2); } /* the enlarged mark's left edge sits on the margin */
-  .cat-row.is-big { margin: 14px 0 0; }
+  /* Phone (Figma 305:2859): everything on the left margin, under Back; the marks on the right
+     margin; a rule between rows. The list is centred in the window and spans MENU_SPAN of its
+     height: js/app.js (sizeRows) sets --mark-large (the grown mark gives way on a short window)
+     and --row (the plain rows share what the grown row and its description leave). */
+  .menu {
+    --rule: #b2b2b2;
+    --lh: calc(var(--text-size) * var(--text-leading));
+    --name-drop: calc((var(--row) - var(--lh)) / 2);
+    --mark-gap: calc((var(--row) - var(--mark)) / 2); /* from a row's rule to its mark: the same when the mark is grown */
+  }
+  .cat-list { top: 50%; left: var(--m); right: var(--m); translate: 0 -50%; }
+  .cat-row { width: 100%; padding-left: 0; align-items: flex-end; } /* the whole row is the tap target */
+  /* The name is centred on the mark when idle and sits on the mark's bottom edge when grown:
+     one bottom margin that glides between the two, in step with the row. */
+  .cat-row .cat-name { margin-bottom: calc(var(--name-drop) - var(--link-gap)); transition: margin-bottom 0.45s var(--ease); }
+  .cat-row .cat-ind { margin-bottom: calc(var(--name-drop) + (var(--lh) - 8px) / 2); transition: margin-bottom 0.45s var(--ease); }
+  .cat-row.is-big { height: calc(var(--mark-gap) + var(--mark-large)); margin: 0; --name-drop: 0px; }
+  /* The glyph is inset 3/32 of its box: the box overhangs the margin by that much, so the
+     glyph's right edge is on the margin at both sizes. */
+  .cat-row .cat-mark { top: var(--mark-gap); left: auto; right: calc(var(--mark) * -0.09375); translate: none; transition: width 0.45s var(--ease), height 0.45s var(--ease), right 0.45s var(--ease); }
+  .cat-row.is-big .cat-mark { right: calc(var(--mark-large) * -0.09375); }
+  /* The hairline between rows belongs to the lower row, so it comes and goes with it. */
+  li + li > .cat-row::before { content: ""; position: absolute; left: 0; right: 0; top: 0; border-top: var(--hairline) solid var(--rule); }
+  .cat-row[data-empty] { opacity: 1; } /* the rule keeps its colour: only the name and the mark are dimmed */
+  .cat-row[data-empty] > * { opacity: 0.35; }
   /* The description sits in the list, under the grown row (js/app.js moves it into that row's li). */
-  .cat-desc { position: static; margin: 24px var(--m) 46px; padding-right: 40px; width: auto; max-width: none; height: auto; } /* folds open/shut by height (js/app.js → placeDesc); the text is never clipped, its lines fade in */
+  .cat-desc { position: static; margin: 24px 0; padding-right: 4px; width: auto; max-width: none; height: auto; } /* folds open/shut by height (js/app.js → placeDesc); the text is never clipped: each line fades in once the space has opened for it */
   .cat-desc-line, #catCount { display: none; }
 }
 
