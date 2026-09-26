@@ -921,7 +921,7 @@
 
       // Start posed exactly on the notes quote, set off when the edge reaches it.
       const lift = Math.round(easeTimeFor(Math.min(1, Math.max(0, from.top / window.innerHeight)), dropCurve) * REVEAL_MS);
-      float.style.transformOrigin = '0 0';
+      float.style.transformOrigin = `${getComputedStyle(float).paddingLeft} 0`; // the text's corner (the layer is wider than the text: app.css, --overhang)
       float.style.scale = fromSize / parseFloat(cs.fontSize);
       float.style.translate = `${from.left - to.left}px ${from.top - to.top}px`;
       float.getBoundingClientRect(); // commit the start pose
@@ -1502,11 +1502,14 @@
       const lines = wrapLines(el.querySelector('p'));
       const height = el.offsetHeight, room = height + 2 * DESC_GAP;
       el.animate([shut, from], { duration: DESC_MS, easing, fill: 'both' });
+      // The fade is the text's colour (transparent → ink), not `opacity`: iOS Safari does not
+      // animate opacity on a plain inline span — each line jumped in at the end of its delay.
+      const ink = getComputedStyle(el).color;
       let last = 0;
       lines.forEach((span, i) => {
         const reached = easeTimeFor((DESC_GAP + height * (i + 1) / lines.length) / room, easing) * DESC_MS;
         last = i ? Math.max(reached, last + LINE_STAGGER_MS) : reached;
-        span.animate([{ opacity: 0 }, { opacity: 1 }], { duration: LINE_MS, delay: last, easing, fill: 'both' });
+        span.animate([{ color: 'transparent' }, { color: ink }], { duration: LINE_MS, delay: last, easing, fill: 'both' });
       });
       return new Promise((r) => setTimeout(r, Math.max(DESC_MS, last + LINE_MS) + 20));
     };

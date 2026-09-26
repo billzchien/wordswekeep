@@ -128,7 +128,10 @@ ul { list-style: none; }
 .notes-btn { color: var(--fg); }
 /* Leaving notes: the travelling quote, on a layer above the drop (cropped by the same edge). */
 .quote-float-layer { position: absolute; inset: 0; z-index: 27; color: var(--fg); pointer-events: none; }
-.quote-float { position: absolute; will-change: translate, scale; }
+/* iOS crops a composited layer at its box, and an italic capital (J, f) hangs out of it to the
+   left: the layer is --overhang wider on both sides (js/app.js puts the transform origin back on
+   the text's corner). */
+.quote-float { position: absolute; will-change: translate, scale; --overhang: 24px; box-sizing: content-box; padding: 0 var(--overhang); margin: 0 calc(-1 * var(--overhang)); }
 
 /* Scanner head: sits with its bottom on the dropping edge (moved by js with a transform).
    The "glow" is real, not painted on: a band above the edge blurs and brightens the content it
@@ -167,7 +170,7 @@ ul { list-style: none; }
 
 /* The quote's line-by-line stand-in during the scan (js/app.js → scanQuoteLines). */
 .quote.quote-lines { position: absolute; margin: 0; max-width: none; pointer-events: none; white-space: nowrap; }
-.quote-line { position: absolute; left: 0; top: 0; display: block; transform-origin: 0 0; will-change: transform; }
+.quote-line { position: absolute; left: 0; top: 0; display: block; padding: 0.15em 0.3em; margin: -0.15em -0.3em; transform-origin: 0.3em 0.15em; will-change: transform; } /* the padding: room for the italic overhang inside the layer (iOS crops a layer at its box); origin on the text's corner */
 
 /* Afterglow patches (one per scanned item), behind the notes content. Opacity-only animation. */
 .scan-glows { position: absolute; left: 0; top: 0; width: 100%; height: 0; z-index: 0; pointer-events: none; }
