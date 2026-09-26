@@ -329,7 +329,35 @@ textarea.field--taller { height: var(--ta-l); }
 @keyframes ann-in  { from { grid-template-rows: 0fr; margin-top: 0; opacity: 0; translate: 0 calc(-8 * var(--u)); } to { grid-template-rows: 1fr; opacity: 1; translate: 0 0; } }
 @keyframes ann-out { from { grid-template-rows: 1fr; opacity: 1; translate: 0 0; } to { grid-template-rows: 0fr; margin-top: 0; opacity: 0; translate: 0 calc(-8 * var(--u)); } }
 .ann-row-head { display: flex; justify-content: space-between; align-items: center; gap: calc(8 * var(--u)); font-feature-settings: var(--numeral-features); }
-.ann-remove { width: var(--ic); height: var(--ic); display: flex; align-items: center; justify-content: flex-end; margin-right: calc(-3 * var(--u)); color: var(--white); } /* the × glyph has 3px of air inside its 12px box; pulled out by that much, its ink ends exactly on the field's right edge */
+/* The Word field: → to check the word (once there is one), × to unlock a matched word. */
+.ann-field .field { padding-right: calc(var(--fpad) + var(--ic-chevron) + 8 * var(--u)); }
+/* Every control on the field's right sits on one centreline, 20px in from the edge — the same
+   as the dropdowns' chevron and × (8px + a 24px box) and the warning ⓘ (12px + 16px). */
+.ann-confirm { position: absolute; right: calc(11 * var(--u)); top: 50%; transform: translateY(-50%); width: var(--ic); height: var(--ic); display: grid; place-items: center; color: var(--white); }
+.ann-confirm .icon-arrow { width: calc(12 * var(--u)); height: calc(12 * var(--u)); transform: rotate(90deg); }
+.ann-unlock { position: absolute; right: calc(8 * var(--u)); top: 50%; transform: translateY(-50%); width: var(--ic-chevron); height: var(--ic-chevron); display: grid; place-items: center; color: var(--white); }
+.ann-row.is-matched .ann-field .field { color: var(--placeholder); } /* a matched word reads as settled, in the placeholder tone (Figma "3 - word match") */
+.ann-field.is-warn .field::placeholder { color: var(--placeholder); }
+.ann-field.is-warn .ann-confirm { display: none; }
+.ann-field.is-warn:has(.ann-remove)::after { display: none; } /* an added row keeps its remove × in the corner even while the warning shows; the first row shows the ⓘ */
+/* The matched words highlighted in the quote (Figma 304:2856): a #242698 box 22px tall behind
+   the words, 2px past them either side (a negative margin keeps the text where it was); inline
+   vertical padding paints without changing the line height. The box wipes in left→right when a
+   word is matched (.is-on) and wipes out left→right when it is taken away (.is-off). */
+.ann-mark {
+  --highlight: #242698;
+  --mark-ms: 300ms;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  padding: calc(2 * var(--u)); /* an inline background covers the font's content area (18px here), not the 19.2px line: 18 + 2 × 2 = 22 */
+  margin: 0 calc(-2 * var(--u));
+  background: linear-gradient(var(--highlight), var(--highlight)) left / 0% 100% no-repeat;
+  transition: background-size var(--mark-ms) var(--ease);
+}
+.ann-mark.is-on { background-size: 100% 100%; }
+.ann-mark.is-off { background-position: right; background-size: 0% 100%; }
+@media (prefers-reduced-motion: reduce) { .ann-mark { transition: none; } }
+.ann-sheet .btn:disabled { color: rgba(255, 255, 255, 0.4); border-color: rgba(255, 255, 255, 0.25); } /* Save annotation until every word is explained */
+.content > .fold { --fold-gap: var(--gap-40); }
 
 /* ---------- Arriving from the archive ----------
    The archive fades everything but the logo out (100ms) and opens this page; here the chrome
