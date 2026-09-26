@@ -98,9 +98,10 @@
       if (words.length < 4) return line;
       const last = words.pop();
       const tied = `${words.join(' ')}${NBSP}${last}`;
-      // …and no sentence may leave its first word stranded at the end of a line:
-      // "stop. They / keep going." → the opener is tied to the word after it.
-      return tied.replace(/([.!?…][”’)\]]*\s+[“‘(\[]*[^\s\u00a0]+) (?=\S)/g, `$1${NBSP}`);
+      // …and no sentence may leave a one- or two-letter opener stranded at the end of a line:
+      // "stop. I / keep going." → the opener is tied to the word after it. Longer openers
+      // ("The", "They") are left alone: tying them left a line short whenever the pair didn't fit.
+      return tied.replace(/([.!?…][”’)\]]*\s+[“‘(\[]*[^\s\u00a0]{1,2}) (?=\S)/g, `$1${NBSP}`);
     }).join('\n');
   }
 
@@ -256,20 +257,26 @@
   // keeps coming (inertia) for a second or more, fading unevenly. So:
   //  · a pause of WHEEL_GAP_MS ends the gesture — the next event may step again;
   //  · inside an unbroken stream, step again only for a clear new push: well after the last
-  //    step, and several times stronger than the weakest event since then (jitter never is).
-  const WHEEL_GAP_MS = 180, WHEEL_MIN = 12, WHEEL_COOLDOWN_MS = 500, WHEEL_PUSH_RATIO = 3, WHEEL_PUSH_MIN = 60;
-  const wheel = { lastAt: 0, steppedAt: -Infinity, floor: Infinity };
+  //    step, several times stronger than the weakest event since then (jitter never is) AND
+  //    several times stronger than the stream was a moment ago (WHEEL_RECENT_MS). The second
+  //    test is what tells a push from one long swipe that starts gently and speeds up: that
+  //    one rises little by little, a push jumps. (It used to step twice on such a swipe.)
+  const WHEEL_GAP_MS = 180, WHEEL_MIN = 12, WHEEL_COOLDOWN_MS = 500, WHEEL_PUSH_RATIO = 3, WHEEL_PUSH_MIN = 60, WHEEL_RECENT_MS = 120;
+  const wheel = { lastAt: 0, steppedAt: -Infinity, floor: Infinity, recent: [] };
   deck.addEventListener('wheel', (e) => {
     e.preventDefault();
     const now = performance.now(), abs = Math.abs(e.deltaY);
     const newGesture = now - wheel.lastAt > WHEEL_GAP_MS;
     wheel.lastAt = now;
-    if (newGesture) wheel.floor = Infinity;
+    if (newGesture) { wheel.floor = Infinity; wheel.recent = []; }
+    wheel.recent = wheel.recent.filter((r) => now - r.at <= WHEEL_RECENT_MS);
+    const lately = wheel.recent.length ? wheel.recent.reduce((sum, r) => sum + r.abs, 0) / wheel.recent.length : Infinity;
+    wheel.recent.push({ at: now, abs });
 
     const stepped = wheel.steppedAt > -Infinity && !newGesture; // already stepped during this stream
     const freshPush = stepped
       && now - wheel.steppedAt > WHEEL_COOLDOWN_MS
-      && abs > Math.max(WHEEL_PUSH_MIN, wheel.floor * WHEEL_PUSH_RATIO);
+      && abs > Math.max(WHEEL_PUSH_MIN, wheel.floor * WHEEL_PUSH_RATIO, lately * WHEEL_PUSH_RATIO);
     wheel.floor = Math.min(wheel.floor, abs);
 
     if ((state.animating && !cut) || abs < WHEEL_MIN || (stepped && !freshPush)) return;
@@ -1755,6 +1762,7 @@
     });
     return letters;
   }
+  const ARRIVE_FONT_WAIT_MS = 3000; // the longest the typing waits for the quote's font
   function arrive() {
     const wrap = currentWrap();
     if (!wrap || reduceMotion.matches) { app.classList.remove('is-typing'); return; }
@@ -1762,10 +1770,22 @@
     state.animating = true;
     app.classList.add('is-typing'); // Notes and the arrows wait for the last letter, then fade in
     const done = () => { state.animating = false; app.classList.remove('is-typing'); };
-    const ready = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+    // The letters are measured off the rendered quote, so its own font must be in first.
+    // `fonts.ready` alone is not enough: on a first visit it can resolve before the quote's font
+    // has even been asked for, the letters are then measured in the fallback (wider) and drawn
+    // in the real font — spaced out until the swap. Ask for the quote's faces by name, and
+    // don't wait for them longer than ARRIVE_FONT_WAIT_MS.
+    const quoteEl = wrap.querySelector('.quote');
+    const face = getComputedStyle(quoteEl);
+    const asked = document.fonts && document.fonts.load
+      ? document.fonts.load(`${face.fontStyle} ${face.fontWeight} ${face.fontSize} ${face.fontFamily}`, quoteEl.textContent).catch(() => {})
+      : Promise.resolve();
+    const ready = Promise.race([
+      asked.then(() => (document.fonts && document.fonts.ready) || null),
+      new Promise((r) => setTimeout(r, ARRIVE_FONT_WAIT_MS)),
+    ]);
     ready.then(() => requestAnimationFrame(() => {
       if (currentWrap() !== wrap) { done(); return; } // the deck was rebuilt meanwhile
-      const quoteEl = wrap.querySelector('.quote');
       const letters = measureLetters(quoteEl);
       const cs = getComputedStyle(quoteEl);
       const layer = document.createElement('div');
