@@ -159,11 +159,11 @@ textarea.field--taller { height: var(--ta-l); }
 /* A field with a close (×) in its top-right corner: the original-language words. Same 12px × as
    an annotation row's, 12px in from the corner; the text keeps clear of it. */
 .fw--closable .field { padding-right: calc(var(--fpad) + var(--ic) + var(--fpad)); }
-/* The 12px × is centred on the first text line (padding + half a line down); its ink ends the
-   field's padding (12px) in from the right edge — the glyph has 3px of air inside its 12px box. */
+/* The ×'s ink sits the field's padding (12px) in from the right edge and 2px more from the top — the glyph
+   has 3px of air inside its 12px box, and the box is centred in its 18px button. */
 .fw-close {
-  --x-inset: calc(var(--fpad) + var(--text-size) * var(--text-leading) / 2 - 6 * var(--u)); /* the 12px icon's top edge */
-  position: absolute; top: calc(var(--x-inset) - (var(--ic) - 12 * var(--u)) / 2); right: calc(var(--fpad) - 3 * var(--u) - (var(--ic) - 12 * var(--u)) / 2);
+  --x-inset: calc(var(--fpad) - 3 * var(--u) - (var(--ic) - 12 * var(--u)) / 2);
+  position: absolute; top: calc(var(--x-inset) + 2 * var(--u)); right: var(--x-inset); /* 2px lower reads as level with the right margin */
   width: var(--ic); height: var(--ic); display: grid; place-items: center; color: var(--ink);
 }
 
