@@ -48,7 +48,7 @@
 
   async function load() {
     const raw = localStorage.getItem(STORE_KEY);
-    if (raw) { try { store = JSON.parse(raw); if (store && store.live) return; } catch (e) { /* fall through */ } }
+    if (raw) { try { store = JSON.parse(raw); if (store && store.live && store.live.every((q) => q.key)) return; } catch (e) { /* fall through */ } } // no keys = an older demo store: re-seed
     const res = await fetch('../../data/quotes.json');
     store = seed(await res.json());
     persist();
@@ -56,29 +56,29 @@
 
   // Made-up pending and archived quotes, with the kind of mess Auto cleanup is for.
   function seed(live) {
-    const base = (o) => ({ id: 0, status: 'pending', text: '', originalLanguage: null, categories: [], author: { name: '', nativeName: null, country: null }, source: null, context: null, annotations: [], reflection: '', keptBy: null, submittedAt: nowISO(), approvedAt: null, ...o });
-    let next = live.reduce((m, q) => Math.max(m, q.id), 0) + 1;
+    let uid = 0;
+    const base = (o) => ({ key: `s${++uid}`, status: 'pending', text: '', originalLanguage: null, categories: [], author: { name: '', nativeName: null, country: null }, source: null, context: null, annotations: [], reflection: '', keptBy: null, submittedAt: nowISO(), approvedAt: null, ...o });
     const pending = [
-      base({ id: next++, text: 'the only way to do great work is to love what you do . if you havent found it yet,keep looking. dont settle', categories: ['drive'],
+      base({ text: 'the only way to do great work is to love what you do . if you havent found it yet,keep looking. dont settle', categories: ['drive'],
         author: { name: 'steve jobs', nativeName: null, country: 'US' }, source: { title: 'stanford commencement address', year: 2005, kind: 'speech', link: 'https://www.youtube.com/watch?v=UF8uR6Z6KLc' },
         context: 'said near the end of the speech,  after the part about being fired from apple', reflection: 'i read this the week i quit my job. it made the whole thing feel less like falling and more like looking', keptBy: 'maya', submittedAt: daysAgo(1), seen: false }),
-      base({ id: next++, text: 'The road ahead is long and far; I will search up and down for it.', originalLanguage: { lang: 'zh', text: '路漫漫其修远兮，吾将上下而求索' }, categories: ['growth', 'perspective'],
+      base({ text: 'The road ahead is long and far; I will search up and down for it.', originalLanguage: { lang: 'zh', text: '路漫漫其修远兮，吾将上下而求索' }, categories: ['growth', 'perspective'],
         author: { name: 'Qu Yuan', nativeName: '屈原', country: 'CN' }, source: { title: 'Li Sao', year: null, kind: 'poem', link: null },
         context: null, reflection: 'My grandfather wrote this on the first page of every notebook he gave me.', keptBy: 'Ruolin', submittedAt: daysAgo(2), seen: false }),
-      base({ id: next++, text: 'We are what we repeatedly do. Excellence, then, is not an act, but a habit.', categories: ['drive', 'growth'],
+      base({ text: 'We are what we repeatedly do. Excellence, then, is not an act, but a habit.', categories: ['drive', 'growth'],
         author: { name: 'Will Durant', nativeName: null, country: 'US' }, source: { title: 'The Story of Philosophy', year: 1926, kind: 'book', link: null },
         context: 'Often attributed to Aristotle; Durant was summarising him.', annotations: [{ word: 'habit', explanation: 'From the Greek hexis: a settled disposition, something you have rather than something you do.' }],
         reflection: 'It took the pressure off. I don’t have to be excellent today, I have to show up today.', keptBy: null, submittedAt: daysAgo(5), seen: true }),
     ];
     const archive = [
-      base({ id: next++, status: 'archived', text: 'Live, laugh, love.', categories: ['perspective'], author: { name: 'Unknown', nativeName: null, country: 'US' }, source: null,
+      base({ status: 'archived', text: 'Live, laugh, love.', categories: ['perspective'], author: { name: 'Unknown', nativeName: null, country: 'US' }, source: null,
         reflection: 'It is on my kitchen wall.', keptBy: 'Dana', submittedAt: daysAgo(12), archivedAt: daysAgo(10), archivedFrom: 'pending' }),
-      base({ id: next++, status: 'archived', text: 'Check out my website for the best quotes and deals!!!', categories: ['drive'], author: { name: 'quotesdaily', nativeName: null, country: null }, source: null,
+      base({ status: 'archived', text: 'Check out my website for the best quotes and deals!!!', categories: ['drive'], author: { name: 'quotesdaily', nativeName: null, country: null }, source: null,
         reflection: 'best quotes', keptBy: null, submittedAt: daysAgo(9), archivedAt: daysAgo(9), archivedFrom: 'pending' }),
-      { ...clone(live[1]), id: next++, status: 'archived', text: 'I have missed more than 9000 shots in my career. I have lost almost 300 games.', keptBy: 'Sam', submittedAt: daysAgo(20), approvedAt: daysAgo(19), archivedAt: daysAgo(3), archivedFrom: 'live', dirty: false },
+      { ...clone(live[1]), key: 'a-jordan', id: live.reduce((m, q) => Math.max(m, q.id), 0) + 1, status: 'archived', text: 'I have missed more than 9000 shots in my career. I have lost almost 300 games.', keptBy: 'Sam', submittedAt: daysAgo(20), approvedAt: daysAgo(19), archivedAt: daysAgo(3), archivedFrom: 'live', dirty: false },
     ];
     return {
-      live: live.map((q) => ({ ...q, dirty: false })),
+      live: live.map((q) => ({ ...q, key: `q${q.id}`, dirty: false })),
       pending, archive,
       lastPublishedAt: daysAgo(3),
       publishDirty: false,
@@ -88,7 +88,13 @@
   const fmtDate = (iso) => { if (!iso) return ''; const d = new Date(iso); return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`; };
   const catLabel = (keys) => keys.map((k, i) => { const n = (CATEGORIES.find((c) => c.key === k) || { name: k }).name; return i ? n.toLowerCase() : n; }).join(', ');
   const listOf = (tab) => store[tab];
-  const findItem = (id) => { for (const tab of ['live', 'pending', 'archive']) { const q = store[tab].find((x) => x.id === id); if (q) return { q, tab }; } return null; };
+  const findItem = (key) => { for (const tab of ['live', 'pending', 'archive']) { const q = store[tab].find((x) => x.key === key); if (q) return { q, tab }; } return null; };
+  // Numbers. A live quote keeps its number for good (an archived live quote's number is retired
+  // with it). A pending quote shows its *potential* number: the next free one, in order of
+  // submission, so archiving a pending quote hands its number to the one after it.
+  const maxId = () => [...store.live, ...store.archive].reduce((m, q) => Math.max(m, q.id || 0), 0);
+  const pendingOrder = () => [...store.pending].sort((a, b) => (a.submittedAt > b.submittedAt ? 1 : -1));
+  const numberOf = (q) => (q.status === 'pending' ? maxId() + 1 + pendingOrder().findIndex((x) => x.key === q.key) : q.id);
 
   /* ---------- Routing ---------- */
 
@@ -98,7 +104,7 @@
     const h = location.hash.slice(1) || 'live';
     if (h === 'reset') { localStorage.removeItem(STORE_KEY); location.hash = '#live'; location.reload(); return; }
     const [view, id] = h.split('/');
-    if (view === 'edit' && findItem(Number(id))) openEdit(Number(id));
+    if (view === 'edit' && findItem(id)) openEdit(id);
     else showList(view in TABS ? view : 'live');
   }
   window.addEventListener('hashchange', route);
@@ -154,7 +160,7 @@
 
   function sorted(t) {
     const { key, dir } = sortState[t];
-    const val = (q) => (key === 'id' ? q.id : (key === 'publishedAt' ? (q.dirty ? '￿' : (q.approvedAt || '')) : (q[key] || '')));
+    const val = (q) => (key === 'id' ? numberOf(q) : (key === 'publishedAt' ? (q.dirty ? '￿' : (q.approvedAt || '')) : (q[key] || '')));
     return [...listOf(t)].sort((a, b) => (val(a) > val(b) ? 1 : val(a) < val(b) ? -1 : 0) * dir);
   }
 
@@ -167,13 +173,13 @@
     }).join('');
     const acts = { live: '<button type="button" data-act="edit" aria-label="Edit"><span class="icon icon-edit"></span></button><button type="button" data-act="archive" aria-label="Archive"><span class="icon icon-x16"></span></button>',
                    pending: '<button type="button" data-act="edit" aria-label="Review"><span class="icon icon-eye"></span></button>',
-                   archive: '<button type="button" data-act="revert" aria-label="Put back"><span class="icon icon-revert"></span></button>' }[tab];
+                   archive: '<button type="button" data-act="revert" aria-label="Put back"><span class="icon icon-revert"></span></button><button type="button" data-act="remove" aria-label="Remove"><span class="icon icon-x16"></span></button>' }[tab];
     const swipe = { live: 'archive', pending: '', archive: 'revert' }[tab];
     const swipeLabel = { archive: 'Archive', revert: 'Put back' };
     $('rows').innerHTML = items.map((q) => `
-      <div class="row" data-id="${q.id}" tabindex="0">
+      <div class="row" data-key="${q.key}" tabindex="0">
         <div class="row-inner">
-          <p class="c-num num">${q.id}</p>
+          <p class="c-num num">${numberOf(q)}</p>
           <p class="c-date num">${tab === 'live' && q.dirty ? 'Not published' : fmtDate(dateOf[tab](q))}</p>
           <p class="c-cat">${esc(catLabel(q.categories))}</p>
           <p class="c-quote">${esc(q.text)}</p>
@@ -194,15 +200,15 @@
 
   $('rows').addEventListener('click', (e) => {
     const row = e.target.closest('.row'); if (!row) return;
-    const id = Number(row.dataset.id);
+    const key = row.dataset.key;
     const act = e.target.closest('[data-act]');
-    if (act) { e.preventDefault(); doAction(act.dataset.act, id, row); return; }
+    if (act) { e.preventDefault(); doAction(act.dataset.act, key, row); return; }
     if (row.classList.contains('is-open')) { row.classList.remove('is-open'); return; }
-    if (tab !== 'archive') location.hash = `#edit/${id}`;
+    if (tab !== 'archive') location.hash = `#edit/${key}`;
   });
   $('rows').addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
-    const row = e.target.closest('.row'); if (row && tab !== 'archive') location.hash = `#edit/${row.dataset.id}`;
+    const row = e.target.closest('.row'); if (row && tab !== 'archive') location.hash = `#edit/${row.dataset.key}`;
   });
 
   // A row goes: fades out, then the list re-renders without it.
@@ -210,32 +216,33 @@
     row.classList.add('is-leaving');
     setTimeout(() => { then(); renderList(); refreshChrome(); }, ms(150));
   }
-  function doAction(act, id, row) {
-    if (act === 'edit') { location.hash = `#edit/${id}`; return; }
-    if (act === 'archive') leaveRow(row, () => archiveItem(id));
-    if (act === 'revert') leaveRow(row, () => revertItem(id));
+  async function doAction(act, key, row) {
+    if (act === 'edit') { location.hash = `#edit/${key}`; return; }
+    if (act === 'archive') leaveRow(row, () => archiveItem(key));
+    if (act === 'revert') leaveRow(row, () => revertItem(key));
+    if (act === 'remove' && (await ask('Remove this quote for good?', 'Remove', 'Not yet'))) leaveRow(row, () => { take(key); persist(); });
   }
 
   /* ---------- Moves between the lists ---------- */
 
-  function take(id) { const f = findItem(id); if (!f) return null; store[f.tab] = store[f.tab].filter((x) => x.id !== id); return f; }
-  function archiveItem(id) {
-    const f = take(id); if (!f) return;
+  function take(key) { const f = findItem(key); if (!f) return null; store[f.tab] = store[f.tab].filter((x) => x.key !== key); return f; }
+  function archiveItem(key) {
+    const f = take(key); if (!f) return;
     store.archive.unshift({ ...f.q, status: 'archived', archivedAt: nowISO(), archivedFrom: f.tab });
     if (f.tab === 'live') store.publishDirty = true; // the site still shows it until the next publish
     persist();
   }
-  function revertItem(id) {
-    const f = take(id); if (!f) return;
+  function revertItem(key) {
+    const f = take(key); if (!f) return;
     const to = f.q.archivedFrom === 'live' ? 'live' : 'pending';
     const q = { ...f.q }; delete q.archivedAt; delete q.archivedFrom;
     if (to === 'live') { q.status = 'live'; q.dirty = true; store.publishDirty = true; store.live.push(q); store.live.sort((a, b) => a.id - b.id); }
     else { q.status = 'pending'; q.seen = true; store.pending.push(q); store.pending.sort((a, b) => a.id - b.id); }
     persist();
   }
-  function approveItem(id) {
-    const f = take(id); if (!f) return;
-    store.live.push({ ...f.q, status: 'live', dirty: true, approvedAt: null });
+  function approveItem(key) {
+    const f = take(key); if (!f) return;
+    store.live.push({ ...f.q, id: maxId() + 1, status: 'live', dirty: true, approvedAt: null }); // the number it was showing
     store.live.sort((a, b) => a.id - b.id);
     store.publishDirty = true;
     persist();
@@ -307,28 +314,44 @@
     return 'other';
   }
 
-  const isDirty = () => !!edit && JSON.stringify(edit.draft) !== JSON.stringify(edit.orig);
+  // Compared without empty annotation pairs (the blank pair the view shows is not a change).
+  const norm = (d) => JSON.stringify({ ...d, annotations: d.annotations.filter((a) => a.word.trim() || a.explanation.trim()) });
+  const isDirty = () => !!edit && norm(edit.draft) !== norm(edit.orig);
   function updateDirty() {
     const d = isDirty();
     $('saveBtn').disabled = !d;
     $('revertBtn').disabled = !d;
   }
 
-  async function openEdit(id) {
-    const f = findItem(id); if (!f) return;
+  // Stepping quote → quote with the arrows: the form slides out (up or down, the way the arrow
+  // points) while fading, the next one slides in from the other side; the page is back at the top.
+  const STEP_MS = 250;
+  let stepDir = 0; // set by the arrows before the hash changes: +1 next, −1 previous
+  async function openEdit(key) {
+    const f = findItem(key); if (!f) return;
     if (f.tab === 'archive') { location.hash = '#archive'; return; }
-    edit = { id, tab: f.tab, draft: toDraft(f.q), orig: null };
+    const stepping = admin.dataset.view === 'edit' && stepDir !== 0;
+    const view = $('editView');
+    if (stepping) { view.style.setProperty('--dir', stepDir); view.classList.add('is-stepping-out'); await new Promise((r) => setTimeout(r, ms(STEP_MS))); }
+    edit = { key, tab: f.tab, draft: toDraft(f.q), orig: null, undo: [], redo: [], mark: null };
     edit.orig = clone(edit.draft);
     admin.dataset.kind = f.tab;
     tab = f.tab;
     $('backBtn').href = `#${f.tab}`;
-    $('editNo').textContent = `No. ${id}`;
+    $('editNo').textContent = `No. ${numberOf(f.q)}`;
     $('editDate').textContent = f.tab === 'live' ? (f.q.dirty || !f.q.approvedAt ? 'Not published' : `Published: ${fmtDate(f.q.approvedAt)}`) : `Submitted: ${fmtDate(f.q.submittedAt)}`;
     fill(edit.draft);
     updateDirty();
-    const list = sorted(f.tab), i = list.findIndex((x) => x.id === id);
+    const list = sorted(f.tab), i = list.findIndex((x) => x.key === key);
     $('prevBtn').disabled = i <= 0; $('nextBtn').disabled = i >= list.length - 1;
-    $('prevBtn').dataset.id = i > 0 ? list[i - 1].id : ''; $('nextBtn').dataset.id = i < list.length - 1 ? list[i + 1].id : '';
+    $('prevBtn').dataset.key = i > 0 ? list[i - 1].key : ''; $('nextBtn').dataset.key = i < list.length - 1 ? list[i + 1].key : '';
+    if (stepping) {
+      scroll.scrollTop = 0;
+      view.classList.remove('is-stepping-out'); view.classList.add('is-stepping-in');
+      void view.offsetHeight;
+      view.classList.remove('is-stepping-in');
+    }
+    stepDir = 0;
     await switchView('edit');
   }
 
@@ -339,15 +362,33 @@
     location.hash = hash;
   }
   $('backBtn').addEventListener('click', (e) => { e.preventDefault(); leaveTo($('backBtn').getAttribute('href')); });
-  $('prevBtn').addEventListener('click', () => { if ($('prevBtn').dataset.id) leaveTo(`#edit/${$('prevBtn').dataset.id}`); });
-  $('nextBtn').addEventListener('click', () => { if ($('nextBtn').dataset.id) leaveTo(`#edit/${$('nextBtn').dataset.id}`); });
+  $('prevBtn').addEventListener('click', () => { if ($('prevBtn').dataset.key) { stepDir = -1; leaveTo(`#edit/${$('prevBtn').dataset.key}`); } });
+  $('nextBtn').addEventListener('click', () => { if ($('nextBtn').dataset.key) { stepDir = 1; leaveTo(`#edit/${$('nextBtn').dataset.key}`); } });
   document.addEventListener('keydown', (e) => {
-    if (admin.dataset.view !== 'edit' || popupResolve) return;
-    if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); if (edit.tab === 'live' && isDirty()) saveEdit(); }
+    if (admin.dataset.view !== 'edit' || popupResolve || !edit) return;
+    const mod = e.metaKey || e.ctrlKey;
+    if (mod && e.key === 's') { e.preventDefault(); if (edit.tab === 'live' && isDirty()) saveEdit(); }
+    if (mod && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); if (e.shiftKey) redo(); else undo(); } // the form's own history, not the field's
   });
 
+  /* ---------- Undo (⌘Z) / redo (⇧⌘Z) ----------
+     The whole form is one history: every change (typing, a checkbox, a dropdown, Auto cleanup,
+     Revert, an annotation added or removed) first files the state it starts from. Typing in one
+     field files one step per pause of UNDO_PAUSE_MS, not one per key. */
+  const UNDO_PAUSE_MS = 600;
+  function mark(what = '') {
+    if (!edit) return;
+    const now = performance.now();
+    if (what && edit.mark && edit.mark.what === what && now - edit.mark.at < UNDO_PAUSE_MS) { edit.mark.at = now; return; }
+    edit.undo.push(clone(edit.draft)); edit.redo = [];
+    if (edit.undo.length > 100) edit.undo.shift();
+    edit.mark = what ? { what, at: now } : null;
+  }
+  function undo() { if (!edit.undo.length) return; edit.redo.push(clone(edit.draft)); edit.draft = edit.undo.pop(); edit.mark = null; fill(edit.draft); updateDirty(); }
+  function redo() { if (!edit.redo.length) return; edit.undo.push(clone(edit.draft)); edit.draft = edit.redo.pop(); edit.mark = null; fill(edit.draft); updateDirty(); }
+
   function saveEdit() {
-    const f = findItem(edit.id); if (!f) return;
+    const f = findItem(edit.key); if (!f) return;
     fromDraft(edit.draft, f.q);
     f.q.dirty = true; store.publishDirty = true;
     edit.orig = clone(edit.draft);
@@ -356,22 +397,22 @@
   }
   $('saveBtn').addEventListener('click', saveEdit);
   $('approveBtn').addEventListener('click', () => {
-    const f = findItem(edit.id); if (!f) return;
+    const f = findItem(edit.key); if (!f) return;
     fromDraft(edit.draft, f.q);
-    approveItem(edit.id);
+    approveItem(edit.key);
     edit = null; location.hash = '#pending';
   });
   $('archiveBtn').addEventListener('click', () => {
-    const f = findItem(edit.id); if (!f) return;
+    const f = findItem(edit.key); if (!f) return;
     fromDraft(edit.draft, f.q);
-    archiveItem(edit.id);
+    archiveItem(edit.key);
     edit = null; location.hash = '#pending';
   });
-  $('revertBtn').addEventListener('click', () => { if (!isDirty()) return; edit.draft = clone(edit.orig); fill(edit.draft); updateDirty(); });
+  $('revertBtn').addEventListener('click', () => { if (!isDirty()) return; mark(); edit.draft = clone(edit.orig); fill(edit.draft); updateDirty(); });
 
   /* ---------- Fields ---------- */
 
-  const bind = (id, set) => $(id).addEventListener('input', (e) => { set(e.target.value); updateDirty(); });
+  const bind = (id, set) => $(id).addEventListener('input', (e) => { mark(id); set(e.target.value); updateDirty(); });
   bind('fText', (v) => { edit.draft.text = v; });
   bind('fOriginal', (v) => { edit.draft.original = v; edit.draft.lang = v.trim() ? detectLang(v) : ''; });
   bind('fName', (v) => { edit.draft.author.name = v; });
@@ -383,7 +424,7 @@
   bind('fKeptBy', (v) => { edit.draft.keptBy = v; });
 
   // "In original language +" adds the second field; it stays as long as there is text in it.
-  $('origToggle').addEventListener('click', () => { fold($('fOriginalWrap'), true); $('origToggle').hidden = true; setTimeout(() => $('fOriginal').focus({ preventScroll: true }), 200); });
+  $('origToggle').addEventListener('click', () => { mark(); fold($('fOriginalWrap'), true); $('origToggle').hidden = true; setTimeout(() => $('fOriginal').focus({ preventScroll: true }), 200); });
 
   $('catList').innerHTML = CATEGORIES.map((c) => `
     <button type="button" class="chk" role="checkbox" aria-checked="false" data-key="${c.key}">
@@ -392,14 +433,15 @@
   $('catList').addEventListener('click', (e) => {
     const b = e.target.closest('.chk'); if (!b) return;
     const k = b.dataset.key, on = !edit.draft.categories.includes(k);
+    mark();
     edit.draft.categories = on ? [...edit.draft.categories, k] : edit.draft.categories.filter((x) => x !== k);
     b.setAttribute('aria-checked', String(on));
     updateDirty();
   });
 
-  const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Country or region', onChange: (v) => { if (!edit) return; edit.draft.author.country = v; fold($('fNativeWrap'), NON_LATIN.has(v)); updateDirty(); } });
-  const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', onChange: (v) => { if (!edit) return; edit.draft.source.kind = v; showSourceFields(!!v && v !== 'personal'); updateDirty(); } });
-  const year = combo($('fYear'), { options: YEARS, placeholder: 'Year', free: true, onChange: (v) => { if (!edit) return; edit.draft.source.year = /^\d{1,4}$/.test(v) ? v : ''; updateDirty(); } });
+  const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Country or region', onChange: (v) => { if (!edit) return; mark('country'); edit.draft.author.country = v; fold($('fNativeWrap'), NON_LATIN.has(v)); updateDirty(); } });
+  const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', onChange: (v) => { if (!edit) return; mark('kind'); edit.draft.source.kind = v; showSourceFields(!!v && v !== 'personal'); updateDirty(); } });
+  const year = combo($('fYear'), { options: YEARS, placeholder: 'Year', free: true, onChange: (v) => { if (!edit) return; mark('year'); edit.draft.source.year = /^\d{1,4}$/.test(v) ? v : ''; updateDirty(); } });
   year.input.inputMode = 'numeric';
   function showSourceFields(on) {
     clearTimeout(showSourceFields.t);
@@ -409,8 +451,7 @@
 
   // Annotations: word + explanation pairs. One empty pair when there are none.
   function renderAnn() {
-    const rows = edit.draft.annotations.length ? edit.draft.annotations : [{ word: '', explanation: '' }];
-    if (!edit.draft.annotations.length) edit.draft.annotations = rows;
+    const rows = edit.draft.annotations.length ? edit.draft.annotations : [{ word: '', explanation: '' }]; // the blank pair is display only until something is typed in it
     const many = rows.length > 1;
     $('annRows').innerHTML = rows.map((a, i) => `
       <div class="ann-pair" data-i="${i}">
@@ -422,15 +463,19 @@
   }
   $('annRows').addEventListener('input', (e) => {
     const p = e.target.closest('.ann-pair'); if (!p) return;
+    mark(`ann${p.dataset.i}${e.target.dataset.f}`);
+    if (!edit.draft.annotations[Number(p.dataset.i)]) edit.draft.annotations[Number(p.dataset.i)] = { word: '', explanation: '' };
     edit.draft.annotations[Number(p.dataset.i)][e.target.dataset.f] = e.target.value;
     updateDirty();
   });
   $('annRows').addEventListener('click', (e) => {
     const b = e.target.closest('.ann-remove'); if (!b) return;
+    mark();
     edit.draft.annotations.splice(Number(b.closest('.ann-pair').dataset.i), 1);
     renderAnn(); updateDirty();
   });
   $('annAnother').addEventListener('click', () => {
+    mark();
     edit.draft.annotations.push({ word: '', explanation: '' });
     renderAnn();
     $('annRows').lastElementChild.querySelector('input').focus({ preventScroll: true });
@@ -493,6 +538,7 @@
   $('cleanupBtn').addEventListener('click', () => {
     const before = edit.draft, after = cleanup(before);
     if (JSON.stringify(before) === JSON.stringify(after)) return;
+    mark();
     edit.draft = after; fill(after); updateDirty();
     // light up what changed
     const pairs = [['fText', 'text'], ['fContext', 'context'], ['fReflection', 'reflection'], ['fName', 'author.name'], ['fTitle', 'source.title'], ['fKeptBy', 'keptBy']];

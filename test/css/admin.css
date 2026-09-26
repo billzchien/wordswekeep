@@ -31,11 +31,19 @@
 .scroll::-webkit-scrollbar { display: none; }
 .num { font-feature-settings: var(--numeral-features); } /* numbers, dates: lining, tabular */
 
-/* ---------- Chrome ---------- */
-
+/* ---------- Chrome ----------
+   One top line for everything: the capitals of every word on it (Back, the tabs, Revert /
+   Auto cleanup, "Last published", the buttons' labels) sit on the 20px line, and the mark and
+   the buttons are centred on the centre of those capitals (--line-c). So a text box's top is
+   --line-top (tokens.css: --cap-offset raises the caps onto the line), and a 32px button is
+   pulled up until its centre meets --line-c. */
+:root {
+  --line-top: calc(20px - var(--cap-offset));      /* top of a text box whose caps sit on the 20px line */
+  --line-c: calc(20px + var(--cap-height) / 2);    /* the caps' centre — also the mark's centre (--mark-top) */
+}
 .home { top: var(--mark-top); left: var(--mark-top); display: block; }
-.back { top: calc(20px - var(--cap-offset)); left: var(--m); }
-.tabs { top: calc(20px - var(--cap-offset)); left: var(--col2); display: flex; gap: calc(24 * var(--u)); }
+.back { top: var(--line-top); left: var(--m); }
+.tabs { top: var(--line-top); left: var(--col2); display: flex; gap: calc(24 * var(--u)); }
 /* A tab's hairline: drawn in left → right on hover and when it becomes active; when it stops
    being active (or the pointer leaves an idle tab) it wipes out left → right. Two states of one
    gradient: anchored right at 0% (idle), anchored left at 100% (drawn). The anchor flips while
@@ -52,9 +60,10 @@
 @media (hover: hover) { .tab:hover { background-position: left bottom; background-size: 100% var(--line); } }
 .tab-dot { --src: url(../../assets/icons/asterisk-small.svg); width: calc(4 * var(--u)); height: calc(4 * var(--u)); margin-top: calc(7 * var(--u)); } /* Figma 299:1235: the tiny asterisk = new items to review */
 
-.cta { top: calc(16 * var(--u)); right: 16px; display: flex; align-items: center; gap: calc(4 * var(--u)); }
+.cta { top: var(--line-top); right: 16px; display: flex; align-items: flex-start; gap: calc(4 * var(--u)); }
+.cta .btn { margin-top: calc(var(--line-c) - var(--btn-h) / 2 - var(--line-top)); } /* centred on the caps' centre */
 .cta-meta { color: var(--meta); margin-right: calc(16 * var(--u)); white-space: nowrap; font-feature-settings: var(--numeral-features); }
-.cta-links { display: flex; align-items: center; gap: calc(16 * var(--u)); height: var(--btn-h); padding: 0 calc(16 * var(--u)); }
+.cta-links { display: flex; align-items: flex-start; gap: calc(16 * var(--u)); padding: 0 calc(16 * var(--u)); } /* text boxes start on --line-top, like Back */
 .cta-links .link:disabled { opacity: 0.35; cursor: default; animation: none; }
 
 /* Small buttons (the top line, the pop-up): 32 tall, 12 side padding, width to fit. */
@@ -151,6 +160,13 @@
 
 /* Auto cleanup: a field it changed lights up white for a moment. */
 .field.is-flash { background: var(--field-hover); transition: none; }
+
+/* Stepping quote → quote with the arrows (js/admin.js → openEdit): out along the arrow, in from
+   the other side. --dir is +1 (next) or −1 (previous); --step-ms matches STEP_MS. */
+.edit { --dir: 1; --step-ms: 250ms; }
+.edit.is-stepping-out { opacity: 0; translate: 0 calc(var(--dir) * -24 * var(--u)); transition: opacity var(--step-ms) var(--ease), translate var(--step-ms) var(--ease); }
+.edit.is-stepping-in { opacity: 0; translate: 0 calc(var(--dir) * 24 * var(--u)); transition: none; }
+.edit { transition: opacity var(--step-ms) var(--ease), translate var(--step-ms) var(--ease); }
 
 /* ---------- Pop-up (Figma 303:2108) ---------- */
 
