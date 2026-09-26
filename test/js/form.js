@@ -251,7 +251,8 @@
     bar.hidden = true;
     ta.parentElement.appendChild(bar);
     const draw = () => {
-      const { scrollHeight: sh, clientHeight: ch, scrollTop: st, offsetTop: top } = ta;
+      const { scrollHeight: sh, clientHeight: ch, offsetTop: top } = ta;
+      const st = Math.min(Math.max(0, ta.scrollTop), sh - ch);
       if (sh <= ch + 1) { bar.hidden = true; return; }
       bar.hidden = false;
       const h = Math.max(24, (ch / sh) * ch);
@@ -323,7 +324,8 @@
     // Overlay scrollbar: a 2px bar over the list's right edge, sized to the visible fraction.
     const drawBar = () => {
       if (!list || !bar) return;
-      const { scrollHeight: sh, clientHeight: ch, scrollTop: st, offsetTop: top } = list;
+      const { scrollHeight: sh, clientHeight: ch, offsetTop: top } = list;
+      const st = Math.min(Math.max(0, list.scrollTop), sh - ch); // iOS rubber-bands past both ends
       if (sh <= ch + 1) { bar.hidden = true; return; }
       bar.hidden = false;
       const h = Math.max(24, (ch / sh) * ch); // never shorter than 24px, like a real scrollbar
@@ -353,8 +355,18 @@
       if (!list) {
         list = document.createElement('div');
         list.className = 'combo-list'; list.setAttribute('role', 'listbox');
-        list.addEventListener('pointerdown', (e) => e.preventDefault()); // keep the input focused
-        list.addEventListener('click', (e) => { const it = e.target.closest('.combo-item'); if (it) pick(Number(it.dataset.i)); });
+        // Keep the input focused (no blur while choosing). Cancelling pointerdown also cancels the
+        // click a touch would produce (iOS), so a row is picked on pointerup instead — a tap, not
+        // a scroll: the finger must not have travelled.
+        let down = null;
+        list.addEventListener('pointerdown', (e) => { e.preventDefault(); down = { x: e.clientX, y: e.clientY, t: e.pointerType }; });
+        list.addEventListener('pointerup', (e) => {
+          const it = e.target.closest('.combo-item');
+          const moved = down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8;
+          down = null;
+          if (it && !moved) { e.preventDefault(); pick(Number(it.dataset.i)); }
+        });
+        list.addEventListener('click', (e) => { const it = e.target.closest('.combo-item'); if (it && list) pick(Number(it.dataset.i)); }); // keyboard / assistive tech
         host.appendChild(list);
         bar = document.createElement('div'); bar.className = 'combo-bar'; host.appendChild(bar);
         list.addEventListener('scroll', drawBar, { passive: true });

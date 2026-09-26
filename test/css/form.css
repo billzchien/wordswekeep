@@ -327,6 +327,7 @@ textarea.field--taller { height: var(--ta-l); }
   .content { width: calc(4 * var(--colw) + 3 * var(--g)); margin-left: var(--col2); }
 }
 @media (max-width: 599px) {
+  .cat-blurb { max-width: 80%; } /* a phone's rows are narrow: the description takes more of the row */
   .content { width: auto; margin-left: var(--m); margin-right: var(--m); padding-top: calc(60px + 2 * var(--dy)); padding-bottom: 96px; }
 }
 
