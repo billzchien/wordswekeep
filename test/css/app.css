@@ -100,9 +100,9 @@ ul { list-style: none; }
 .arrows button { width: 32px; height: 32px; display: grid; place-items: center; }
 
 @media (max-width: 1023px) {
-  .arrows { right: 12px; bottom: 12px; flex-direction: column; }
-  .arrows button { width: 40px; height: 40px; margin-top: -8px; }
-  .arrows button:first-child { margin-top: 0; }
+  .arrows { right: 12px; bottom: 12px; } /* same row as desktop; bigger touch targets, overlapping so the glyphs keep their spacing */
+  .arrows button { width: 40px; height: 40px; margin-left: -8px; }
+  .arrows button:first-child { margin-left: 0; }
 }
 
 /* Leaving for the form ("Add words"): everything but the logo fades out in 100ms, then the

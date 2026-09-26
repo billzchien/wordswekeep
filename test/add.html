@@ -132,6 +132,11 @@
       </section>
     </div>
 
+    <!-- Top and bottom guards: the page colour fading in over a progressive blur, so a tall step's
+         content dissolves under the chrome instead of cutting off (like the notes-mode top fade). -->
+    <div class="guard guard--top" aria-hidden="true"></div>
+    <div class="guard guard--bottom" aria-hidden="true"></div>
+
     <!-- Chrome -->
     <a class="chrome home" href="index.html" aria-label="Words We Keep"><span class="icon icon-mark"></span></a>
     <p class="chrome count" id="count" aria-live="polite" aria-label="Step 1 of 5">
@@ -146,7 +151,10 @@
 
     <!-- Word annotations (step 4) -->
     <div class="ann-sheet" id="annSheet" hidden>
+      <div class="guard guard--top" aria-hidden="true"></div>
+      <div class="guard guard--bottom" aria-hidden="true"></div>
       <button type="button" class="link chrome ann-cancel" id="annCancel">Cancel</button>
+      <div class="ann-scroll">
       <div class="content content--40">
         <div class="group group--11">
           <p>Words you entered:</p>
@@ -157,6 +165,7 @@
           <button type="button" class="more more--flat" id="annAnother"><span>Another</span><span class="icon icon-plus"></span></button>
         </div>
         <button type="button" class="btn" id="annSave">Save annotation</button>
+      </div>
       </div>
     </div>
   </div>

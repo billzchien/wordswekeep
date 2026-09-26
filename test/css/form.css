@@ -228,6 +228,23 @@ textarea.field--taller { height: var(--ta-l); }
 @media (hover: hover) { .btn--primary:not(:disabled):hover { box-shadow: none; } }
 .btn--primary:disabled { background: var(--btn-off); border-color: var(--btn-off); color: var(--white); }
 
+/* ---------- Guards: the page colour over a progressive blur, top and bottom ----------
+   Content scrolling under the chrome dissolves into the background (--guard-bg: the paper on
+   the steps, the sheet's blue on the sheet) rather than cutting off. The blur is masked with the
+   same gradient, so it is strongest at the edge and gone where the fade ends. */
+.guard {
+  position: absolute; left: 0; right: 0; z-index: 15; pointer-events: none;
+  height: var(--guard-h);
+  --guard-h: calc(80 * var(--u));
+  --guard-bg: var(--paper);
+  background: linear-gradient(to bottom, var(--guard-bg) 0%, color-mix(in srgb, var(--guard-bg) 60%, transparent) 40%, transparent 100%);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 25%, transparent 100%); mask-image: linear-gradient(to bottom, black 0%, black 25%, transparent 100%);
+}
+.guard--top { top: 0; }
+.guard--bottom { bottom: 0; rotate: 180deg; }
+.ann-sheet .guard { --guard-bg: var(--sheet); }
+
 /* ---------- Chrome ---------- */
 
 .home { top: var(--mark-top); left: var(--mark-top); display: block; } /* same spot as the archive's menu button: no hop between pages */
@@ -257,7 +274,7 @@ textarea.field--taller { height: var(--ta-l); }
 .ann-sheet {
   position: absolute; inset: 0; z-index: 40;
   background: var(--sheet); color: var(--white);
-  display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain;
+  overflow: hidden;
   /* Enters like notes mode: the finished sheet is cropped in from the top edge down over the
      page (REVEAL_MS 600, --ease-drop); leaves the same way, the edge travelling down and
      uncovering the page. Content never moves, only the crop. */
@@ -272,6 +289,8 @@ textarea.field--taller { height: var(--ta-l); }
 }
 .ann-sheet.is-in { clip-path: inset(0); }
 .ann-sheet.is-out { clip-path: inset(100% 0 0 0); }
+.ann-scroll { position: absolute; inset: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.ann-scroll::-webkit-scrollbar { display: none; }
 .ann-sheet .btn { color: var(--white); }
 @media (hover: hover) { .ann-sheet .btn:not(:disabled):hover { border-color: var(--white); box-shadow: inset 0 0 0 0.5px var(--white); } }
 .ann-cancel { top: calc(20px - var(--cap-offset)); left: var(--m); } /* caps where the mark's top edge is */

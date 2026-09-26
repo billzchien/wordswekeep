@@ -466,7 +466,7 @@
     renderRows();
     sheet.classList.remove('is-out');
     sheet.hidden = false;
-    sheet.scrollTop = 0;
+    sheet.querySelector('.ann-scroll').scrollTop = 0;
     void sheet.offsetHeight; // commit the closed crop, then let the drop transition run
     sheet.classList.add('is-in');
     setChrome(getComputedStyle(sheet).backgroundColor);
