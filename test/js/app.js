@@ -14,8 +14,9 @@
     desc: 'Words We Keep is a collections of words that contributed by people to who kept them by hearts. This is a side project by brooklyn-based designer Bill, with the help of Rohan. Established since 2026.',
   };
   const CAT_BY_KEY = Object.fromEntries(CATEGORIES.map((c) => [c.key, c]));
-  // Titles of standalone works are set in italics; shorter pieces (speech, letter, poem…) stay upright.
-  const ITALIC_KINDS = new Set(['book', 'film', 'series', 'comic', 'artwork', 'album']);
+  // Titles are set in italics for a book or a film / TV work only; everything else stays upright.
+  // (Form kinds: book · film · song · poem · speech · writing · personal · other.)
+  const ITALIC_KINDS = new Set(['book', 'film']);
   const LANG_GLYPH = { zh: '中', ja: '日', ko: '한' };
 
   // A shuffled copy (Fisher–Yates). The deck is dealt once per visit / per category, so ↑ and ↓
@@ -344,12 +345,18 @@
     </button>`;
   }
 
+  const lastTheme = new Map(); // quote id → the palette notes last opened with
   function renderNotes() {
     const q = current();
     const cats = q.categories.length ? q.categories : ['perspective'];
+    // The palette is one of the quote's categories, drawn at random each time notes open, and
+    // never the same as the previous time for this quote — so a second look gets another colour.
+    const pool = cats.length > 1 ? cats.filter((k) => k !== lastTheme.get(q.id)) : cats;
+    const theme = pool[Math.floor(Math.random() * pool.length)];
+    lastTheme.set(q.id, theme);
     // The notes layer and its Close link carry the palette themselves, so the layer can be
     // revealed over the still-grey page.
-    app.dataset.theme = notes.dataset.theme = $('notesBtn').dataset.theme = cats[0];
+    app.dataset.theme = notes.dataset.theme = $('notesBtn').dataset.theme = theme;
 
     $('nCats').innerHTML = cats.map((k) =>
       `<li><span class="icon icon-mark"></span><span>${esc(CAT_BY_KEY[k].name)}</span></li>`).join('');
@@ -1146,6 +1153,15 @@
   /* Word annotation: the underlined words zoom out of the quote into the enlarged word, and
      zoom back into their place on Back. */
   const ANN_MS = 200;
+  // A token's value in px, resolved through layout (a calc()/clamp() string can't be parsed).
+  const cssProbe = document.createElement('div');
+  cssProbe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;width:0';
+  function cssPx(token, fallback) {
+    if (!cssProbe.isConnected) document.body.appendChild(cssProbe);
+    cssProbe.style.height = `var(${token})`;
+    const v = cssProbe.offsetHeight;
+    return v > 0 ? v : fallback;
+  }
   let annSource = null, annPose = '', annBusy = false;
 
   // Pose the enlarged word so its glyphs sit exactly on the source words in the quote.
@@ -1183,12 +1199,13 @@
     word.style.whiteSpace = word.scrollWidth > vw - 2 * m ? 'normal' : 'nowrap';
     word.style.maxWidth = `${vw - 2 * m}px`;
     const w = word.offsetWidth, h = word.offsetHeight;
+    const gap = cssPx('--ann-gap', 24); // tokens.css, scaled by --u
     const backGutter = vw >= 600 ? 49 : 0;
     const left = Math.max(m + backGutter, Math.min(rect.left - 14, vw - m - Math.max(w, text.offsetWidth)));
-    const top = Math.max(64, Math.min(rect.top - (h - rect.height) / 2, vh - h - text.offsetHeight - 40));
+    const top = Math.max(64, Math.min(rect.top - (h - rect.height) / 2, vh - h - text.offsetHeight - gap - 29));
     word.style.left = text.style.left = `${left}px`;
     word.style.top = `${top}px`;
-    text.style.top = `${top + h + 11}px`;
+    text.style.top = `${top + h + gap}px`;
     back.style.left = `${left - (backGutter ? 44 : 9)}px`;   // the X's 32px hit box; its strokes sit ~9px in
     back.style.top = `${top - (backGutter ? 26 : 36)}px`;
 
@@ -1367,12 +1384,31 @@
     placeDesc(key, () => {
       $('catDescText').textContent = noOrphans(cat.desc);
       $('catCount').textContent = `${n} quote${n === 1 ? '' : 's'} total`;
+      sizeDescLine();
     });
     const apply = $('menuApply');
     apply.textContent = key === 'all' ? 'See all words' : `See ${cat.name.toLowerCase()} words`;
     apply.disabled = n === 0;
     apply.style.opacity = n === 0 ? 0.3 : '';
   }
+
+  // Desktop/tablet: the hairline between the description and the count is given its height
+  // explicitly, so it glides (css transition, in step with the rows) when a longer or shorter
+  // description takes the space above it, instead of snapping.
+  function sizeDescLine(instant = false) {
+    const desc = document.querySelector('.cat-desc'), line = document.querySelector('.cat-desc-line');
+    if (mqMobile.matches || !desc || !line) { if (line) line.style.height = ''; return; }
+    const gap = parseFloat(getComputedStyle(desc).rowGap) || 0;
+    const h = desc.clientHeight - $('catDescText').offsetHeight - $('catCount').offsetHeight - 2 * gap;
+    const from = line.offsetHeight, to = Math.max(0, h);
+    line.style.height = `${to}px`; // the count never moves: the new length is set at once…
+    if (instant || !from || !to || from === to || reduceMotion.matches) return;
+    // …and the line itself grows or shrinks into it from its own centre.
+    line.getAnimations().forEach((a) => a.cancel());
+    line.animate([{ transform: `scaleY(${from / to})` }, { transform: 'scaleY(1)' }], { duration: DESC_LINE_MS, easing: easeCurve() });
+  }
+  const DESC_LINE_MS = 150; // the hairline's stretch from its centre
+  window.addEventListener('resize', () => sizeDescLine(true));
 
   /* Phone: the description lives in the list, under the previewed row, and moves with the
      preview like an accordion, in step with the mark growing and the row changing height (the
@@ -1460,6 +1496,7 @@
       state.preview = state.filter;
       renderMenu();
       $('menu').hidden = false;
+      sizeDescLine(true); // the hairline is at full length as the menu appears; it glides only between items
       if (state.mode === 'main') app.classList.add('is-typing'); // Notes and the arrows go under the menu already hidden: they type back in with the quote on close
       menuBusy = false;
       if (reduceMotion.matches) return;
@@ -1636,6 +1673,7 @@
   const ARRIVE_SPACE_MS = 40;        // extra before the first letter of a word
   const ARRIVE_COMMA_MS = 120;       // extra after , ; : — and their CJK forms
   const ARRIVE_STOP_MS = 260;        // extra after . ! ? … and a line break
+  const ARRIVE_FINAL_MS = 200;       // extra before the closing period (or ! ? … ” ’) of the whole quote
   const ARRIVE_MAX_MS = 2600;        // budget for the letter gaps of the whole quote (the breaths and
                                      // pauses are never compressed — they are what makes it read
                                      // as typing); a long quote types faster, never below…
@@ -1651,6 +1689,7 @@
       let pause = l.wordStart ? ARRIVE_SPACE_MS : 0;
       if (STOP_RE.test(prev.text) || l.top - prev.top > 4) pause += ARRIVE_STOP_MS;
       else if (COMMA_RE.test(prev.text)) pause += ARRIVE_COMMA_MS;
+      if (i === letters.length - 1 && /[.!?…。！？”’"']/.test(l.text)) pause += ARRIVE_FINAL_MS; // the full stop lands a beat after the last word
       pauses.push(pause);
     });
     const sum = gaps.reduce((a, b) => a + b, 0);

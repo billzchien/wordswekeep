@@ -18,6 +18,10 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; /* no grey flash on tap (iOS) */ }
 
 html, body { height: 100%; overflow: hidden; overscroll-behavior: none; touch-action: manipulation; /* no double-tap zoom; pinch and pan still work */ }
+/* Nothing on the site selects, except the quote in notes mode (and, on the form, the quote on
+   the annotation sheet and the fields themselves — css/form.css). */
+body { -webkit-user-select: none; user-select: none; }
+.notes .q-wrap { -webkit-user-select: text; user-select: text; }
 
 body {
   background: var(--bg);
@@ -88,15 +92,14 @@ ul { list-style: none; }
 /* ---------- Chrome ---------- */
 
 .chrome { position: absolute; z-index: 20; }
-.menu-btn  { top: 20px; left: var(--m); } /* same spot as the first category mark in notes mode */
-.number    { top: 18px; left: var(--col2); white-space: nowrap; }
-.notes-btn { top: 20px; right: var(--m); }
+.menu-btn  { top: var(--mark-top); left: var(--mark-top); } /* the same distance from the top and the left edge */ /* centred on the caps of No. / Notes; same spot as the first category mark in notes mode */
+.number    { top: calc(20px - var(--cap-offset)); left: var(--col2); white-space: nowrap; font-feature-settings: var(--numeral-features); } /* caps on the mark's top edge; lining figures */
+.notes-btn { top: calc(20px - var(--cap-offset)); right: var(--m); }
 .add-btn   { left: var(--m); bottom: 20px; }
 .arrows    { right: 16px; bottom: 16px; display: flex; }
 .arrows button { width: 32px; height: 32px; display: grid; place-items: center; }
 
 @media (max-width: 1023px) {
-  .number { top: 20px; }
   .arrows { right: 12px; bottom: 12px; flex-direction: column; }
   .arrows button { width: 40px; height: 40px; margin-top: -8px; }
   .arrows button:first-child { margin-top: 0; }
@@ -318,9 +321,9 @@ ul { list-style: none; }
 
 .n-cats {
   position: sticky;
-  top: 20px;
+  top: var(--mark-top); /* the first category mark sits where the menu button was */
   height: 0;
-  margin-left: var(--m);
+  margin-left: var(--mark-top);
   z-index: 3;
   transition: filter 0.4s var(--ease);
 }
@@ -343,7 +346,13 @@ ul { list-style: none; }
 .n-indent--from { padding-left: 2.667em; } /* 40 / 15 */
 .n-indent--kept { padding-left: 2em; }     /* 30 / 15 */
 .n-native { font-family: var(--font-native); font-size: var(--text-native-size); letter-spacing: 0; }
-.n-source { white-space: normal; max-width: calc(2 * var(--colw) + var(--g) - 40px); display: block; text-wrap: balance; }
+.n-source {
+  white-space: normal; display: block; text-wrap: balance;
+  /* As wide as the top line allows: from the indent to the margin, keeping clear of Close (its
+     width plus 40px). The old two-columns-minus-40 cap wrapped "Nike Air Jordan Commercial"
+     at tablet and narrow-desktop widths for no reason. */
+  max-width: calc(100vw - var(--col3) - 2.667em - var(--m) - 5em);
+}
 
 .n-from { position: absolute; top: 22px; left: var(--col3); }
 
@@ -440,7 +449,7 @@ ul { list-style: none; }
 
 @media (max-width: 599px) {
   /* Mobile: everything flows and scrolls together under a fading top bar. */
-  .n-cats { position: absolute; top: 20px; }
+  .n-cats { position: absolute; top: var(--mark-top); }
   .n-pin { position: static; height: auto; padding: 124px var(--m) 0; filter: none !important; }
   .app.is-dim .n-pin { filter: blur(25px) !important; }
   .n-from { position: static; }
@@ -525,8 +534,28 @@ ul { list-style: none; }
   color: var(--ink);
   overflow: hidden;
   --list-top: 26.3vh; /* no overlay fade: same grey as the page, the rows animate in (js/app.js) */
+  --row: 64px;        /* a category row (tablet/phone) */
 }
-.menu-back { position: absolute; top: 20px; left: var(--m); }
+/* Desktop and tablet: the list spans --list-span of the window, centred — the five plain rows
+   share what the enlarged row (mark-large + 20px above and below) leaves. */
+@media (min-width: 600px) {
+  .menu {
+    --list-span: 60vh;
+    --row: calc((var(--list-span) - var(--mark-large) - 40px) / 5);
+    --list-top: calc((100vh - var(--list-span)) / 2);
+  }
+  /* The enlarged row keeps its 20px above even when first, so the list is always exactly
+     --list-span tall and the rows never shift by 20px as the preview moves. */
+  .menu .cat-list li:first-child .cat-row.is-big { margin-top: 20px; }
+  /* The descriptor column follows the list: its first line sits exactly on "All words" (the text
+     line centred in the enlarged row), and the count line sits exactly on the last row's text. */
+  .menu .cat-desc { /* .menu: outranks the general rule further down */
+    --lh: calc(var(--text-size) * var(--text-leading));
+    top: calc(var(--list-top) + 20px + var(--mark-large) / 2 - var(--lh) / 2);
+    height: calc(var(--list-span) - var(--row) / 2 - 20px - var(--mark-large) / 2 + var(--lh));
+  }
+}
+.menu-back { position: absolute; top: calc(20px - var(--cap-offset)); left: var(--m); }
 
 .cat-list { position: absolute; top: var(--list-top); left: 0; right: 0; }
 .cat-row {
@@ -535,7 +564,7 @@ ul { list-style: none; }
   align-items: center;
   gap: 24px;
   width: calc(var(--col4) - var(--g)); /* rows stop before the descriptor column, so reading it never re-triggers a row */
-  height: 64px;
+  height: var(--row);
   padding-left: var(--col2);
   text-align: left;
   white-space: nowrap;
@@ -573,7 +602,7 @@ ul { list-style: none; }
   flex-direction: column;
   gap: 1.333em;
 }
-.cat-desc-line { flex: 1; width: 0; border-left: var(--hairline) solid currentColor; }
+.cat-desc-line { flex: 0 0 auto; width: 0; border-left: var(--hairline) solid currentColor; transform-origin: 50% 50%; } /* height set by js/app.js → sizeDescLine; between items it stretches from its centre (the count stays put) */
 
 .menu-apply {
   display: none;
@@ -588,8 +617,7 @@ ul { list-style: none; }
 /* Touch layouts (tablet, phone): a tap grows a row and draws a hairline under its name — that is
    the preview, with the description; a tap on the underlined row applies it. No apply button. */
 @media (max-width: 1023px) {
-  .menu { --list-top: 23.8vh; }
-  .cat-desc { top: calc(var(--list-top) + 9px); bottom: 22vh; height: auto; width: 320px; }
+  .cat-desc { width: 320px; } /* list span, row height and the column's alignment: the ≥600px block above */
   .cat-row.is-preview .cat-name {
     background: linear-gradient(currentColor, currentColor) left bottom / 100% var(--line) no-repeat;
     animation: link-in 0.5s var(--ease);

@@ -55,6 +55,9 @@
    covers font and color), which dropped the -1% tracking on the category rows and buttons. */
 .form button, .form input, .form textarea { letter-spacing: inherit; font-feature-settings: inherit; }
 
+/* Selection: only the fields and the quote on the annotation sheet (to copy a word into a field). */
+.form input, .form textarea, .ann-quote { -webkit-user-select: text; user-select: text; }
+
 /* ---------- Steps: a stack of screens, slid by js (translateY) ---------- */
 
 .steps { --dy: 0px; position: absolute; inset: 0; transition: transform var(--step-ms) var(--ease); will-change: transform; }
@@ -112,7 +115,9 @@
   -webkit-appearance: none; appearance: none;
   transition: background 0.15s var(--ease);
 }
-textarea.field { height: var(--ta-s); padding: var(--fpad); resize: none; }
+textarea.field { height: var(--ta-s); padding: var(--fpad); resize: none; scrollbar-width: none; } /* the native bar is hidden (it would eat the right padding); js draws the same 2px bar as the dropdown (.fw-bar) */
+textarea.field::-webkit-scrollbar { display: none; }
+.fw-bar { position: absolute; right: 0; width: 2px; background: var(--ink); pointer-events: none; }
 textarea.field--tall { height: var(--ta-m); }
 textarea.field--taller { height: var(--ta-l); }
 .field::placeholder { color: var(--placeholder); opacity: 1; }
@@ -130,6 +135,14 @@ textarea.field--taller { height: var(--ta-l); }
   pointer-events: none;
 }
 .fw.is-warn .combo-btn { display: none; } /* the ⓘ takes the chevron's place until the field is opened */
+
+/* A field that appears or goes (the original-language words, the name in original language):
+   unfolds from nothing while fading in and dropping into place, folds shut fading up — the same
+   move as an annotation row on the sheet (js/form.js → fold). */
+.fold { display: grid; grid-template-rows: 0fr; opacity: 0; translate: 0 calc(-8 * var(--u)); transition: grid-template-rows var(--fold-ms) var(--ease), opacity var(--fold-ms) var(--ease), translate var(--fold-ms) var(--ease); --fold-ms: 200ms; }
+.fold > * { min-height: 0; overflow: hidden; }
+.fold.is-open { grid-template-rows: 1fr; opacity: 1; translate: 0 0; }
+@media (prefers-reduced-motion: reduce) { .fold { transition: none; } }
 
 /* Combobox (country, source kind, year): a text field that filters a list. */
 .combo { position: relative; width: 100%; }
@@ -211,13 +224,28 @@ textarea.field--taller { height: var(--ta-l); }
 .btn:not(:disabled):active { border-color: var(--ink); box-shadow: inset 0 0 0 0.5px var(--ink); }
 .btn:disabled { color: var(--btn-off-text); border-color: var(--btn-off-line); cursor: default; }
 .btn--primary { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.btn .cell { display: inline-block; } /* one letter of the label; the typewriter hover (js/form.js) fades these */
 @media (hover: hover) { .btn--primary:not(:disabled):hover { box-shadow: none; } }
 .btn--primary:disabled { background: var(--btn-off); border-color: var(--btn-off); color: var(--white); }
 
 /* ---------- Chrome ---------- */
 
-.home { top: 20px; left: var(--m); display: block; } /* same spot as the archive's menu button: no hop between pages */
-.count { left: var(--m); bottom: 20px; padding-bottom: var(--link-gap); white-space: nowrap; } /* the archive's "Add words" link has this gap under its text: same baseline across pages */ /* old-style figures like "No. 8" on the archive; lining figures read too big */
+.home { top: var(--mark-top); left: var(--mark-top); display: block; } /* same spot as the archive's menu button: no hop between pages */
+/* Pager (Figma 299:1111): current step · a 40px 1px track (25% ink) whose fill grows with the step ·
+   total. Each number sits in its own box, one line tall, so the current one can count up: the
+   old digit rolls up out of the box while the next, already in place below, rolls up (js/form.js → setPage). */
+.count {
+  left: var(--m); bottom: 20px; padding-bottom: var(--link-gap); /* the archive's "Add words" link has this gap under its text: same baseline across pages */
+  display: flex; align-items: center; gap: calc(8 * var(--u));
+  white-space: nowrap;
+  font-feature-settings: var(--numeral-features); /* lining, tabular: a counter, not running text */
+  --pager-ms: 300ms;
+}
+.pager-num { display: block; width: calc(8 * var(--u)); height: calc(var(--text-size) * var(--text-leading)); overflow: hidden; text-align: center; }
+.pager-roll { --p: 0; display: block; transform: translateY(calc(var(--p) * -1 * var(--text-size) * var(--text-leading))); transition: transform var(--pager-ms) var(--ease); } /* every digit stacked; slides by --p whole lines (a % would be of the whole stack) */
+.pager-roll > span { display: block; height: calc(var(--text-size) * var(--text-leading)); }
+.pager-track { display: block; position: relative; width: calc(40 * var(--u)); height: 1px; background: color-mix(in srgb, currentColor 25%, transparent); }
+.pager-fill { position: absolute; left: 0; top: 0; height: 100%; width: 20%; background: currentColor; transition: width var(--pager-ms) var(--ease); }
 .form.is-done .count, .form.is-done .arrows { display: none; }
 .arrows button:disabled { opacity: 0.3; cursor: default; }
 
@@ -246,7 +274,7 @@ textarea.field--taller { height: var(--ta-l); }
 .ann-sheet.is-out { clip-path: inset(100% 0 0 0); }
 .ann-sheet .btn { color: var(--white); }
 @media (hover: hover) { .ann-sheet .btn:not(:disabled):hover { border-color: var(--white); box-shadow: inset 0 0 0 0.5px var(--white); } }
-.ann-cancel { top: 20px; left: var(--m); }
+.ann-cancel { top: calc(20px - var(--cap-offset)); left: var(--m); } /* caps where the mark's top edge is */
 .ann-quote { padding-left: var(--gap-40); }
 .ann-rows { display: block; }
 /* A row is a one-cell grid so its height can animate (0fr → 1fr) when it is added or removed:
@@ -258,7 +286,7 @@ textarea.field--taller { height: var(--ta-l); }
 .ann-row.is-leaving { animation: ann-out var(--ann-ms) var(--ease) both; pointer-events: none; }
 @keyframes ann-in  { from { grid-template-rows: 0fr; margin-top: 0; opacity: 0; translate: 0 calc(-8 * var(--u)); } to { grid-template-rows: 1fr; opacity: 1; translate: 0 0; } }
 @keyframes ann-out { from { grid-template-rows: 1fr; opacity: 1; translate: 0 0; } to { grid-template-rows: 0fr; margin-top: 0; opacity: 0; translate: 0 calc(-8 * var(--u)); } }
-.ann-row-head { display: flex; justify-content: space-between; align-items: center; gap: calc(8 * var(--u)); }
+.ann-row-head { display: flex; justify-content: space-between; align-items: center; gap: calc(8 * var(--u)); font-feature-settings: var(--numeral-features); }
 .ann-remove { width: var(--ic); height: var(--ic); display: flex; align-items: center; justify-content: flex-end; margin-right: calc(-3 * var(--u)); color: var(--white); } /* the × glyph has 3px of air inside its 12px box; pulled out by that much, its ink ends exactly on the field's right edge */
 
 /* ---------- Arriving from the archive ----------

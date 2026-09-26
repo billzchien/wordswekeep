@@ -70,6 +70,21 @@ def clean(s):
     s = (s or "").replace("\r\n", "\n").strip()
     return s or None
 
+def end_stop(text):
+    """House style: every annotation note ends with a full stop."""
+    text = text.rstrip()
+    return text if not text or _re_end.search(text) else text + "."
+_re_end = re.compile(r'[.!?…。！？”’"]$')
+
+def cap_paras(text):
+    """House style: every paragraph of a note (reflection, context) starts with a capital."""
+    if not text:
+        return text
+    return "".join(
+        (p[:1].upper() + p[1:]) if p and not p.isspace() else p
+        for p in re.split(r"(\n\s*\n)", text)
+    )
+
 def curly(s):
     """Straight quotes -> typographic ones."""
     if not s:
@@ -124,7 +139,7 @@ def main(path):
         text = polish_quote(strip_wrapping_quotes(text))
         if original:
             original["text"] = polish_quote(original["text"], cjk=True)
-        reflection = curly(clean(reflection))
+        reflection = cap_paras(curly(clean(reflection)))
 
         annotations = []
         if o.get("annotations_from_context") and context:
@@ -133,11 +148,11 @@ def main(path):
                 lines = para.split("\n")
                 defs = [re.match(r'^"(.+?)"\s+means\s+(.*)$', l.strip()) for l in lines]
                 if all(defs):
-                    annotations += [{"word": curly(m.group(1)), "explanation": curly(m.group(2)[0].upper() + m.group(2)[1:])} for m in defs]
+                    annotations += [{"word": curly(m.group(1)), "explanation": end_stop(curly(m.group(2)[0].upper() + m.group(2)[1:]))} for m in defs]
                 else:
                     keep.append(para)
             context = "\n\n".join(keep) or None
-        context = curly(context)  # after the annotation parse, which looks for straight quotes
+        context = cap_paras(curly(context))  # after the annotation parse, which looks for straight quotes
 
         name = re.sub(r"^-\s*", "", clean(author) or "")
         a = {"name": name, "nativeName": None, "country": o.get("country") or COUNTRIES.get((country or "").strip())}
