@@ -113,6 +113,7 @@
   background: var(--field); color: var(--ink);
   font: inherit; letter-spacing: inherit; font-feature-settings: inherit; line-height: var(--text-leading);
   -webkit-appearance: none; appearance: none;
+  caret-color: var(--ink); /* the insertion point in ink, not Safari's blue (its width is the system's) */
   transition: background 0.15s var(--ease);
 }
 textarea.field { height: var(--ta-s); padding: var(--fpad); resize: none; scrollbar-width: none; } /* the native bar is hidden (it would eat the right padding); js draws the same 2px bar as the dropdown (.fw-bar) */
@@ -327,6 +328,8 @@ textarea.field--taller { height: var(--ta-l); }
   .content { width: calc(4 * var(--colw) + 3 * var(--g)); margin-left: var(--col2); }
 }
 @media (max-width: 599px) {
+  .cat-box, .cat-box .icon-check { width: 13px; height: 13px; } /* a 13px box on a phone (12 is Figma's desktop size) */
+  .cat-box { top: 8px; right: 8px; } /* 8px in from the row's corner on a phone (12 elsewhere) */
   .cat-blurb { max-width: none; } /* a phone's rows are narrow: the description takes the whole row, so every one fits in two lines */
   .content { width: auto; margin-left: var(--m); margin-right: var(--m); padding-top: calc(60px + 2 * var(--dy)); padding-bottom: 96px; }
 }
