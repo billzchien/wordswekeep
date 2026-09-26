@@ -37,7 +37,8 @@
   --text-size: calc(16 * var(--u));
   --text-leading: 1.2;
   --text-tracking: -0.01em;
-  --text-features: "ss01" 1, "ss07" 1, "onum" 1, "pnum" 1;
+  --text-features: "ss01" 1, "ss07" 1, "onum" 1, "pnum" 1;           /* running text: old-style, proportional figures */
+  --numeral-features: "ss01" 1, "ss07" 1, "lnum" 1, "tnum" 1;        /* counters (No. 8, the form pager, 1. 2. on the sheet): lining, tabular */
   --text-native-size: calc(12 * var(--u));   /* native-script author name beside Latin text */
   --glyph-size: 12px;         /* language button */
 
@@ -63,10 +64,19 @@
   --notes-quote-top: calc(240 * var(--u));   /* top of the pinned quote in notes mode */
   --notes-quote-gap: calc(120 * var(--u));   /* quote → "Kept by" */
   --main-quote-lift: calc(40 * var(--u));    /* main quote sits this much above true center */
+  --ann-gap: calc(24 * var(--u));            /* annotation overlay: enlarged word → its note */
 
   /* ---------- Mark (logo / category mark) — grows with the type ---------- */
   --mark: calc(20 * var(--u));
   --mark-large: calc(80 * var(--u));   /* highlighted category in the menu */
+
+  /* Crimson Pro's capitals start this far below the top of their line box (16px text, leading
+     1.2). Text that should line up with the mark's top edge is raised by it, so the caps —
+     not the invisible line box — sit on the same line as the mark. */
+  --cap-offset: 0.37em;
+  --cap-height: 0.575em;   /* Crimson Pro capital height; the mark is centred on the caps */
+  /* The mark's top so that its centre sits on the centre of the capitals whose line is at 20px. */
+  --mark-top: calc(20px + var(--cap-height) / 2 - var(--mark) / 2);
 
   --hairline: 0.5px;
   --link-gap: 2px;   /* space between a link's text box and its underline */

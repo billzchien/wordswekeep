@@ -17,11 +17,18 @@
     { key: 'community',   name: 'Community',   desc: 'The family, friends, and connections that remind us we’re not alone.' },
     { key: 'romance',     name: 'Romance',     desc: 'The joy and heartbreak of loving and being loved by another person.' },
   ];
-  // Source kinds. Titles of standalone works (book, film, series, comic, artwork, album) are set in
-  // italics on the site (js/app.js → ITALIC_KINDS).
-  const KINDS = ['Book', 'Film', 'Series', 'Song', 'Album', 'Poem', 'Play', 'Speech', 'Interview',
-    'Essay', 'Letter', 'Podcast', 'Commercial', 'Comic', 'Artwork', 'Conversation', 'Other']
-    .map((n) => ({ value: n.toLowerCase(), label: n }));
+  // Source kinds. The site sets a title in italics only for book and film (js/app.js → ITALIC_KINDS).
+  // "Personal" (something said to the submitter), or no kind chosen yet: no source name or link.
+  const KINDS = [
+    { value: 'book', label: 'Book' },
+    { value: 'film', label: 'Film & TV' },
+    { value: 'song', label: 'Song' },
+    { value: 'poem', label: 'Poem' },
+    { value: 'speech', label: 'Speech & interview' },
+    { value: 'writing', label: 'Writing' },
+    { value: 'personal', label: 'Personal' },
+    { value: 'other', label: 'Other' },
+  ];
   // ISO 3166-1 alpha-2; names from the browser (English), sorted.
   const REGION_CODES = ('AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW').split(' ');
   const regionNames = typeof Intl.DisplayNames === 'function' ? new Intl.DisplayNames(['en'], { type: 'region' }) : null;
@@ -66,9 +73,12 @@
     return 'other';
   }
 
+  // House style: every paragraph of a note starts with a capital letter.
+  const capParas = (s) => s.replace(/(^|\n\s*\n)(\s*)(\p{Ll})/gu, (m, br, sp, ch) => br + sp + ch.toUpperCase());
   function payload() {
     const t = (s) => s.trim();
     const original = t(data.original);
+    const hasSource = !!data.source.kind && data.source.kind !== 'personal';
     return {
       status: 'pending',
       text: t(data.text),
@@ -77,11 +87,11 @@
       author: { name: t(data.author.name), nativeName: NON_LATIN.has(data.author.country) ? (t(data.author.nativeName) || null) : null, country: data.author.country || null },
       // One link: the site plays it if it is a video (YouTube), otherwise links the source title to it.
       source: (data.source.title || data.source.kind || data.source.year || data.source.link)
-        ? { title: t(data.source.title) || null, year: data.source.year ? Number(data.source.year) : null, kind: data.source.kind || null, link: t(data.source.link) || null }
+        ? { title: hasSource ? (t(data.source.title) || null) : null, year: data.source.year ? Number(data.source.year) : null, kind: data.source.kind || null, link: hasSource ? (t(data.source.link) || null) : null }
         : null,
-      context: t(data.context) || null,
+      context: capParas(t(data.context)) || null,
       annotations: data.annotations.filter((a) => a.word.trim()).map((a) => ({ word: a.word.trim(), explanation: a.explanation.trim() })),
-      reflection: t(data.reflection),
+      reflection: capParas(t(data.reflection)),
       keptBy: t(data.keptBy) || null,
       submittedAt: new Date().toISOString(),
       approvedAt: null,
@@ -119,8 +129,22 @@
     $('annLabel').textContent = n ? `${n} word${n === 1 ? '' : 's'} annotated` : 'Annotate specific words';
     $('prevBtn').disabled = cur === 0;
     $('nextBtn').disabled = cur >= STEPS - 1 || !valid[cur]();
-    $('count').textContent = `${Math.min(cur, STEPS - 1) + 1} / ${STEPS}`;
+    setPage(Math.min(cur, STEPS - 1) + 1);
     form.classList.toggle('is-done', cur >= STEPS);
+  }
+
+  // The pager: the fill grows with the step, and the current number counts up (or down). The
+  // roll holds every step's digit, stacked, all rendered from the start; the box shows one line
+  // and the roll slides by whole lines — nothing is swapped in or out, so nothing can blink.
+  let page = 1;
+  $('pageCur').innerHTML = Array.from({ length: STEPS }, (_, i) => `<span>${i + 1}</span>`).join('');
+  function setPage(n) {
+    $('pageTotal').textContent = STEPS;
+    $('pageFill').style.width = `${(n / STEPS) * 100}%`;
+    $('count').setAttribute('aria-label', `Step ${n} of ${STEPS}`);
+    if (n === page) return;
+    page = n;
+    $('pageCur').style.setProperty('--p', n - 1); // css slides the roll by that many lines
   }
 
   function warn(step) {
@@ -184,9 +208,14 @@
   steps.forEach((st) => st.addEventListener('scroll', () => { lastScrollAt = performance.now(); }, { passive: true }));
   document.addEventListener('wheel', (e) => {
     if (!sheet.hidden || cur >= STEPS || e.ctrlKey) return;
-    if (e.target.closest('.combo-list')) return;
+    if (e.target.closest('.combo.is-open')) return; // an open dropdown owns the wheel, even at the end of its list (a page turn would close it)
     const dir = Math.sign(e.deltaY);
-    if (!dir || canScroll(steps[cur], dir)) return;
+    if (!dir) return;
+    // Anything scrollable under the pointer (a full textarea, the dropdown list, the step itself)
+    // scrolls first; the page turns only when none of them can move that way.
+    for (let el = e.target; el && el !== document.body; el = el.parentElement) {
+      if (el.scrollHeight > el.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(el).overflowY) && canScroll(el, dir)) return; // (not clip/hidden: .form holds the whole stack)
+    }
     e.preventDefault();
     const now = performance.now();
     if (now - lastScrollAt < SCROLL_REST_MS) return;
@@ -213,15 +242,54 @@
     go(cur + dir);
   }, { passive: true });
 
+  /* ---------- Textareas: the dropdown's 2px overlay scrollbar ---------- */
+  // Same bar as the combobox list: the native one is hidden (css), a 2px black bar over the
+  // right edge shows the visible fraction, never shorter than 24px, gone when nothing scrolls.
+  document.querySelectorAll('textarea.field').forEach((ta) => {
+    const bar = document.createElement('div');
+    bar.className = 'fw-bar';
+    bar.hidden = true;
+    ta.parentElement.appendChild(bar);
+    const draw = () => {
+      const { scrollHeight: sh, clientHeight: ch, scrollTop: st, offsetTop: top } = ta;
+      if (sh <= ch + 1) { bar.hidden = true; return; }
+      bar.hidden = false;
+      const h = Math.max(24, (ch / sh) * ch);
+      bar.style.top = `${top + (st / (sh - ch)) * (ch - h)}px`;
+      bar.style.height = `${h}px`;
+    };
+    ta.addEventListener('scroll', draw, { passive: true });
+    ta.addEventListener('input', draw);
+    window.addEventListener('resize', draw);
+    ta.addEventListener('focus', draw);
+  });
+
+  /* ---------- Fields that appear and go (css .fold) ---------- */
+  const FOLD_MS = 200;
+  const foldTimers = new WeakMap();
+  function fold(el, open) {
+    clearTimeout(foldTimers.get(el));
+    if (open) {
+      if (!el.hidden && el.classList.contains('is-open')) return;
+      el.hidden = false;
+      void el.offsetHeight; // commit the folded state, then unfold
+      el.classList.add('is-open');
+    } else {
+      if (el.hidden) return;
+      el.classList.remove('is-open');
+      foldTimers.set(el, setTimeout(() => { el.hidden = true; }, reduceMotion.matches ? 0 : FOLD_MS));
+    }
+  }
+
   /* ---------- Step 1 ---------- */
 
   $('fText').addEventListener('input', (e) => { data.text = e.target.value; refresh(); });
   $('fOriginal').addEventListener('input', (e) => { data.original = e.target.value; });
   // Figma frame 1-2: the toggle row goes away and the second field appears under the first.
   $('origToggle').addEventListener('click', () => {
-    $('fOriginalWrap').hidden = false;
+    fold($('fOriginalWrap'), true);
     $('origToggle').hidden = true;
-    $('fOriginal').focus({ preventScroll: true });
+    setTimeout(() => $('fOriginal').focus({ preventScroll: true }), FOLD_MS);
   });
 
   /* ---------- Step 2 ---------- */
@@ -343,8 +411,16 @@
   $('fNative').addEventListener('input', (e) => { data.author.nativeName = e.target.value; });
   $('fTitle').addEventListener('input', (e) => { data.source.title = e.target.value; });
   $('fSourceLink').addEventListener('input', (e) => { data.source.link = e.target.value; });
-  const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Select country or region', label: 'Country or region', onChange: (v) => { data.author.country = v; $('fNativeWrap').hidden = !NON_LATIN.has(v); refresh(); } });
-  const kind = combo($('fKind'), { options: KINDS, placeholder: 'Category', label: 'Kind of source', onChange: (v) => { data.source.kind = v; } });
+  const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Country or region', label: 'Country or region', onChange: (v) => { data.author.country = v; fold($('fNativeWrap'), NON_LATIN.has(v)); refresh(); } });
+  // Source name and link appear once a kind other than Personal is chosen, one after the other.
+  const SOURCE_STAGGER_MS = 50;
+  function showSourceFields(on) {
+    const name = $('fTitleWrap'), link = $('fSourceLinkWrap');
+    clearTimeout(showSourceFields.t);
+    if (on) { fold(name, true); showSourceFields.t = setTimeout(() => fold(link, true), SOURCE_STAGGER_MS); }
+    else { fold(link, false); showSourceFields.t = setTimeout(() => fold(name, false), SOURCE_STAGGER_MS); }
+  }
+  const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', label: 'Source category', onChange: (v) => { data.source.kind = v; showSourceFields(!!v && v !== 'personal'); } });
   const year = combo($('fYear'), { options: YEARS, placeholder: 'Year', free: true, onChange: (v) => { data.source.year = /^\d{1,4}$/.test(v) ? v : ''; } });
   year.input.inputMode = 'numeric';
 
@@ -448,7 +524,7 @@
   function reset() {
     data = blank();
     ['fText', 'fOriginal', 'fName', 'fNative', 'fTitle', 'fSourceLink', 'fContext', 'fReflection', 'fKeptBy', 'fWebsite'].forEach((id) => { $(id).value = ''; });
-    $('fOriginalWrap').hidden = true; $('origToggle').hidden = false; $('fNativeWrap').hidden = true;
+    fold($('fOriginalWrap'), false); $('origToggle').hidden = false; fold($('fNativeWrap'), false); showSourceFields(false);
     document.querySelectorAll('.cat').forEach((b) => b.setAttribute('aria-checked', 'false'));
     document.querySelectorAll('.fw.is-warn').forEach((w) => w.classList.remove('is-warn'));
     country.set(''); kind.set(''); year.set('');
@@ -471,6 +547,47 @@
     }, ms);
   }
   $('againBtn').addEventListener('click', reset);
+
+  /* ---------- "Add word": the landing page's label animation ----------
+     The letters erase left→right and type back left→right, LABEL_STEP_MS apart (index.html has
+     the same at 26ms). Desktop: on hover (and again on leaving); touch: once when the button
+     becomes ready. Never while disabled. */
+  const LABEL_STEP_MS = 26;
+  function typewriterLabel(btn) {
+    const cells = [];
+    const text = btn.textContent;
+    btn.textContent = '';
+    const label = document.createElement('span'); // one inline flex item: the spaces between cells survive
+    label.className = 'label';
+    btn.appendChild(label);
+    [...text].forEach((ch) => {
+      if (ch === ' ') { label.appendChild(document.createTextNode(' ')); return; }
+      const cell = document.createElement('span');
+      cell.className = 'cell';
+      cell.textContent = ch;
+      cells.push(cell);
+      label.appendChild(cell);
+    });
+    let timers = [];
+    const play = () => {
+      if (btn.disabled || reduceMotion.matches) return;
+      timers.forEach(clearTimeout); timers = [];
+      const eraseDone = cells.length * LABEL_STEP_MS;
+      cells.forEach((cell, i) => {
+        timers.push(setTimeout(() => { cell.style.opacity = '0'; }, i * LABEL_STEP_MS));
+        timers.push(setTimeout(() => { cell.style.opacity = '1'; }, eraseDone + i * LABEL_STEP_MS));
+      });
+    };
+    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      btn.addEventListener('mouseenter', play);
+      btn.addEventListener('mouseleave', play);
+    } else {
+      // Touch: once, as the button turns from disabled to ready.
+      new MutationObserver(() => { if (!btn.disabled) play(); }).observe(btn, { attributes: true, attributeFilter: ['disabled'] });
+    }
+    return play;
+  }
+  typewriterLabel($('submitBtn'));
 
   /* ---------- Browser chrome colour (see js/app.js → syncChromeColor) ---------- */
 
