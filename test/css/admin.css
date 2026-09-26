@@ -169,8 +169,15 @@
    field's right edge when open. The × and the field's edge line up because both sit on the column's edge. */
 .sec-head { display: flex; justify-content: space-between; align-items: center; min-height: calc(var(--text-size) * var(--text-leading)); }
 .sec-head .more { height: auto; }
-.sec-close, .admin .ann-remove, .fw-close { width: calc(12 * var(--u)); height: calc(12 * var(--u)); margin: 0; display: grid; place-items: center; color: var(--ink); justify-content: center; } /* one × everywhere: the 12px glyph */
-.sec-close, .admin .ann-remove { margin-right: calc(-3 * var(--u)); } /* the glyph has 3px of air in its box: pulled out so its ink ends on the field's edge */
+.sec-close, .ann-pair-head .ann-remove, .fw-close { width: calc(12 * var(--u)); height: calc(12 * var(--u)); margin: 0; display: grid; place-items: center; color: var(--ink); justify-content: center; } /* one × everywhere: the 12px glyph */
+.sec-close { margin-right: calc(-3 * var(--u)); }
+/* Annotation rows (the form's sheet pattern, css/form.css): the → and × in the Word field are
+   ink here, not white; a locked word reads in the placeholder tone. */
+.admin .ann-confirm, .admin .ann-unlock { color: var(--ink); }
+.ann-pair.is-matched .ann-field .field { color: var(--placeholder); }
+.ann-field.is-warn .field { padding-right: calc(var(--fpad) + var(--ic-chevron) + 8 * var(--u)); }
+.ann-field.is-warn::after { display: none; } /* the → stays in the corner to check again; no ⓘ */
+.ann-pair > .fold { --fold-gap: var(--gap-1); } /* the folded explanation gives its 1px gap back */ /* the glyph has 3px of air in its box: pulled out so its ink ends on the field's edge */
 .sec--opt.is-many .sec-close { display: none; } /* with two or more, each pair has its own × */
 .sec--opt:not(.is-open) .sec-title, .sec--opt:not(.is-open) .sec-close { display: none; }
 .sec--opt.is-open .sec-head .more { display: none; }
