@@ -286,7 +286,7 @@
     categories: [...q.categories],
     author: { name: q.author?.name || '', nativeName: q.author?.nativeName || '', country: q.author?.country || '' },
     source: { kind: q.source?.kind || '', year: q.source?.year ? String(q.source.year) : '', title: q.source?.title || '', link: q.source?.link || '' },
-    context: q.context || '', annotations: q.annotations.map((a) => ({ word: a.word, explanation: a.explanation })),
+    context: q.context || '', annotations: q.annotations.map((a) => ({ word: a.word, explanation: a.explanation, matched: false, at: -1 })),
     reflection: q.reflection || '', keptBy: q.keptBy || '',
   });
   function fromDraft(d, q) {
@@ -300,7 +300,7 @@
       ? { title: hasSource ? (t(d.source.title) || null) : null, year: d.source.year ? Number(d.source.year) : null, kind: d.source.kind || null, link: hasSource ? (t(d.source.link) || null) : null }
       : null;
     q.context = t(d.context) || null;
-    q.annotations = d.annotations.filter((a) => a.word.trim()).map((a) => ({ word: a.word.trim(), explanation: a.explanation.trim() }));
+    q.annotations = d.annotations.filter((a) => a.matched && a.word.trim()).map((a) => ({ word: a.word.trim(), explanation: a.explanation.trim() })); // locked rows only
     q.reflection = t(d.reflection);
     q.keptBy = t(d.keptBy) || null;
     return q;
@@ -315,7 +315,7 @@
   }
 
   // Compared without empty annotation pairs (the blank pair the view shows is not a change).
-  const norm = (d) => JSON.stringify({ ...d, annotations: d.annotations.filter((a) => a.word.trim() || a.explanation.trim()) });
+  const norm = (d) => JSON.stringify({ ...d, annotations: d.annotations.filter((a) => a.word.trim() || a.explanation.trim()).map((a) => ({ word: a.word, explanation: a.explanation })) });
   const isDirty = () => !!edit && norm(edit.draft) !== norm(edit.orig);
   function updateDirty() {
     const d = isDirty(), ok = checkAnn();
@@ -325,36 +325,51 @@
   }
 
   /* ---------- Annotations must match the quote ----------
-     1. Check: an annotation word that is not in the quote (case aside) gets the warning state,
-        and Save / Approve wait until it matches or goes.
-     2. Follow: when the quote changes, a word that stopped matching is looked for loosely
-        (case, straight/curly quotes, punctuation ignored); found in exactly one place, it is
-        rewritten to the quote's spelling. Ambiguous: left alone, warned. */
-  const inQuote = (word, text) => !!word.trim() && text.toLowerCase().includes(word.trim().toLowerCase());
-  const loose = (t) => t.toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[.,;:!?…()\[\]"]/g, '').replace(/\s+/g, ' ').trim();
-  function checkAnn() {
-    let ok = true;
-    if (!edit) return ok;
-    $('annRows').querySelectorAll('.ann-pair').forEach((p) => {
-      const a = edit.draft.annotations[Number(p.dataset.i)];
-      const bad = !!a && !!a.word.trim() && !inQuote(a.word, edit.draft.text);
-      p.querySelector('.fw').classList.toggle('is-warn', bad);
-      if (bad) ok = false;
-    });
-    return ok;
+     The same rules as the form's sheet (js/form.js → findInQuote): a word is checked against the
+     quote — case and whitespace aside, whole words for Latin, a substring for CJK, each row
+     taking the next *free* occurrence — and locks in the quote's spelling. Stored annotations
+     open already locked. When the quote changes (typing, Auto cleanup), a locked word that no
+     longer fits is looked for loosely (straight/curly quotes and punctuation aside); one clear
+     hit and it is rewritten to the new spelling, otherwise it unlocks into the warning state.
+     Save / Approve wait while any row is unlocked with a word in it. */
+  const normalise = (t) => t.replace(/\s+/g, ' ').trim().toLowerCase();
+  function findInQuote(word, text, taken = []) {
+    const q = text.trim(), w = normalise(word);
+    if (!w) return { at: -1 };
+    const hay = q.toLowerCase();
+    const re = new RegExp((/^[\p{L}\p{N}]/u.test(w) && /[a-z0-9]$/i.test(w) ? '(?<![\\p{L}\\p{N}])' : '') + w.split(' ').map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+') + (/[a-z0-9]$/i.test(w) ? '(?![\\p{L}\\p{N}])' : ''), 'gu');
+    const free = (a, b) => !taken.some(([s0, s1]) => a < s1 && b > s0);
+    let m;
+    while ((m = re.exec(hay))) { if (free(m.index, m.index + m[0].length)) return { at: m.index, text: q.slice(m.index, m.index + m[0].length) }; }
+    for (let k = hay.indexOf(w); k >= 0; k = hay.indexOf(w, k + 1)) { if (free(k, k + w.length)) return { at: k, text: q.slice(k, k + w.length) }; }
+    return { at: -1 };
   }
+  const takenBy = (rows) => rows.filter((a) => a.matched && a.at >= 0).map((a) => [a.at, a.at + a.word.length]);
+  const loose = (t) => t.toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[.,;:!?…()\[\]"']/g, '').replace(/\s+/g, ' ').trim();
+  // Lock every row that fits the quote (opening a quote; the draft coming back from undo).
+  function relockAnn(d) {
+    d.annotations.forEach((a) => { a.matched = false; a.at = -1; });
+    d.annotations.forEach((a) => { const m = findInQuote(a.word, d.text, takenBy(d.annotations)); if (m.at >= 0) { a.word = m.text; a.at = m.at; a.matched = true; } });
+  }
+  const checkAnn = () => !edit || edit.draft.annotations.every((a) => a.matched || !a.word.trim());
+  // The quote changed: locked words follow it or come unlocked.
   function followAnn() {
-    const text = edit.draft.text;
-    const words = text.split(/\s+/);
+    if (!edit) return;
+    const text = edit.draft.text, words = text.split(/\s+/);
     let changed = false;
-    edit.draft.annotations.forEach((a, i) => {
-      if (!a.word.trim() || inQuote(a.word, text)) return;
-      const target = loose(a.word), n = target.split(' ').length;
-      const hits = [];
-      for (let k = 0; k + n <= words.length; k++) { const run = words.slice(k, k + n).join(' '); if (loose(run) === target) hits.push(run.replace(/^[“"‘(]+/, '').replace(/[.,;:!?…”"’)]+$/, '')); }
-      if (hits.length === 1 && inQuote(hits[0], text)) { a.word = hits[0]; changed = true; const f = $('annRows').querySelector(`.ann-pair[data-i="${i}"] [data-f="word"]`); if (f) { f.value = hits[0]; f.classList.add('is-flash'); setTimeout(() => f.classList.remove('is-flash'), 600); } }
+    edit.draft.annotations.forEach((a) => {
+      if (!a.matched) return;
+      const others = takenBy(edit.draft.annotations.filter((x) => x !== a));
+      let m = findInQuote(a.word, text, others);
+      if (m.at < 0) { // loosely: one clear hit and the word is rewritten
+        const target = loose(a.word), n = target.split(' ').length, hits = [];
+        for (let k = 0; k + n <= words.length; k++) { const run = words.slice(k, k + n).join(' '); if (loose(run) === target) hits.push(run.replace(/^[“"‘(]+/, '').replace(/[.,;:!?…”"’)]+$/, '')); }
+        if (hits.length === 1) m = findInQuote(hits[0], text, others);
+      }
+      if (m.at >= 0) { if (m.text !== a.word || m.at !== a.at) { a.word = m.text; a.at = m.at; changed = true; } }
+      else { a.matched = false; a.at = -1; changed = true; }
     });
-    return changed;
+    if (changed) renderAnn(true);
   }
 
   // Stepping quote → quote with the arrows: the form slides out (up or down, the way the arrow
@@ -368,6 +383,7 @@
     const view = $('editView');
     if (stepping) { view.style.setProperty('--dir', stepDir); view.classList.add('is-stepping-out'); await new Promise((r) => setTimeout(r, ms(STEP_MS))); }
     edit = { key, tab: f.tab, draft: toDraft(f.q), orig: null, undo: [], redo: [], mark: null };
+    relockAnn(edit.draft);
     edit.orig = clone(edit.draft);
     admin.dataset.kind = f.tab;
     tab = f.tab;
@@ -488,42 +504,74 @@
     else { fold($('fLinkWrap'), false); showSourceFields.t = setTimeout(() => fold($('fTitleWrap'), false), 50); }
   }
 
-  // Annotations: closed ("Annotation +") until there is one; open = the pairs + "Another +" and
-  // a × on the title line that drops them all. The blank pair shown after opening is not a change.
+  // Annotations: closed ("Annotation +") until there is one; open = the rows, "Another +" once
+  // every row is matched, and a × on the title line that drops them all (hidden once there are
+  // two rows, which carry their own ×). A row: the Word field, → to check it (Enter too); a match
+  // locks it and unfolds the explanation; the × unlocks row 1 / removes an added row.
   function setAnnOpen(open, animate = true) {
     $('annSec').classList.toggle('is-open', open);
     (animate ? fold : foldNow)($('annWrap'), open);
   }
   $('annOpen').addEventListener('click', () => { renderAnn(); setAnnOpen(true); setTimeout(() => $('annRows').querySelector('input')?.focus({ preventScroll: true }), 200); });
   $('annClose').addEventListener('click', () => { if (edit.draft.annotations.some((a) => a.word.trim() || a.explanation.trim())) mark(); edit.draft.annotations = []; setAnnOpen(false); updateDirty(); });
-  function renderAnn() {
-    const rows = edit.draft.annotations.length ? edit.draft.annotations : [{ word: '', explanation: '' }]; // the blank pair is display only until something is typed in it
+  function renderAnn(flash = false) {
+    const rows = edit.draft.annotations.length ? edit.draft.annotations : [{ word: '', explanation: '' }]; // the blank row is display only until something is typed in it
     const many = rows.length > 1;
     $('annSec').classList.toggle('is-many', many);
-    $('annRows').innerHTML = rows.map((a, i) => `
-      <div class="ann-pair" data-i="${i}">
-        ${many ? `<div class="ann-pair-head"><p>${i + 1}.</p><button type="button" class="ann-remove" aria-label="Remove"><span class="icon icon-x"></span></button></div>` : ''}
-        <div class="fw"><input class="field field--word" type="text" data-f="word" placeholder="Word" value="${esc(a.word)}" autocomplete="off" aria-label="Word ${i + 1}"></div>
-        <div class="fw"><textarea class="field" data-f="explanation" placeholder="Annotation" rows="3" aria-label="Annotation ${i + 1}">${esc(a.explanation)}</textarea></div>
-      </div>`).join('');
+    $('annRows').innerHTML = rows.map((a, i) => {
+      const matched = !!a.matched, typed = !!a.word.trim();
+      return `
+      <div class="ann-pair${matched ? ' is-matched' : ''}" data-i="${i}">
+        ${many ? `<div class="ann-pair-head"><p>${i + 1}.</p></div>` : ''}
+        <div class="fw ann-field${typed && !matched ? ' is-warn' : ''}">
+          <input class="field field--word${flash && matched ? ' is-flash' : ''}" type="text" data-f="word" placeholder="Word" value="${esc(a.word)}" autocomplete="off" aria-label="Word ${i + 1}"${matched ? ' readonly' : ''}>
+          <button type="button" class="ann-confirm" aria-label="Check the word"${typed && !matched ? '' : ' hidden'}><span class="icon icon-arrow icon-arrow--right"></span></button>
+          ${i > 0
+            ? `<button type="button" class="ann-unlock ann-remove" aria-label="Remove this word"><span class="icon icon-x"></span></button>`
+            : `<button type="button" class="ann-unlock" aria-label="Change the word"${matched ? '' : ' hidden'}><span class="icon icon-x"></span></button>`}
+        </div>
+        <div class="fold${matched ? ' is-open' : ''}"${matched ? '' : ' hidden'}><div class="fw"><textarea class="field" data-f="explanation" placeholder="Annotation" rows="3" aria-label="Annotation ${i + 1}">${esc(a.explanation)}</textarea></div></div>
+      </div>`; }).join('');
     $('annRows').querySelectorAll('textarea').forEach(attachBar);
+    $('annRows').querySelectorAll('.ann-field.is-warn').forEach((f) => { f.querySelector('.ann-confirm').hidden = false; }); // an unlocked word can be checked again
+    if (flash) setTimeout(() => $('annRows').querySelectorAll('.is-flash').forEach((f) => f.classList.remove('is-flash')), 600);
+    $('annAnother').hidden = !(edit.draft.annotations.length && edit.draft.annotations.every((a) => a.matched));
+  }
+  const rowOf = (el) => { const row = el.closest('.ann-pair'); if (!row) return null; const i = Number(row.dataset.i); if (!edit.draft.annotations[i]) edit.draft.annotations[i] = { word: '', explanation: '', matched: false, at: -1 }; return { row, i, a: edit.draft.annotations[i] }; };
+  function confirmWord(row, a) {
+    const m = findInQuote(a.word, edit.draft.text, takenBy(edit.draft.annotations.filter((x) => x !== a)));
+    mark();
+    if (m.at < 0) { a.matched = false; a.at = -1; renderAnn(); row.querySelector('input').focus({ preventScroll: true }); updateDirty(); return; } // warning state, → stays to try again
+    a.word = m.text; a.at = m.at; a.matched = true;
+    renderAnn(); updateDirty();
+    const r = $('annRows').querySelector(`.ann-pair[data-i="${[...row.parentElement.children].indexOf(row)}"]`);
+    setTimeout(() => r?.querySelector('textarea')?.focus({ preventScroll: true }), 200);
   }
   $('annRows').addEventListener('input', (e) => {
-    const p = e.target.closest('.ann-pair'); if (!p) return;
-    mark(`ann${p.dataset.i}${e.target.dataset.f}`);
-    if (!edit.draft.annotations[Number(p.dataset.i)]) edit.draft.annotations[Number(p.dataset.i)] = { word: '', explanation: '' };
-    edit.draft.annotations[Number(p.dataset.i)][e.target.dataset.f] = e.target.value;
+    const r = rowOf(e.target); if (!r) return;
+    mark(`ann${r.i}${e.target.dataset.f}`);
+    r.a[e.target.dataset.f] = e.target.value;
+    if (e.target.dataset.f === 'word') { const fw = e.target.closest('.ann-field'); fw.classList.remove('is-warn'); fw.querySelector('.ann-confirm').hidden = !e.target.value.trim(); const rm = fw.querySelector('.ann-remove'); if (rm) rm.hidden = !!e.target.value.trim(); }
     updateDirty();
   });
+  $('annRows').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target.dataset.f !== 'word') return;
+    e.preventDefault();
+    const r = rowOf(e.target); if (r && !r.a.matched && r.a.word.trim()) confirmWord(r.row, r.a);
+  });
   $('annRows').addEventListener('click', (e) => {
-    const b = e.target.closest('.ann-remove'); if (!b) return;
+    const b = e.target.closest('.ann-confirm, .ann-unlock'); if (!b) return;
+    const r = rowOf(b); if (!r) return;
+    if (b.classList.contains('ann-confirm')) { confirmWord(r.row, r.a); return; }
     mark();
-    edit.draft.annotations.splice(Number(b.closest('.ann-pair').dataset.i), 1);
+    if (b.classList.contains('ann-remove')) edit.draft.annotations.splice(r.i, 1); // an added row goes, whatever its state
+    else { r.a.matched = false; r.a.at = -1; }                                    // row 1: unlock, keep the word to edit
     renderAnn(); updateDirty();
+    if (!b.classList.contains('ann-remove')) { const inp = $('annRows').querySelector('input'); inp.focus({ preventScroll: true }); inp.select(); }
   });
   $('annAnother').addEventListener('click', () => {
     mark();
-    edit.draft.annotations.push({ word: '', explanation: '' });
+    edit.draft.annotations.push({ word: '', explanation: '', matched: false, at: -1 });
     renderAnn();
     $('annRows').lastElementChild.querySelector('input').focus({ preventScroll: true });
   });
@@ -588,13 +636,14 @@
     const before = edit.draft, after = cleanup(before);
     if (JSON.stringify(before) === JSON.stringify(after)) return;
     mark();
-    edit.draft = after; fill(after); followAnn(); updateDirty();
+    edit.draft = after; followAnn(); fill(after); updateDirty();
     // light up what changed
     const pairs = [['fText', 'text'], ['fContext', 'context'], ['fReflection', 'reflection'], ['fName', 'author.name'], ['fTitle', 'source.title'], ['fKeptBy', 'keptBy']];
     const get = (o, p) => p.split('.').reduce((x, k) => x[k], o);
     const flash = (el) => { el.classList.add('is-flash'); setTimeout(() => el.classList.remove('is-flash'), 600); };
     pairs.forEach(([id, p]) => { if (get(before, p) !== get(after, p)) flash($(id)); });
     after.annotations.forEach((a, i) => { const b = before.annotations[i]; if (b && (a.word !== b.word || a.explanation !== b.explanation)) $('annRows').children[i]?.querySelectorAll('.field').forEach(flash); });
+    if (JSON.stringify(after.annotations) !== JSON.stringify(edit.draft.annotations)) after.annotations = edit.draft.annotations;
   });
 
   /* ---------- Shared bits (same as js/form.js) ---------- */
