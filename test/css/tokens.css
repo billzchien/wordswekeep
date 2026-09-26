@@ -46,7 +46,7 @@
      Tier is picked by quote length (js/app.js → tier()):
      l ≤ 64 chars · m ≤ 160 · s ≤ 260 · xs longer. CJK characters count double.
      Each tier has a main size and a notes-mode size. */
-  --quote-leading: 1.1;
+  --quote-leading: 1.15;
   --quote-native-leading: 1.5;
   --quote-native-scale: 0.8;   /* CJK glyphs fill the whole em, so they run at 80% of the tier size */
   --quote-l: calc(64 * var(--u));   --quote-l-notes: calc(60 * var(--u));
