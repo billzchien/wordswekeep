@@ -140,10 +140,32 @@ textarea.field--taller { height: var(--ta-l); }
 /* A field that appears or goes (the original-language words, the name in original language):
    unfolds from nothing while fading in and dropping into place, folds shut fading up — the same
    move as an annotation row on the sheet (js/form.js → fold). */
-.fold { display: grid; grid-template-rows: 0fr; opacity: 0; translate: 0 calc(-8 * var(--u)); transition: grid-template-rows var(--fold-ms) var(--ease), opacity var(--fold-ms) var(--ease), translate var(--fold-ms) var(--ease); --fold-ms: 200ms; }
+.fold {
+  display: grid; grid-template-rows: 0fr; opacity: 0; translate: 0 calc(-8 * var(--u));
+  /* Folded shut it also gives back the column's gap above it (as a negative margin), so the
+     moment it is hidden nothing else moves. */
+  margin-top: calc(-1 * var(--fold-gap, 0px));
+  transition: grid-template-rows var(--fold-ms) var(--ease), opacity var(--fold-ms) var(--ease), translate var(--fold-ms) var(--ease), margin-top var(--fold-ms) var(--ease);
+  --fold-ms: 200ms;
+}
 .fold > * { min-height: 0; overflow: hidden; }
-.fold.is-open { grid-template-rows: 1fr; opacity: 1; translate: 0 0; }
+.fold.is-open { grid-template-rows: 1fr; opacity: 1; translate: 0 0; margin-top: 0; }
+.group > .fold { --fold-gap: var(--gap-12); }
+.group--16 > .fold { --fold-gap: var(--gap-16); }
+.group--24 > .fold { --fold-gap: var(--gap-24); }
+.stack > .fold { --fold-gap: var(--gap-1); }
 @media (prefers-reduced-motion: reduce) { .fold { transition: none; } }
+
+/* A field with a close (×) in its top-right corner: the original-language words. Same 12px × as
+   an annotation row's, 12px in from the corner; the text keeps clear of it. */
+.fw--closable .field { padding-right: calc(var(--fpad) + var(--ic) + var(--fpad)); }
+/* The 12px × is centred on the first text line (padding + half a line down); its ink ends the
+   field's padding (12px) in from the right edge — the glyph has 3px of air inside its 12px box. */
+.fw-close {
+  --x-inset: calc(var(--fpad) + var(--text-size) * var(--text-leading) / 2 - 6 * var(--u)); /* the 12px icon's top edge */
+  position: absolute; top: calc(var(--x-inset) - (var(--ic) - 12 * var(--u)) / 2); right: calc(var(--fpad) - 3 * var(--u) - (var(--ic) - 12 * var(--u)) / 2);
+  width: var(--ic); height: var(--ic); display: grid; place-items: center; color: var(--ink);
+}
 
 /* Combobox (country, source kind, year): a text field that filters a list. */
 .combo { position: relative; width: 100%; }
