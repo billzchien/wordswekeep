@@ -18,6 +18,9 @@
   const ITALIC_KINDS = new Set(['book', 'film', 'series', 'comic', 'artwork', 'album']);
   const LANG_GLYPH = { zh: '中', ja: '日', ko: '한' };
 
+  // A shuffled copy (Fisher–Yates). The deck is dealt once per visit / per category, so ↑ and ↓
+  // stay consistent within it, but the order is never the archive's numbering.
+  const shuffle = (list) => { const a = list.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const $ = (id) => document.getElementById(id);
   const app = $('app'), deck = $('deck'), track = $('track'), notes = $('notes');
   const mqMobile = window.matchMedia('(max-width: 599px)');
@@ -1524,7 +1527,7 @@
     const changed = key !== state.filter;
     if (changed) {
       state.filter = key;
-      state.list = key === 'all' ? state.all : state.all.filter((q) => q.categories.includes(key));
+      state.list = shuffle(key === 'all' ? state.all : state.all.filter((q) => q.categories.includes(key)));
       state.idx = 0;
       state.original = false;
       renderDeck();
@@ -1603,10 +1606,10 @@
     .then((r) => { if (!r.ok) throw new Error(`quotes.json: ${r.status}`); return r.json(); })
     .then((quotes) => {
       state.all = quotes.filter((q) => q.status === 'live').sort((a, b) => a.id - b.id);
-      state.list = state.all;
+      state.list = shuffle(state.all); // the deck is dealt at random: no. 1 is not first, and the next is not no. 2
       const wanted = parseInt(location.hash.slice(1), 10);
-      const found = state.all.findIndex((q) => q.id === wanted);
-      state.idx = found >= 0 ? found : Math.floor(Math.random() * state.all.length);
+      const found = state.list.findIndex((q) => q.id === wanted);
+      state.idx = found >= 0 ? found : 0;
       renderDeck();
       arrive();
     })
