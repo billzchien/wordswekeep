@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#E6E6E6">
+  <!-- Staging admin: never indexed. -->
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Library — Words We Keep</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital@0;1&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/app.css">
+  <link rel="stylesheet" href="../css/form.css">
+  <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+  <div class="admin" id="admin" data-view="list" data-tab="live">
+
+    <!-- Everything scrolls inside this box; the chrome and the guards stay put (see .admin in admin.css). -->
+    <div class="scroll" id="scroll">
+
+      <!-- Live / Pending / Archive -->
+      <section class="page list" id="listView" aria-label="Quotes">
+        <div class="thead" id="thead"></div>
+        <div class="rows" id="rows"></div>
+        <p class="empty" id="empty" hidden></p>
+      </section>
+
+      <!-- Edit / review one quote. Left: the quote itself. Right: what the submitter added. -->
+      <section class="page edit" id="editView" aria-label="Edit quote" hidden>
+        <div class="edit-meta">
+          <p id="editNo"></p>
+          <p id="editDate"></p>
+        </div>
+        <div class="edit-cols">
+          <div class="col">
+            <div class="sec">
+              <p class="sec-title">Quote</p>
+              <div class="stack">
+                <div class="fw"><textarea class="field" id="fText" placeholder="The words, in English" rows="3" aria-label="The words, in English"></textarea></div>
+                <div class="fold" id="fOriginalWrap" hidden><div class="fw"><textarea class="field" id="fOriginal" placeholder="The words in original language" rows="3" aria-label="The words in original language"></textarea></div></div>
+              </div>
+              <button type="button" class="more" id="origToggle"><span>In original language</span><span class="icon icon-plus"></span></button>
+            </div>
+            <div class="sec">
+              <p class="sec-title">Category</p>
+              <div class="chk-grid" id="catList" role="group" aria-label="Categories"></div>
+            </div>
+            <div class="sec">
+              <p class="sec-title">Author</p>
+              <div class="stack">
+                <div class="row2">
+                  <div class="fw"><input class="field" id="fName" type="text" placeholder="Name" autocomplete="off" aria-label="Name"></div>
+                  <div class="fw" id="fCountry"></div>
+                </div>
+                <div class="fold" id="fNativeWrap" hidden><div class="fw"><input class="field" id="fNative" type="text" placeholder="Name in original language" autocomplete="off" aria-label="Name in original language"></div></div>
+              </div>
+            </div>
+            <div class="sec">
+              <p class="sec-title">Source</p>
+              <div class="stack">
+                <div class="row2">
+                  <div class="fw" id="fKind"></div>
+                  <div class="fw" id="fYear"></div>
+                </div>
+                <div class="fold" id="fTitleWrap" hidden><div class="fw"><input class="field" id="fTitle" type="text" placeholder="Source name" autocomplete="off" aria-label="Source name"></div></div>
+                <div class="fold" id="fLinkWrap" hidden><div class="fw"><input class="field" id="fLink" type="url" placeholder="Source link" autocomplete="off" inputmode="url" aria-label="Source link"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="sec">
+              <p class="sec-title">Context</p>
+              <div class="fw"><textarea class="field" id="fContext" placeholder="Background, or the paragraph the words come from" rows="3" aria-label="Context"></textarea></div>
+            </div>
+            <div class="sec">
+              <p class="sec-title">Annotation</p>
+              <div class="ann-list" id="annRows"></div>
+              <button type="button" class="more" id="annAnother"><span>Another</span><span class="icon icon-plus"></span></button>
+            </div>
+            <div class="sec">
+              <p class="sec-title">Personal note</p>
+              <div class="fw"><textarea class="field" id="fReflection" placeholder="Notes" rows="3" aria-label="Personal note"></textarea></div>
+            </div>
+            <div class="sec">
+              <p class="sec-title">Name</p>
+              <div class="fw"><input class="field" id="fKeptBy" type="text" placeholder="Name" autocomplete="off" aria-label="Name"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Guards: the paper fading in over a progressive blur, so rows dissolve under the chrome (css/form.css). -->
+    <div class="guard guard--top" aria-hidden="true"></div>
+    <div class="guard guard--bottom" aria-hidden="true"></div>
+
+    <!-- Chrome: the list -->
+    <div class="chrome-list" id="chromeList">
+      <a class="chrome home" href="../index.html" aria-label="Words We Keep"><span class="icon icon-mark"></span></a>
+      <nav class="chrome tabs" id="tabs" aria-label="Sections">
+        <a class="tab" href="#live" data-tab="live">Live</a>
+        <a class="tab" href="#pending" data-tab="pending">Pending<span class="icon tab-dot" id="pendingDot" aria-label="New" hidden></span></a>
+        <a class="tab" href="#archive" data-tab="archive">Archive</a>
+      </nav>
+      <div class="chrome cta" id="ctaLive">
+        <p class="cta-meta" id="lastPublished"></p>
+        <button type="button" class="btn btn--primary btn--sm btn--w" id="publishBtn" disabled>Publish</button>
+      </div>
+      <div class="chrome cta" id="ctaArchive" hidden>
+        <button type="button" class="btn btn--primary btn--sm btn--w" id="removeAllBtn">Remove all</button>
+      </div>
+    </div>
+
+    <!-- Chrome: the edit view -->
+    <div class="chrome-edit" id="chromeEdit" hidden>
+      <a class="chrome link back" id="backBtn" href="#live">Back</a>
+      <div class="chrome cta">
+        <div class="cta-links">
+          <button type="button" class="link" id="revertBtn">Revert</button>
+          <button type="button" class="link" id="cleanupBtn">Auto cleanup</button>
+        </div>
+        <button type="button" class="btn btn--primary btn--sm" id="saveBtn" data-for="live">Save</button>
+        <button type="button" class="btn btn--soft btn--sm" id="archiveBtn" data-for="pending">Archive</button>
+        <button type="button" class="btn btn--primary btn--sm" id="approveBtn" data-for="pending">Approve</button>
+      </div>
+      <div class="chrome arrows">
+        <button id="prevBtn" aria-label="Previous quote"><span class="icon icon-arrow"></span></button>
+        <button id="nextBtn" aria-label="Next quote"><span class="icon icon-arrow icon-arrow--down"></span></button>
+      </div>
+    </div>
+
+    <!-- "Are you sure?" (Figma 303:2108) -->
+    <div class="popup-layer" id="popup" hidden>
+      <div class="popup" role="dialog" aria-modal="true" aria-labelledby="popupText">
+        <p id="popupText"></p>
+        <div class="popup-btns">
+          <button type="button" class="btn btn--sm" id="popupNo">Not yet</button>
+          <button type="button" class="btn btn--primary btn--sm" id="popupYes">Remove</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <noscript>The library needs JavaScript.</noscript>
+  <script src="../js/admin.js"></script>
+</body>
+</html>
