@@ -318,9 +318,43 @@
   const norm = (d) => JSON.stringify({ ...d, annotations: d.annotations.filter((a) => a.word.trim() || a.explanation.trim()) });
   const isDirty = () => !!edit && norm(edit.draft) !== norm(edit.orig);
   function updateDirty() {
-    const d = isDirty();
-    $('saveBtn').disabled = !d;
+    const d = isDirty(), ok = checkAnn();
+    $('saveBtn').disabled = !d || !ok;
+    $('approveBtn').disabled = !ok;
     $('revertBtn').disabled = !d;
+  }
+
+  /* ---------- Annotations must match the quote ----------
+     1. Check: an annotation word that is not in the quote (case aside) gets the warning state,
+        and Save / Approve wait until it matches or goes.
+     2. Follow: when the quote changes, a word that stopped matching is looked for loosely
+        (case, straight/curly quotes, punctuation ignored); found in exactly one place, it is
+        rewritten to the quote's spelling. Ambiguous: left alone, warned. */
+  const inQuote = (word, text) => !!word.trim() && text.toLowerCase().includes(word.trim().toLowerCase());
+  const loose = (t) => t.toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[.,;:!?…()\[\]"]/g, '').replace(/\s+/g, ' ').trim();
+  function checkAnn() {
+    let ok = true;
+    if (!edit) return ok;
+    $('annRows').querySelectorAll('.ann-pair').forEach((p) => {
+      const a = edit.draft.annotations[Number(p.dataset.i)];
+      const bad = !!a && !!a.word.trim() && !inQuote(a.word, edit.draft.text);
+      p.querySelector('.fw').classList.toggle('is-warn', bad);
+      if (bad) ok = false;
+    });
+    return ok;
+  }
+  function followAnn() {
+    const text = edit.draft.text;
+    const words = text.split(/\s+/);
+    let changed = false;
+    edit.draft.annotations.forEach((a, i) => {
+      if (!a.word.trim() || inQuote(a.word, text)) return;
+      const target = loose(a.word), n = target.split(' ').length;
+      const hits = [];
+      for (let k = 0; k + n <= words.length; k++) { const run = words.slice(k, k + n).join(' '); if (loose(run) === target) hits.push(run.replace(/^[“"‘(]+/, '').replace(/[.,;:!?…”"’)]+$/, '')); }
+      if (hits.length === 1 && inQuote(hits[0], text)) { a.word = hits[0]; changed = true; const f = $('annRows').querySelector(`.ann-pair[data-i="${i}"] [data-f="word"]`); if (f) { f.value = hits[0]; f.classList.add('is-flash'); setTimeout(() => f.classList.remove('is-flash'), 600); } }
+    });
+    return changed;
   }
 
   // Stepping quote → quote with the arrows: the form slides out (up or down, the way the arrow
@@ -413,7 +447,10 @@
   /* ---------- Fields ---------- */
 
   const bind = (id, set) => $(id).addEventListener('input', (e) => { mark(id); set(e.target.value); updateDirty(); });
-  bind('fText', (v) => { edit.draft.text = v; });
+  // CJK text in a field is set smaller (css .is-cjk); checked as it is typed and when filled.
+  const cjkSize = (el) => el.classList.toggle('is-cjk', /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(el.value));
+  ['fOriginal', 'fNative', 'fText', 'fName', 'fTitle'].forEach((id) => $(id).addEventListener('input', () => cjkSize($(id))));
+  bind('fText', (v) => { edit.draft.text = v; followAnn(); });
   bind('fOriginal', (v) => { edit.draft.original = v; edit.draft.lang = v.trim() ? detectLang(v) : ''; });
   bind('fName', (v) => { edit.draft.author.name = v; });
   bind('fNative', (v) => { edit.draft.author.nativeName = v; });
@@ -425,6 +462,8 @@
 
   // "In original language +" adds the second field; it stays as long as there is text in it.
   $('origToggle').addEventListener('click', () => { mark(); fold($('fOriginalWrap'), true); $('origToggle').hidden = true; setTimeout(() => $('fOriginal').focus({ preventScroll: true }), 200); });
+  // The × on the original-language field: the words go, the field folds shut, the "+" is back.
+  $('origClose').addEventListener('click', () => { mark(); edit.draft.original = ''; edit.draft.lang = ''; $('fOriginal').value = ''; fold($('fOriginalWrap'), false); $('origToggle').hidden = false; updateDirty(); });
 
   $('catList').innerHTML = CATEGORIES.map((c) => `
     <button type="button" class="chk" role="checkbox" aria-checked="false" data-key="${c.key}">
@@ -449,10 +488,18 @@
     else { fold($('fLinkWrap'), false); showSourceFields.t = setTimeout(() => fold($('fTitleWrap'), false), 50); }
   }
 
-  // Annotations: word + explanation pairs. One empty pair when there are none.
+  // Annotations: closed ("Annotation +") until there is one; open = the pairs + "Another +" and
+  // a × on the title line that drops them all. The blank pair shown after opening is not a change.
+  function setAnnOpen(open, animate = true) {
+    $('annSec').classList.toggle('is-open', open);
+    (animate ? fold : foldNow)($('annWrap'), open);
+  }
+  $('annOpen').addEventListener('click', () => { renderAnn(); setAnnOpen(true); setTimeout(() => $('annRows').querySelector('input')?.focus({ preventScroll: true }), 200); });
+  $('annClose').addEventListener('click', () => { if (edit.draft.annotations.some((a) => a.word.trim() || a.explanation.trim())) mark(); edit.draft.annotations = []; setAnnOpen(false); updateDirty(); });
   function renderAnn() {
     const rows = edit.draft.annotations.length ? edit.draft.annotations : [{ word: '', explanation: '' }]; // the blank pair is display only until something is typed in it
     const many = rows.length > 1;
+    $('annSec').classList.toggle('is-many', many);
     $('annRows').innerHTML = rows.map((a, i) => `
       <div class="ann-pair" data-i="${i}">
         ${many ? `<div class="ann-pair-head"><p>${i + 1}.</p><button type="button" class="ann-remove" aria-label="Remove"><span class="icon icon-x"></span></button></div>` : ''}
@@ -495,7 +542,9 @@
     foldNow($('fTitleWrap'), src); foldNow($('fLinkWrap'), src);
     $('fTitle').value = d.source.title; $('fLink').value = d.source.link;
     $('fContext').value = d.context; $('fReflection').value = d.reflection; $('fKeptBy').value = d.keptBy;
+    ['fOriginal', 'fNative', 'fText', 'fName', 'fTitle'].forEach((id) => cjkSize($(id)));
     renderAnn();
+    setAnnOpen(d.annotations.some((a) => a.word.trim() || a.explanation.trim()), false);
     document.querySelectorAll('textarea.field').forEach((ta) => ta.dispatchEvent(new Event('scroll')));
   }
 
@@ -539,7 +588,7 @@
     const before = edit.draft, after = cleanup(before);
     if (JSON.stringify(before) === JSON.stringify(after)) return;
     mark();
-    edit.draft = after; fill(after); updateDirty();
+    edit.draft = after; fill(after); followAnn(); updateDirty();
     // light up what changed
     const pairs = [['fText', 'text'], ['fContext', 'context'], ['fReflection', 'reflection'], ['fName', 'author.name'], ['fTitle', 'source.title'], ['fKeptBy', 'keptBy']];
     const get = (o, p) => p.split('.').reduce((x, k) => x[k], o);

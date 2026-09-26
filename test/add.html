@@ -32,9 +32,9 @@
             </div>
             <div class="stack">
               <div class="fw"><textarea class="field" id="fText" placeholder="The words, in English" rows="3" required aria-label="The words, in English"></textarea></div>
-              <div class="fold" id="fOriginalWrap" hidden><div class="fw"><textarea class="field" id="fOriginal" placeholder="The words in original language" rows="3" aria-label="The words in original language"></textarea></div></div>
+              <div class="fold" id="fOriginalWrap" hidden><div class="fw fw--closable"><textarea class="field" id="fOriginal" placeholder="The words in original language" rows="3" aria-label="The words in original language"></textarea><button type="button" class="fw-close" id="origClose" aria-label="Remove the original language"><span class="icon icon-x"></span></button></div></div>
             </div>
-            <button type="button" class="more" id="origToggle"><span>In original language</span><span class="icon icon-plus"></span></button>
+            <div class="fold is-open" id="origToggleWrap"><div><button type="button" class="more" id="origToggle"><span>In original language</span><span class="icon icon-plus"></span></button></div></div>
           </div>
           <button type="button" class="btn" data-next disabled>Next</button>
         </div>

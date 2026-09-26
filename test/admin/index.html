@@ -41,7 +41,7 @@
               <p class="sec-title">Quote</p>
               <div class="stack">
                 <div class="fw"><textarea class="field" id="fText" placeholder="The words, in English" rows="3" aria-label="The words, in English"></textarea></div>
-                <div class="fold" id="fOriginalWrap" hidden><div class="fw"><textarea class="field" id="fOriginal" placeholder="The words in original language" rows="3" aria-label="The words in original language"></textarea></div></div>
+                <div class="fold" id="fOriginalWrap" hidden><div class="fw fw--closable"><textarea class="field" id="fOriginal" placeholder="The words in original language" rows="3" aria-label="The words in original language"></textarea><button type="button" class="fw-close" id="origClose" aria-label="Remove the original language"><span class="icon icon-x"></span></button></div></div>
               </div>
               <button type="button" class="more" id="origToggle"><span>In original language</span><span class="icon icon-plus"></span></button>
             </div>
@@ -76,10 +76,18 @@
               <p class="sec-title">Context</p>
               <div class="fw"><textarea class="field" id="fContext" placeholder="Background, or the paragraph the words come from" rows="3" aria-label="Context"></textarea></div>
             </div>
-            <div class="sec">
-              <p class="sec-title">Annotation</p>
-              <div class="ann-list" id="annRows"></div>
-              <button type="button" class="more" id="annAnother"><span>Another</span><span class="icon icon-plus"></span></button>
+            <!-- Closed until there is an annotation: the title is the "Annotation +" button. Open: the
+                 title with a × at the field's right edge; the × drops every annotation and closes. -->
+            <div class="sec sec--opt" id="annSec">
+              <div class="sec-head">
+                <button type="button" class="more" id="annOpen"><span>Annotation</span><span class="icon icon-plus"></span></button>
+                <p class="sec-title" id="annTitle">Annotation</p>
+                <button type="button" class="sec-close" id="annClose" aria-label="Remove annotations"><span class="icon icon-x"></span></button>
+              </div>
+              <div class="fold" id="annWrap" hidden><div class="sec-body">
+                <div class="ann-list" id="annRows"></div>
+                <button type="button" class="more" id="annAnother"><span>Another</span><span class="icon icon-plus"></span></button>
+              </div></div>
             </div>
             <div class="sec">
               <p class="sec-title">Personal note</p>

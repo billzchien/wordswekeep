@@ -21,10 +21,10 @@
   // "Personal" (something said to the submitter), or no kind chosen yet: no source name or link.
   const KINDS = [
     { value: 'book', label: 'Book' },
-    { value: 'film', label: 'Film & TV' },
+    { value: 'film', label: 'Film / TV' },
     { value: 'song', label: 'Song' },
     { value: 'poem', label: 'Poem' },
-    { value: 'speech', label: 'Speech & interview' },
+    { value: 'speech', label: 'Speech / Interview' },
     { value: 'writing', label: 'Writing' },
     { value: 'personal', label: 'Personal' },
     { value: 'other', label: 'Other' },
@@ -287,10 +287,19 @@
   $('fText').addEventListener('input', (e) => { data.text = e.target.value; refresh(); });
   $('fOriginal').addEventListener('input', (e) => { data.original = e.target.value; });
   // Figma frame 1-2: the toggle row goes away and the second field appears under the first.
+  // The toggle and the field fold in opposite directions at the same time, so the column's
+  // height only ever changes smoothly and nothing below it jumps.
   $('origToggle').addEventListener('click', () => {
+    fold($('origToggleWrap'), false);
     fold($('fOriginalWrap'), true);
-    $('origToggle').hidden = true;
     setTimeout(() => $('fOriginal').focus({ preventScroll: true }), FOLD_MS);
+  });
+  // The × in its corner: the field folds shut, its words are dropped, the toggle comes back.
+  $('origClose').addEventListener('click', () => {
+    fold($('fOriginalWrap'), false);
+    fold($('origToggleWrap'), true);
+    $('fOriginal').value = '';
+    data.original = '';
   });
 
   /* ---------- Step 2 ---------- */
@@ -545,7 +554,7 @@
   function reset() {
     data = blank();
     ['fText', 'fOriginal', 'fName', 'fNative', 'fTitle', 'fSourceLink', 'fContext', 'fReflection', 'fKeptBy', 'fWebsite'].forEach((id) => { $(id).value = ''; });
-    fold($('fOriginalWrap'), false); $('origToggle').hidden = false; fold($('fNativeWrap'), false); showSourceFields(false);
+    fold($('fOriginalWrap'), false); fold($('origToggleWrap'), true); fold($('fNativeWrap'), false); showSourceFields(false);
     document.querySelectorAll('.cat').forEach((b) => b.setAttribute('aria-checked', 'false'));
     document.querySelectorAll('.fw.is-warn').forEach((w) => w.classList.remove('is-warn'));
     country.set(''); kind.set(''); year.set('');

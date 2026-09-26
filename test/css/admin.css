@@ -60,15 +60,19 @@
 @media (hover: hover) { .tab:hover { background-position: left bottom; background-size: 100% var(--line); } }
 .tab-dot { --src: url(../../assets/icons/asterisk-small.svg); width: calc(4 * var(--u)); height: calc(4 * var(--u)); margin-top: calc(7 * var(--u)); } /* Figma 299:1235: the tiny asterisk = new items to review */
 
-.cta { top: var(--line-top); right: 16px; display: flex; align-items: flex-start; gap: calc(4 * var(--u)); }
+.cta { top: var(--line-top); right: var(--btn-inset); display: flex; align-items: flex-start; gap: calc(4 * var(--u)); }
+:root { --btn-inset: calc(var(--line-c) - var(--btn-h) / 2); } /* a top-line button's distance from the top edge — and from the right edge, so the corner is square */
 .cta .btn { margin-top: calc(var(--line-c) - var(--btn-h) / 2 - var(--line-top)); } /* centred on the caps' centre */
 .cta-meta { color: var(--meta); margin-right: calc(16 * var(--u)); white-space: nowrap; font-feature-settings: var(--numeral-features); }
-.cta-links { display: flex; align-items: flex-start; gap: calc(16 * var(--u)); padding: 0 calc(16 * var(--u)); } /* text boxes start on --line-top, like Back */
+.cta-links { display: flex; align-items: flex-start; gap: var(--cta-gap); padding-left: calc(16 * var(--u)); margin-right: calc(var(--cta-gap) - 4 * var(--u)); } /* text boxes start on --line-top, like Back; link → link and link → button are both --cta-gap (buttons stay 4 apart) */
+:root { --cta-gap: calc(16 * var(--u)); }
 .cta-links .link:disabled { opacity: 0.35; cursor: default; animation: none; }
 
 /* Small buttons (the top line, the pop-up): 32 tall, 12 side padding, width to fit. */
 .btn--sm { width: auto; height: var(--btn-h); min-width: 0; padding: 0 var(--fpad); }
 .btn--w { min-width: calc(100 * var(--u)); }
+/* A disabled solid button here keeps its black and fades to 10% (the public form greys it instead). */
+.admin .btn--primary:disabled { background: var(--ink); border-color: var(--ink); opacity: 0.1; }
 .btn--soft { background: var(--soft); border-color: var(--soft); color: var(--ink); }
 @media (hover: hover) { .btn--soft:not(:disabled):hover { border-color: var(--soft); box-shadow: none; filter: brightness(0.96); } }
 .popup .btn { border-color: var(--ink); } /* Figma: the outlined "Not yet" has a black hairline */
@@ -157,6 +161,25 @@
 .ann-pair-head { display: flex; justify-content: space-between; align-items: center; color: var(--meta); font-feature-settings: var(--numeral-features); padding: calc(4 * var(--u)) 0 calc(2 * var(--u)); }
 .ann-pair-head .ann-remove { color: var(--ink); }
 .ann-pair .field--word { height: calc(42 * var(--u)); }
+
+/* A field that can be taken away again (the original-language words): × in its top-right corner. */
+.fw--closable .field { padding-right: calc(2 * var(--fpad) + 12 * var(--u)); }
+.fw-close { position: absolute; top: var(--fpad); right: var(--fpad); width: calc(12 * var(--u)); height: calc(12 * var(--u)); display: grid; place-items: center; color: var(--ink); }
+/* A section that opens on demand (annotations): "Annotation +" closed; the title and a × on the
+   field's right edge when open. The × and the field's edge line up because both sit on the column's edge. */
+.sec-head { display: flex; justify-content: space-between; align-items: center; min-height: calc(var(--text-size) * var(--text-leading)); }
+.sec-head .more { height: auto; }
+.sec-close, .admin .ann-remove, .fw-close { width: calc(12 * var(--u)); height: calc(12 * var(--u)); margin: 0; display: grid; place-items: center; color: var(--ink); justify-content: center; } /* one × everywhere: the 12px glyph */
+.sec-close, .admin .ann-remove { margin-right: calc(-3 * var(--u)); } /* the glyph has 3px of air in its box: pulled out so its ink ends on the field's edge */
+.sec--opt.is-many .sec-close { display: none; } /* with two or more, each pair has its own × */
+.sec--opt:not(.is-open) .sec-title, .sec--opt:not(.is-open) .sec-close { display: none; }
+.sec--opt.is-open .sec-head .more { display: none; }
+.sec-body { display: flex; flex-direction: column; gap: calc(8 * var(--u)); }
+.sec-body .more { margin-top: calc(-4 * var(--u)); }
+
+/* CJK in a field (the original words, a native name) runs at the site's native scale, 80% of
+   the Latin size, so it reads as the same weight of text (tokens.css --quote-native-scale). */
+.field.is-cjk { font-size: calc(var(--text-size) * var(--quote-native-scale)); line-height: calc(var(--text-size) * var(--text-leading)); }
 
 /* Auto cleanup: a field it changed lights up white for a moment. */
 .field.is-flash { background: var(--field-hover); transition: none; }
