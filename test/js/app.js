@@ -733,12 +733,16 @@
       );
     });
     quoteEl.style.visibility = 'hidden';
-    setTimeout(() => {
+    // The stand-in is not taken away as soon as its lines have landed: scanIn does that
+    // (`finish`) once the afterglow is gone. While the glow patches are animating behind the
+    // page, iOS puts the real quote on a layer of its own and crops it at its box — the italic
+    // J lost its tail for the rest of the scan. The stand-in's lines have room for it.
+    const finish = () => {
       standIn.remove();
       quoteEl.style.visibility = '';
-      animateDashes(quoteEl, true); // the underlines draw in once the sentence is in position
-    }, at + longest + 30);
-    return { standIn, ends: at + longest + 30 };
+      animateDashes(quoteEl, true); // the underlines draw in once the quote is handed over
+    };
+    return { standIn, ends: at + longest + 30, finish };
   }
 
   function scanIn(dropCurve, mainQuoteSize) {
@@ -773,6 +777,7 @@
     ));
 
     let ends = Math.max(0, ...risers.map((r) => r.at + RISE_MS));
+    let handOver = null; // the quote's stand-in → the real quote
     items.forEach(({ el, depth, at }) => {
       const isThumb = el.classList.contains('thumb'), isQuote = el.classList.contains('quote');
 
@@ -784,6 +789,7 @@
         const wide = Math.max(1, mainQuoteSize / parseFloat(getComputedStyle(el).fontSize));
         const lines = scanQuoteLines(el, at, wide, SCAN_STRETCH_QUOTE, easing);
         shadowTarget = lines.standIn;
+        handOver = lines.finish;
         ends = Math.max(ends, lines.ends);
       } else if (!isThumb) { // the preview keeps its own transforms (hover, pointer-lean)
         const tall = lerp(SCAN_STRETCH_TOP, SCAN_STRETCH_BOTTOM, depth);
@@ -824,7 +830,7 @@
 
       ends = Math.max(ends, at + Math.max(SCAN_STRETCH_MS, 4 * SCAN_STEP_MS, SCAN_GLOW_MS));
     });
-    setTimeout(() => glowLayer.remove(), ends + 60);
+    setTimeout(() => { glowLayer.remove(); if (handOver) handOver(); }, ends + 60); // the glow goes first, then the real quote takes over, in one frame
     return ends;
   }
 
