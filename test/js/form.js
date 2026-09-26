@@ -458,41 +458,152 @@
 
   $('fContext').addEventListener('input', (e) => { data.context = e.target.value; refresh(); });
 
-  let draft = []; // the sheet edits a copy; Save keeps it, Cancel drops it
+  /* Word annotation (Figma: Annotation 304:2148). A row starts with just the Word field; once
+     something is typed an arrow appears (Enter does the same) and the word is checked against the
+     quote. A match: the words are underlined in the quote, the field locks, the explanation
+     unfolds, and "Another" + "Save annotation" appear. No match: the field empties into the
+     warning state, "Word must match". The × in the field: on the first row it unlocks a matched
+     word; on an added row it removes the row (whatever its state). */
+  let draft = []; // the sheet edits a copy; Save keeps it, Cancel drops it. {word, explanation, matched}
+  const normalise = (s) => s.replace(/\s+/g, ' ').trim().toLowerCase();
+  // Where `word` sits in the quote (case-insensitive, any whitespace), skipping stretches already
+  // taken by other rows — so a second "love" lands on the second love. -1 when it does not fit.
+  function findInQuote(word, taken = []) {
+    const q = data.text.trim(), w = normalise(word);
+    if (!w) return { at: -1 };
+    const hay = q.toLowerCase();
+    // whole words when the phrase starts/ends with a Latin letter or digit; CJK etc. as a plain substring
+    const re = new RegExp((/^[\p{L}\p{N}]/u.test(w) && /[a-z0-9]$/i.test(w) ? '(?<![\\p{L}\\p{N}])' : '') + w.split(' ').map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+') + (/[a-z0-9]$/i.test(w) ? '(?![\\p{L}\\p{N}])' : ''), 'gu');
+    const free = (a, b) => !taken.some(([s0, s1]) => a < s1 && b > s0);
+    let m;
+    while ((m = re.exec(hay))) { if (free(m.index, m.index + m[0].length)) return { at: m.index, text: q.slice(m.index, m.index + m[0].length) }; }
+    for (let i = hay.indexOf(w); i >= 0; i = hay.indexOf(w, i + 1)) { if (free(i, i + w.length)) return { at: i, text: q.slice(i, i + w.length) }; }
+    return { at: -1 };
+  }
+  const takenBy = (rows) => rows.filter((a) => a.matched && a.at >= 0).map((a) => [a.at, a.at + a.word.length]);
   function rowHTML(a, i, cls = '') {
+    const matched = !!a.matched;
     return `
-      <div class="ann-row${cls}" data-i="${i}"><div>
-        <div class="ann-row-head"><p>${i + 1}.</p>${i > 0 ? '<button type="button" class="ann-remove" aria-label="Remove"><span class="icon icon-x"></span></button>' : ''}</div>
+      <div class="ann-row${cls}${matched ? ' is-matched' : ''}" data-i="${i}"><div>
+        <div class="ann-row-head"><p>${i + 1}.</p></div>
         <div class="stack">
-          <div class="fw"><input class="field" type="text" data-f="word" placeholder="Word" value="${esc(a.word)}" autocomplete="off" aria-label="Word ${i + 1}"></div>
-          <div class="fw"><input class="field" type="text" data-f="explanation" placeholder="Explain the word" value="${esc(a.explanation)}" autocomplete="off" aria-label="Explain word ${i + 1}"></div>
+          <div class="fw ann-field">
+            <input class="field" type="text" data-f="word" placeholder="Word" value="${esc(a.word)}" autocomplete="off" aria-label="Word ${i + 1}"${matched ? ' readonly' : ''}>
+            <button type="button" class="ann-confirm" aria-label="Check the word"${a.word.trim() && !matched ? '' : ' hidden'}><span class="icon icon-arrow icon-arrow--right"></span></button>
+            ${i > 0
+              ? `<button type="button" class="ann-unlock ann-remove" aria-label="Remove this word"${a.word.trim() && !matched ? ' hidden' : ''}><span class="icon icon-x"></span></button>`
+              : `<button type="button" class="ann-unlock" aria-label="Change the word"${matched ? '' : ' hidden'}><span class="icon icon-x"></span></button>`}
+          </div>
+          <div class="fold${matched ? ' is-open' : ''}"${matched ? '' : ' hidden'}><div class="fw"><input class="field" type="text" data-f="explanation" placeholder="Explain the word" value="${esc(a.explanation)}" autocomplete="off" aria-label="Explain word ${i + 1}"></div></div>
         </div>
       </div></div>`;
   }
-  function renderRows() { $('annRows').innerHTML = draft.map((a, i) => rowHTML(a, i)).join(''); }
+  function renderRows() { $('annRows').innerHTML = draft.map((a, i) => rowHTML(a, i)).join(''); renderQuote(); syncTail(); }
+  // The quote with every matched word highlighted. A new highlight wipes in left→right
+  // (MARK_MS); one being taken away wipes out left→right, then the span goes (`leaving`).
+  const MARK_MS = 300;
+  function renderQuote(leaving = []) {
+    const q = data.text.trim();
+    const spans = takenBy(draft).concat(leaving.map(([s0, s1]) => [s0, s1, 'off'])).sort((x, y) => x[0] - y[0]);
+    const shown = new Set([...$('annQuote').querySelectorAll('.ann-mark')].map((m) => m.dataset.at));
+    let html = '', at = 0;
+    spans.forEach(([s0, s1, off]) => {
+      if (s0 < at) return;
+      // A leaving span is rebuilt still full (is-on), and switched to is-off a frame later, so the
+      // wipe-out runs from 100% instead of starting at nothing.
+      const cls = off || shown.has(String(s0)) ? 'ann-mark is-on' : 'ann-mark';
+      html += esc(q.slice(at, s0)) + `<span class="${cls}" data-at="${s0}"${off ? ' data-leaving' : ''}>${esc(q.slice(s0, s1))}</span>`;
+      at = s1;
+    });
+    $('annQuote').innerHTML = html + esc(q.slice(at));
+    requestAnimationFrame(() => {
+      $('annQuote').querySelectorAll('.ann-mark:not(.is-on)').forEach((m) => m.classList.add('is-on'));
+      $('annQuote').querySelectorAll('.ann-mark[data-leaving]').forEach((m) => { m.classList.remove('is-on'); m.classList.add('is-off'); });
+    });
+    if (leaving.length) setTimeout(() => renderQuote(), reduceMotion.matches ? 0 : MARK_MS);
+  }
+  // "Another" and "Save annotation" show once every row is matched (and there is one).
+  // "Another" once every row is matched; "Save annotation" as soon as one row is complete —
+  // it keeps the complete rows and drops an unfinished one (enabled only when every matched
+  // word has its explanation).
+  function syncTail() {
+    const matched = draft.filter((a) => a.matched), complete = matched.filter((a) => a.explanation.trim());
+    fold($('annAnotherWrap'), draft.length > 0 && matched.length === draft.length);
+    fold($('annSaveWrap'), matched.length > 0);
+    $('annSave').disabled = complete.length === 0; // saves the complete rows; a word without its explanation is dropped
+  }
   const annMs = () => (reduceMotion.matches ? 0 : 200);
   const esc = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  const rowOf = (el) => { const row = el.closest('.ann-row'); return row ? { row, a: draft[Number(row.dataset.i)] } : null; };
+  function confirmWord(row, a) {
+    const wrap = row.querySelector('.ann-field'), input = wrap.querySelector('input');
+    const m = findInQuote(input.value, takenBy(draft.filter((x) => x !== a)));
+    if (m.at < 0) { // no match (or every occurrence already taken): empty, warning state, "Word must match"
+      a.word = ''; input.value = ''; input.placeholder = 'Word must match';
+      wrap.classList.add('is-warn'); wrap.querySelector('.ann-confirm').hidden = true;
+      const rm = wrap.querySelector('.ann-remove'); if (rm) rm.hidden = false; // empty again: the extra row can be removed
+      return;
+    }
+    a.word = m.text; a.at = m.at; a.matched = true; input.value = m.text; input.readOnly = true;
+    wrap.classList.remove('is-warn'); wrap.querySelector('.ann-confirm').hidden = true; wrap.querySelector('.ann-unlock').hidden = false; // row 1: unlock ×; an added row: its remove ×
+    row.classList.add('is-matched');
+    const exp = row.querySelector('.fold');
+    fold(exp, true);
+    renderQuote(); syncTail();
+    setTimeout(() => exp.querySelector('input').focus({ preventScroll: true }), FOLD_MS);
+  }
+  function unlockWord(row, a) {
+    const wrap = row.querySelector('.ann-field'), input = wrap.querySelector('input');
+    const gone = a.at >= 0 ? [[a.at, a.at + a.word.length]] : [];
+    a.matched = false; a.at = -1;
+    input.readOnly = false; input.placeholder = 'Word';
+    wrap.querySelector('.ann-unlock').hidden = true; wrap.querySelector('.ann-confirm').hidden = !input.value.trim();
+    const rm = wrap.querySelector('.ann-remove'); if (rm) rm.hidden = !!input.value.trim();
+    row.classList.remove('is-matched');
+    fold(row.querySelector('.fold'), false);
+    renderQuote(gone); syncTail();
+    input.focus({ preventScroll: true }); input.select();
+  }
   $('annRows').addEventListener('input', (e) => {
-    const row = e.target.closest('.ann-row'); if (!row) return;
-    draft[Number(row.dataset.i)][e.target.dataset.f] = e.target.value;
+    const r = rowOf(e.target); if (!r) return;
+    r.a[e.target.dataset.f] = e.target.value;
+    if (e.target.dataset.f === 'explanation') syncTail();
+    if (e.target.dataset.f === 'word') {
+      const wrap = e.target.closest('.ann-field');
+      wrap.classList.remove('is-warn'); e.target.placeholder = 'Word';
+      wrap.querySelector('.ann-confirm').hidden = !e.target.value.trim();
+      const rm = wrap.querySelector('.ann-remove'); if (rm) rm.hidden = !!e.target.value.trim();
+    }
+  });
+  $('annRows').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target.dataset.f !== 'word' || e.target.readOnly) return;
+    e.preventDefault(); const r = rowOf(e.target); if (r) confirmWord(r.row, r.a);
   });
   $('annRows').addEventListener('click', (e) => {
-    const b = e.target.closest('.ann-remove'); if (!b) return;
-    const row = b.closest('.ann-row');
-    if (row.classList.contains('is-leaving')) return;
-    row.classList.add('is-leaving'); // fades up and folds shut, the rows below move up with it
-    setTimeout(() => { draft.splice(Number(row.dataset.i), 1); renderRows(); }, annMs());
+    const confirm = e.target.closest('.ann-confirm'), remove = e.target.closest('.ann-remove'), unlock = !remove && e.target.closest('.ann-unlock');
+    const r = rowOf(e.target); if (!r) return;
+    if (confirm) return confirmWord(r.row, r.a);
+    if (unlock) return unlockWord(r.row, r.a);
+    if (!remove) return;
+    if (r.row.classList.contains('is-leaving')) return;
+    r.row.classList.add('is-leaving'); // fades up and folds shut, the rows below move up with it
+    const gone = r.a.matched && r.a.at >= 0 ? [[r.a.at, r.a.at + r.a.word.length]] : [];
+    r.a.matched = false; r.a.at = -1;
+    renderQuote(gone);
+    setTimeout(() => { draft.splice(Number(r.row.dataset.i), 1); renderRows(); }, annMs());
   });
   $('annAnother').addEventListener('click', () => {
-    draft.push({ word: '', explanation: '' });
+    draft.push({ word: '', explanation: '', matched: false, at: -1 });
     $('annRows').insertAdjacentHTML('beforeend', rowHTML(draft[draft.length - 1], draft.length - 1, ' is-new')); // fades in and unfolds
     const row = $('annRows').lastElementChild;
+    syncTail();
     setTimeout(() => { row.classList.remove('is-new'); row.querySelector('input').focus({ preventScroll: true }); }, annMs());
   });
 
   function openSheet() {
-    draft = data.annotations.length ? data.annotations.map((a) => ({ ...a })) : [{ word: '', explanation: '' }];
-    $('annQuote').textContent = data.text.trim();
+    draft = [];
+    data.annotations.forEach((a) => { const m = findInQuote(a.word, takenBy(draft)); draft.push({ ...a, matched: m.at >= 0, at: m.at }); });
+    if (!draft.length) draft.push({ word: '', explanation: '', matched: false, at: -1 });
     renderRows();
     sheet.classList.remove('is-out');
     sheet.hidden = false;
@@ -516,7 +627,7 @@
   $('annToggle').addEventListener('click', openSheet);
   $('annCancel').addEventListener('click', closeSheet);
   $('annSave').addEventListener('click', () => {
-    data.annotations = draft.filter((a) => a.word.trim()).map((a) => ({ word: a.word.trim(), explanation: a.explanation.trim() }));
+    data.annotations = draft.filter((a) => a.matched && a.word.trim() && a.explanation.trim()).map((a) => ({ word: a.word.trim(), explanation: a.explanation.trim() }));
     closeSheet();
   });
 
