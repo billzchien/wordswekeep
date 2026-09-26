@@ -321,6 +321,13 @@
       <button type="button" class="combo-btn" tabindex="-1" aria-label="Open"><span class="icon icon-chevron"></span></button>`;
     const input = host.querySelector('input'), btn = host.querySelector('.combo-btn'), icon = btn.querySelector('.icon');
     let list = null, bar = null, value = '', hover = -1, shown = [];
+    // iOS: a tap on a row can blur the input before the tap's click arrives; blur closes the
+    // list, and the click (and the focus that comes with it) then lands on whatever field sits
+    // under the finger. So a list closed within a moment of a touch stays in place, invisible,
+    // for SHIELD_MS and takes those events itself.
+    const SHIELD_MS = 400;
+    let lastTouch = 0;
+    host.addEventListener('touchstart', () => { lastTouch = performance.now(); }, { passive: true });
     // Overlay scrollbar: a 2px bar over the list's right edge, sized to the visible fraction.
     const drawBar = () => {
       if (!list || !bar) return;
@@ -343,8 +350,10 @@
     };
     const close = () => {
       if (!list) return;
-      list.remove(); list = null; hover = -1;
-      if (bar) { bar.remove(); bar = null; }
+      const l = list, b = bar;
+      list = null; bar = null; hover = -1;
+      if (performance.now() - lastTouch < 1000) { l.style.opacity = '0'; if (b) b.hidden = true; setTimeout(() => { l.remove(); if (b) b.remove(); }, SHIELD_MS); }
+      else { l.remove(); if (b) b.remove(); }
       host.classList.remove('is-open'); input.setAttribute('aria-expanded', 'false');
     };
     const render = (q) => {
