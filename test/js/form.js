@@ -758,6 +758,6 @@
     sessionStorage.removeItem('wwk-arrive');
     steps[0].querySelectorAll('.content > .group > *, .content > .btn').forEach((el, k) => { el.classList.add('rise'); el.style.setProperty('--k', k); });
     form.classList.add('is-arriving');
-    setTimeout(() => form.classList.remove('is-arriving'), 900);
+    setTimeout(() => { form.classList.remove('is-arriving'); document.documentElement.classList.remove('is-arriving'); }, 900);
   }
 })();

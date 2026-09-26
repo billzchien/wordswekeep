@@ -70,6 +70,10 @@
   scrollbar-width: none;
 }
 .step::-webkit-scrollbar { display: none; }
+/* Each step's place in the stack, from the first paint (js also sets --i): without it every step
+   sat at the top until the script ran — a flash of all six over each other on iPhone. */
+.step:nth-child(1) { --i: 0; } .step:nth-child(2) { --i: 1; } .step:nth-child(3) { --i: 2; }
+.step:nth-child(4) { --i: 3; } .step:nth-child(5) { --i: 4; } .step:nth-child(6) { --i: 5; }
 
 /* The column: 2 columns from col3 (desktop, 400 at 1280), 4 columns from col2 (tablet),
    margin to margin (phone). Vertically centred; --dy nudges a step's centre (step 2: +15px). */
@@ -362,6 +366,10 @@ textarea.field--taller { height: var(--ta-l); }
 /* ---------- Arriving from the archive ----------
    The archive fades everything but the logo out (100ms) and opens this page; here the chrome
    fades in and, 50ms behind it, the form fades up. The logo never moves. */
+/* Before the script runs (html.is-arriving, set in the head): the chrome and step 1's blocks
+   are not painted at all, so nothing shows before it fades in. */
+html.is-arriving .count, html.is-arriving .arrows,
+html.is-arriving .step:first-child .content > .group > *, html.is-arriving .step:first-child .content > .btn { opacity: 0; }
 .form.is-arriving .count, .form.is-arriving .arrows { animation: fade-in 0.3s var(--ease) both; }
 /* The form's blocks (title, field, toggle, button) fade up one by one: 300ms each, all starting
    together but 50ms apart (js sets --k, the block's place in the sequence). */

@@ -14,6 +14,9 @@
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/form.css">
+  <!-- Arriving from the archive: mark it before the first paint, so the form's blocks are hidden
+       until they fade up (js/form.js plays the entrance and clears both classes). -->
+  <script>try { if (sessionStorage.getItem('wwk-arrive')) document.documentElement.classList.add('is-arriving'); } catch (e) {}</script>
 </head>
 <body>
   <div class="form" id="form">
