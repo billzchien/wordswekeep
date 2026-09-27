@@ -115,6 +115,41 @@
 .sort .icon-sort { --src: url(../../assets/icons/sort.svg); width: calc(16 * var(--u)); height: calc(16 * var(--u)); transition: transform 0.2s var(--ease); }
 .sort[data-dir="-1"] .icon-sort { transform: rotate(180deg); }
 
+/* Search (Figma 307:2989), Live and Pending: the icon at the end of the head; a click opens the
+   field beside it (100 wide, no background), the icon sliding left as the field grows. It sits
+   over the last column rather than in the grid, so it is there at every width. */
+:root {
+  --search-w: calc(100 * var(--u));  /* the open field, its arrow / × included */
+  --search-ms: 300ms;                /* the field opens and closes */
+}
+.thead > .search {
+  position: absolute; right: 0; top: var(--head-top); overflow: visible;
+  height: calc(var(--text-size) * var(--text-leading));
+  display: flex; align-items: center; color: var(--ink);
+}
+[data-tab="archive"] .search { display: none; }
+.search-btn { flex: none; width: calc(16 * var(--u)); height: calc(16 * var(--u)); color: var(--head); transition: color 0.15s var(--ease); }
+.search.is-open .search-btn { color: var(--ink); }
+@media (hover: hover) { .search-btn:hover { color: var(--ink); } }
+.icon-search { --src: url(../../assets/icons/search.svg); width: 100%; height: 100%; }
+.search-box {
+  box-sizing: border-box; width: 0; overflow: hidden; opacity: 0; visibility: hidden;
+  display: flex; align-items: center; gap: calc(8 * var(--u));
+  transition: width var(--search-ms) var(--ease), padding var(--search-ms) var(--ease), opacity var(--search-ms) var(--ease), visibility 0s var(--search-ms);
+}
+.search.is-open .search-box { width: calc(var(--search-w) + 8 * var(--u)); padding-left: calc(8 * var(--u)); opacity: 1; visibility: visible; transition-delay: 0s; }
+.search-field {
+  flex: 1 1 0; min-width: 0; height: calc(var(--text-size) * var(--text-leading)); padding: 0; border: 0; border-radius: 0; outline: 0;
+  background: none; color: var(--ink); caret-color: var(--ink);
+  font: inherit; font-feature-settings: var(--numeral-features);
+  -webkit-appearance: none; appearance: none;
+}
+.search-field::placeholder { color: var(--placeholder); opacity: 1; font-feature-settings: var(--text-features); }
+.search-end { flex: none; width: calc(16 * var(--u)); height: calc(16 * var(--u)); display: grid; place-items: center; color: var(--ink); }
+.search-end .icon-arrow { width: calc(12 * var(--u)); height: calc(12 * var(--u)); transform: rotate(90deg); }
+.search-end .icon-x, .search.is-filled .search-end .icon-arrow { display: none; }
+.search.is-filled .search-end .icon-x { display: block; }
+
 .row { position: relative; border-bottom: var(--hairline) solid var(--rule); overflow: hidden; cursor: pointer; }
 .row-inner { padding: var(--row-pad) 0; min-height: calc(2 * var(--text-size) * var(--text-leading) + 2 * var(--row-pad)); transition: transform 0.3s var(--ease); }
 /* Whole-pixel rows: two 19.2px lines + 24 = 62.4, and boundaries drifting through fractions let
@@ -231,7 +266,7 @@
 
 @media (max-width: 1023px) {
   /* The table is number + quote; the archive shows the date instead of the number. */
-  .thead > :not(.c-num):not(.c-quote), .row-inner > :not(.c-num):not(.c-quote) { display: none; }
+  .thead > :not(.c-num):not(.c-quote):not(.search), .row-inner > :not(.c-num):not(.c-quote) { display: none; }
   .c-num { grid-column: 1; }
   .c-quote { grid-column: 2 / span 5; }
   /* Archive: Put back sits in the open where the number would be; a swipe reveals Remove. */
@@ -255,7 +290,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tab, .page, .row-inner, .row-swipe, .c-act { transition: none; }
+  .tab, .page, .row-inner, .row-swipe, .c-act, .search-box { transition: none; }
 }
 
 /* ---------- Login (Figma 299:1030) ----------

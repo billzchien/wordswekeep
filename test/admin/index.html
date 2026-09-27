@@ -24,7 +24,16 @@
 
       <!-- Live / Pending / Archive -->
       <section class="page list" id="listView" aria-label="Quotes">
-        <div class="thead" id="thead"></div>
+        <div class="thead" id="thead">
+          <!-- Search (Figma 307:2989), Live and Pending: the icon opens a 100px field beside it. Stays in place while the heads are redrawn. -->
+          <div class="search" id="search" role="search">
+            <button type="button" class="search-btn" id="searchBtn" aria-label="Search" aria-expanded="false" aria-controls="searchBox"><span class="icon icon-search"></span></button>
+            <div class="search-box" id="searchBox">
+              <input class="search-field" id="searchField" type="text" placeholder="Search" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search the list" tabindex="-1">
+              <button type="button" class="search-end" id="searchEnd" aria-label="Clear the search" tabindex="-1"><span class="icon icon-arrow"></span><span class="icon icon-x"></span></button>
+            </div>
+          </div>
+        </div>
         <div class="rows" id="rows"></div>
         <p class="empty" id="empty" hidden></p>
       </section>
