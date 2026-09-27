@@ -46,6 +46,9 @@
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const mqHoverDesktop = window.matchMedia('(hover: hover) and (pointer: fine) and (min-width: 1024px)');
   const regionNames = typeof Intl.DisplayNames === 'function' ? new Intl.DisplayNames(['en'], { type: 'region' }) : null;
+  // Names the browser's list gets wrong for this site: Apple's says "China mainland".
+  const REGION_FIX = { CN: 'China' };
+  const regionName = (c) => REGION_FIX[c] || (regionNames ? regionNames.of(c) : c);
 
   const state = {
     all: [], list: [], idx: 0,
@@ -434,7 +437,7 @@
       `<li><span class="icon icon-mark"></span><span>${esc(CAT_BY_KEY[k].name)}</span></li>`).join('');
 
     const a = q.author;
-    const country = a.country && regionNames ? regionNames.of(a.country) : '';
+    const country = a.country ? regionName(a.country) : '';
     const native = a.nativeName ? ` <span class="n-native">${esc(a.nativeName)}</span>` : '';
     // Row 1 author · row 2 source ("Title, Year") · row 3 country
     let from = `${esc(a.name)}${native}`;
