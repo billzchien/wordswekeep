@@ -144,6 +144,8 @@
   // word, and a new sentence never starts with a single word left at the end of a line. Latin: the last two words are tied with a no-break space. CJK: the last four
   // characters are tied with word joiners. Applied at render time; the data stays clean.
   const NBSP = '\u00a0', WJ = '\u2060';
+  const OPENERS = 'I|we|you|he|she|it|they|my|our|your|his|her|its|their|me|us|them';
+  const OPENER = new RegExp(`([.!?…:;][”’)\\]]*\\s+[“‘(\\[]*(?:[^\\s\\u00a0]{1,2}|(?:${OPENERS})(?:[’'][a-z]+)?)) (?=\\S)`, 'gi');
   function noOrphans(text) {
     return text.split('\n').map((line) => {
       const chars = [...line];
@@ -156,10 +158,12 @@
       if (words.length < 4) return line;
       const last = words.pop();
       const tied = `${words.join(' ')}${NBSP}${last}`;
-      // …and no sentence may leave a one- or two-letter opener stranded at the end of a line:
-      // "stop. I / keep going." → the opener is tied to the word after it. Longer openers
-      // ("The", "They") are left alone: tying them left a line short whenever the pair didn't fit.
-      return tied.replace(/([.!?…][”’)\]]*\s+[“‘(\[]*[^\s\u00a0]{1,2}) (?=\S)/g, `$1${NBSP}`);
+      // …and no sentence may leave its opener stranded at the end of a line when the opener is
+      // one or two letters, or a pronoun (OPENERS, with or without ’re ’ve ’ll…):
+      // "stop. They / keep going." → the opener is tied to the word after it and both go to the
+      // next line. Other openers ("The", "When") are left alone: tying every one left lines
+      // short whenever the pair didn't fit.
+      return tied.replace(OPENER, `$1${NBSP}`);
     }).join('\n');
   }
 

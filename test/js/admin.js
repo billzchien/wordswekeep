@@ -759,13 +759,30 @@
      the chosen face is no longer one of them, the field goes into the warning state and Save /
      Approve wait for another. The preview is the quote as the archive sets it (css/fonts.css,
      the .quote rules of css/app.css). */
+  // The archive's line-breaking rules (js/app.js → noOrphans, copied: change both), so the
+  // preview breaks where the archive does: the last two words stay together (CJK: the last
+  // four characters), and a sentence's opener — one or two letters, or a pronoun — stays with
+  // the word after it.
+  const NBSP = '\u00a0', WJ = '\u2060', CJK_CHAR = /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\uff00-\uffef\u3000-\u303f]/;
+  const OPENERS = 'I|we|you|he|she|it|they|my|our|your|his|her|its|their|me|us|them';
+  const OPENER = new RegExp(`([.!?…:;][”’)\\]]*\\s+[“‘(\\[]*(?:[^\\s\\u00a0]{1,2}|(?:${OPENERS})(?:[’'][a-z]+)?)) (?=\\S)`, 'gi');
+  function noOrphans(text) {
+    return text.split('\n').map((line) => {
+      const chars = [...line];
+      if (chars.filter((ch) => CJK_CHAR.test(ch)).length > chars.length / 2) return chars.length < 8 ? line : chars.slice(0, -4).join('') + chars.slice(-4).join(WJ);
+      const words = line.trimEnd().split(' ');
+      if (words.length < 4) return line;
+      const last = words.pop();
+      return `${words.join(' ')}${NBSP}${last}`.replace(OPENER, `$1${NBSP}`);
+    }).join('\n');
+  }
   function checkFont() { return !edit || fontFits(edit.draft.font, tier(edit.draft.text)); }
   function drawFont() {
     if (!edit) return;
     const t = tier(edit.draft.text), key = edit.draft.font;
     $('fFont').classList.toggle('is-warn', !fontFits(key, t));
     const text = key === 'poet' ? edit.draft.text.replace(/…/g, '...') : edit.draft.text; // Poet has no ellipsis
-    $('fontStage').innerHTML = `<blockquote class="quote" data-tier="${t}" data-font="${esc(key)}">${esc(text.trim())}</blockquote>`;
+    $('fontStage').innerHTML = `<blockquote class="quote" data-tier="${t}" data-font="${esc(key)}">${esc(noOrphans(text.trim()))}</blockquote>`;
     sizeFont();
   }
   function sizeFont() { const w = $('fontView').clientWidth, stage = $('fontStage').offsetWidth; if (w && stage) $('fontStage').style.setProperty('--s', (w / stage).toFixed(4)); } // the stage's own width changes with the breakpoint (css/admin.css)
