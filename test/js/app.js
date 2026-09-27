@@ -1429,7 +1429,7 @@
   // every category. The plain rows then share what the grown row and the current description
   // leave (css transition on their height, in step with the accordion, so the list's height
   // never changes on the way).
-  const MENU_SPAN = 0.65;            // the list's height, as a share of the window's
+  const MENU_SPAN = 0.75;            // the list's height, as a share of the window's
   const MENU_ROW = 64;               // a plain row when the mark is sized (Figma 305:2859)
   const MENU_ROW_MIN = 44;           // a plain row is never shorter (the list then outgrows the span)
   const MARK = 20, MARK_MAX = 80, MARK_MIN = 40; // the plain mark; the grown mark's range
