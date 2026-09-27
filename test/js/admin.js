@@ -199,19 +199,38 @@
     $('removeAllBtn').disabled = !store.archive.length;
   }
 
+  // The list as shown: sorted, and in Live and Pending narrowed by the search.
   function sorted(t) {
     const { key, dir } = sortState[t];
     const val = (q) => (key === 'id' ? numberOf(q) : (key === 'publishedAt' ? (q.dirty ? '￿' : (q.approvedAt || '')) : (q[key] || '')));
-    return [...listOf(t)].sort((a, b) => (val(a) > val(b) ? 1 : val(a) < val(b) ? -1 : 0) * dir);
+    const terms = t in SEARCH_TABS ? fold_(query).split(/\s+/).filter(Boolean) : [];
+    return listOf(t).filter((q) => terms.every((w) => hit(q, t, w))).sort((a, b) => (val(a) > val(b) ? 1 : val(a) < val(b) ? -1 : 0) * dir);
+  }
+
+  // Search: every word typed must be found in the quote. A number is looked for in the quote's
+  // number (from its first digit: "1" finds 1, 10, 11…), as a whole part of its date (9 or 09
+  // finds September and the 9th) and at the start of a word; anything with a "/" in the date as
+  // shown (09/26, 9/26/26); anything else anywhere in the words: the quote, its original, the
+  // author, the source, the categories, who kept it, and "Not published".
+  const SEARCH_TABS = { live: 1, pending: 1 };
+  let query = '';
+  const fold_ = (s) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').toLowerCase().trim();
+  function hit(q, t, w) {
+    const date = t === 'live' && q.dirty ? '' : fmtDate(dateOf[t](q));
+    const words = fold_([q.text, q.originalLanguage && q.originalLanguage.text, q.author && q.author.name, q.author && q.author.nativeName, q.source && q.source.title, catLabel(q.categories), q.keptBy, t === 'live' && q.dirty ? 'Not published' : ''].filter(Boolean).join(' \n '));
+    if (/^\d+$/.test(w)) return String(numberOf(q)).startsWith(w) || date.split('/').some((p) => Number(p) === Number(w)) || new RegExp(`(^|[^\\d])${w}`).test(words);
+    if (w.includes('/')) return date.includes(w) || date.replace(/(^|\/)0/g, '$1').includes(w);
+    return words.includes(w);
   }
 
   function renderList() {
     const items = sorted(tab);
-    $('thead').innerHTML = HEADS[tab].map((h) => {
+    $('thead').querySelectorAll(':scope > :not(.search)').forEach((el) => el.remove()); // the search stays: redrawing it would drop the caret
+    $('search').insertAdjacentHTML('beforebegin', HEADS[tab].map((h) => {
       const label = h.count ? `${h.t} (${items.length})` : (h.short ? `<span class="h-long">${h.t}</span><span class="h-short">${h.short}</span>` : h.t);
       if (h.sort) return `<div class="${h.c}"><button type="button" class="sort" data-key="${h.sort}" data-dir="${sortState[tab].key === h.sort ? sortState[tab].dir : 1}"><span>${label}</span><span class="icon icon-sort"></span></button></div>`;
       return `<div class="${h.c}">${label}</div>`;
-    }).join('');
+    }).join(''));
     const acts = { live: '<button type="button" data-act="edit" aria-label="Edit"><span class="icon icon-edit"></span></button><button type="button" data-act="archive" aria-label="Archive"><span class="icon icon-x16"></span></button>',
                    pending: '<button type="button" data-act="edit" aria-label="Review"><span class="icon icon-eye"></span></button>',
                    archive: '<button type="button" data-act="revert" aria-label="Put back"><span class="icon icon-revert"></span></button><button type="button" data-act="remove" aria-label="Remove"><span class="icon icon-x16"></span></button>' }[tab];
@@ -229,8 +248,33 @@
         ${swipe ? `<button type="button" class="row-swipe" data-act="${swipe}">${swipeLabel[swipe]}</button>` : ''}
       </div>`).join('');
     $('empty').hidden = items.length > 0;
-    $('empty').textContent = { live: 'Nothing live yet.', pending: 'Nothing waiting.', archive: 'The archive is empty.' }[tab];
+    $('empty').textContent = listOf(tab).length ? 'Nothing found.' : { live: 'Nothing live yet.', pending: 'Nothing waiting.', archive: 'The archive is empty.' }[tab];
   }
+
+  // The search button opens the field beside it (--search-ms) and closes it again; closing
+  // empties it, so a list is never narrowed by words that are out of sight. Escape closes too.
+  function setSearch(open) {
+    const field = $('searchField');
+    $('search').classList.toggle('is-open', open);
+    $('searchBtn').setAttribute('aria-expanded', open);
+    field.tabIndex = $('searchEnd').tabIndex = open ? 0 : -1;
+    if (open) { field.focus({ preventScroll: true }); return; }
+    field.blur();
+    if (query) { field.value = ''; search(); }
+  }
+  function search() {
+    query = $('searchField').value;
+    $('search').classList.toggle('is-filled', !!query);
+    renderList();
+    scroll.scrollTop = 0;
+  }
+  $('searchBtn').addEventListener('click', () => setSearch(!$('search').classList.contains('is-open')));
+  $('searchField').addEventListener('input', search);
+  $('searchField').addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); setSearch(false); $('searchBtn').focus({ preventScroll: true }); }
+    if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } // a phone's keyboard goes away
+  });
+  $('searchEnd').addEventListener('click', () => { const f = $('searchField'); if (f.value) { f.value = ''; search(); } f.focus({ preventScroll: true }); });
 
   $('thead').addEventListener('click', (e) => {
     const b = e.target.closest('.sort'); if (!b) return;
