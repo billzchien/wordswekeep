@@ -327,12 +327,12 @@
   }
   async function doAction(act, key, row) {
     if (act === 'edit') { location.hash = `#edit/${key}`; return; }
-    if (act === 'archive') leaveRow(row, () => archiveItem(key));
+    if (act === 'archive') { leaveRow(row, () => archiveItem(key)); toast('Archived'); }
     if (act === 'revert') { // it goes back onto the site (or into the queue): worth a second look
       const f = findItem(key); const to = f && f.q.archivedFrom === 'live' ? 'live' : 'pending';
-      if (await ask(`Put this quote back in ${to === 'live' ? 'Live' : 'Pending'}?`, 'Put back', 'Not yet')) leaveRow(row, () => revertItem(key));
+      if (await ask(`Put this quote back in ${to === 'live' ? 'Live' : 'Pending'}?`, 'Put back', 'Not yet')) { leaveRow(row, () => revertItem(key)); toast('Put back'); }
     }
-    if (act === 'remove') leaveRow(row, () => { take(key); persist(); }); // one click: it was archived already
+    if (act === 'remove') { leaveRow(row, () => { take(key); persist(); }); toast('Removed'); } // one click: it was archived already
   }
 
   /* ---------- Moves between the lists ---------- */
@@ -368,7 +368,7 @@
       let r;
       try { r = await call('/publish', 'POST', { rev }); } catch (e) { r = null; }
       if (r && r.status === 401) { await signIn(); return publish(); }
-      if (r && (r.ok || r.status === 409)) adopt((await r.json()).store);
+      if (r && (r.ok || r.status === 409)) { adopt((await r.json()).store); if (r.ok) toast('Published'); }
       else await ask('That could not be published. Nothing on the site changed.', 'Close', 'Not yet');
       renderList(); refreshChrome();
       return;
@@ -379,11 +379,13 @@
     persist();
     console.log('[library] publish →', store.live.map(({ dirty, seen, publishedAt, ...q }) => q));
     renderList(); refreshChrome();
+    toast('Published');
   }
   $('publishBtn').addEventListener('click', publish);
   $('removeAllBtn').addEventListener('click', async () => {
     if (!(await ask('Are you sure you want to remove all quotes?', 'Remove', 'Not yet'))) return;
     store.archive = []; persist(); renderList(); refreshChrome();
+    toast('Removed');
   });
 
   /* ---------- Login ---------- */
@@ -431,6 +433,24 @@
   $('popupNo').addEventListener('click', () => answer(false));
   $('popup').addEventListener('click', (e) => { if (e.target === $('popup')) answer(false); });
   document.addEventListener('keydown', (e) => { if (popupResolve && e.key === 'Escape') answer(false); });
+
+  /* ---------- Toast (Figma 314:5664) ----------
+     A word at the bottom of the window once an action is done: fades up (--toast-ms), stays
+     TOAST_STAY_MS, fades down. A new one replaces the one on screen. */
+  const TOAST_STAY_MS = 2000;
+  let toastTimer = 0;
+  function toast(text) {
+    const el = $('toast');
+    clearTimeout(toastTimer);
+    el.textContent = text;
+    el.hidden = false;
+    void el.offsetHeight;
+    el.classList.add('is-in');
+    toastTimer = setTimeout(() => {
+      el.classList.remove('is-in');
+      toastTimer = setTimeout(() => { el.hidden = true; }, ms(300));
+    }, ms(300) + TOAST_STAY_MS);
+  }
 
   /* ---------- The edit view ---------- */
 
@@ -600,18 +620,21 @@
     edit.orig = clone(edit.draft);
     persist(); updateDirty(); refreshChrome();
     $('editDate').textContent = 'Not published';
+    toast('Saved');
   }
   $('saveBtn').addEventListener('click', saveEdit);
   $('approveBtn').addEventListener('click', () => {
     const f = findItem(edit.key); if (!f) return;
     fromDraft(edit.draft, f.q);
     approveItem(edit.key);
+    toast('Approved');
     edit = null; location.hash = '#pending';
   });
   $('archiveBtn').addEventListener('click', () => {
     const f = findItem(edit.key); if (!f) return;
     fromDraft(edit.draft, f.q);
     archiveItem(edit.key);
+    toast('Archived');
     edit = null; location.hash = '#pending';
   });
   $('revertBtn').addEventListener('click', () => { if (!isDirty()) return; mark(); edit.draft = clone(edit.orig); fill(edit.draft); updateDirty(); });

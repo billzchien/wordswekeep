@@ -262,6 +262,25 @@
 .popup-btns { display: flex; gap: calc(11 * var(--u)); }
 .popup-btns .btn { flex: 1 1 0; }
 
+/* ---------- Toast (Figma 314:5664) ----------
+   White, 8 / 20 padding, the pop-up's shadow; centred, --toast-bottom from the bottom of the
+   window. Fades up and down over --toast-ms (the stay is TOAST_STAY_MS in js/admin.js). */
+:root {
+  --toast-bottom: 20px;
+  --toast-rise: calc(8 * var(--u));  /* how far it travels while fading */
+  --toast-ms: 300ms;
+}
+.toast {
+  position: absolute; z-index: 50; left: 50%; bottom: calc(var(--toast-bottom) + env(safe-area-inset-bottom, 0px));
+  max-width: calc(100% - 2 * var(--m)); padding: calc(8 * var(--u)) calc(20 * var(--u));
+  background: var(--white); box-shadow: var(--popup-shadow);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-feature-settings: var(--numeral-features); pointer-events: none;
+  opacity: 0; transform: translate(-50%, var(--toast-rise));
+  transition: opacity var(--toast-ms) var(--ease), transform var(--toast-ms) var(--ease);
+}
+.toast.is-in { opacity: 1; transform: translate(-50%, 0); }
+
 /* ---------- Breakpoints ---------- */
 
 @media (max-width: 1023px) {
@@ -290,7 +309,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tab, .page, .row-inner, .row-swipe, .c-act, .search-box { transition: none; }
+  .tab, .page, .row-inner, .row-swipe, .c-act, .search-box, .toast { transition: none; }
 }
 
 /* ---------- Login (Figma 299:1030) ----------
