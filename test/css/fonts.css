@@ -4,7 +4,8 @@
    its leading, tracking and features. app.css reads these in .quote and .ann-word; the tier
    sizes themselves (tokens.css) are never touched, so notes mode, tablet and phone follow.
    Tiers: l = Figma "Short" · m = "Medium" · s and xs = "Long".
-   A face has ONE leading and ONE tracking, at every length and every breakpoint (both are
+   A face has ONE leading and ONE tracking, at every length and every breakpoint — except
+   Round, whose short quotes are set at 1.15 (both are
    relative to the type size); only --qf-scale changes with the tier. Where Figma's short board
    drew another leading, the medium / long one is used (Bill, 2026-09-27).
    The files are served by the fonts Worker (workers/fonts) to this site's pages only. */
@@ -40,7 +41,7 @@
 [data-font="grotesk"][data-tier="xs"] { --qf-scale: 0.85; }   /* 34 / 40 */
 
 [data-font="round"]   { --qf-family: 'Cal Sans', var(--native-sans); --qf-style: normal; --qf-leading: 1.3; --qf-native: var(--native-sans); }
-[data-font="round"][data-tier="l"]  { --qf-scale: 0.9375; }   /* 60 / 64 */
+[data-font="round"][data-tier="l"]  { --qf-scale: 0.9375; --qf-leading: 1.15; }   /* 60 / 64; the one exception to "one leading per face": a short quote in Round is tighter (Bill, 2026-09-27) */
 [data-font="round"][data-tier="m"]  { --qf-scale: 0.875; }
 [data-font="round"][data-tier="s"],
 [data-font="round"][data-tier="xs"] { --qf-scale: 0.85; }
