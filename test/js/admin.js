@@ -13,6 +13,7 @@
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const touch = window.matchMedia('(hover: none)').matches;
   const clone = (o) => JSON.parse(JSON.stringify(o));
+  const composing = (e) => e.isComposing || e.keyCode === 229; // a key that belongs to an IME (Safari: the confirming Enter is 229)
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   const ms = (n) => (reduceMotion.matches ? 0 : n);
 
@@ -271,6 +272,7 @@
   $('searchBtn').addEventListener('click', () => setSearch(!$('search').classList.contains('is-open')));
   $('searchField').addEventListener('input', search);
   $('searchField').addEventListener('keydown', (e) => {
+    if (composing(e)) return;
     if (e.key === 'Escape') { e.preventDefault(); setSearch(false); $('searchBtn').focus({ preventScroll: true }); }
     if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } // a phone's keyboard goes away
   });
@@ -467,10 +469,10 @@
     const q = text.trim(), w = normalise(word);
     if (!w) return { at: -1 };
     const hay = q.toLowerCase();
-    const re = new RegExp((/^[\p{L}\p{N}]/u.test(w) && /[a-z0-9]$/i.test(w) ? '(?<![\\p{L}\\p{N}])' : '') + w.split(' ').map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+') + (/[a-z0-9]$/i.test(w) ? '(?![\\p{L}\\p{N}])' : ''), 'gu');
+    const re = new RegExp((/^[\p{L}\p{N}]/u.test(w) && /[a-z0-9]$/i.test(w) ? '(^|[^\\p{L}\\p{N}])' : '()') + w.split(' ').map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+') + (/[a-z0-9]$/i.test(w) ? '(?![\\p{L}\\p{N}])' : ''), 'gu');
     const free = (a, b) => !taken.some(([s0, s1]) => a < s1 && b > s0);
     let m;
-    while ((m = re.exec(hay))) { if (free(m.index, m.index + m[0].length)) return { at: m.index, text: q.slice(m.index, m.index + m[0].length) }; }
+    while ((m = re.exec(hay))) { const at = m.index + m[1].length, end = m.index + m[0].length; if (free(at, end)) return { at, text: q.slice(at, end) }; if (end === at) re.lastIndex++; } // m[1]: the character before the word, matched rather than looked behind for (lookbehind needs Safari 16.4)
     for (let k = hay.indexOf(w); k >= 0; k = hay.indexOf(w, k + 1)) { if (free(k, k + w.length)) return { at: k, text: q.slice(k, k + w.length) }; }
     return { at: -1 };
   }
@@ -685,7 +687,7 @@
     updateDirty();
   });
   $('annRows').addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter' || e.target.dataset.f !== 'word') return;
+    if (e.key !== 'Enter' || composing(e) || e.target.dataset.f !== 'word') return;
     e.preventDefault();
     const r = rowOf(e.target); if (r && !r.a.matched && r.a.word.trim()) confirmWord(r.row, r.a);
   });
@@ -842,6 +844,7 @@
     input.addEventListener('input', () => { if (value) { value = ''; host.classList.remove('has-value'); icon.className = 'icon icon-chevron'; onChange(''); } render(input.value); });
     input.addEventListener('blur', settle);
     input.addEventListener('keydown', (e) => {
+      if (composing(e)) return;
       if (e.key === 'ArrowDown') { e.preventDefault(); if (!list) render(input.value); setHover(hover + 1); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); setHover(hover - 1); }
       else if (e.key === 'Enter') { e.preventDefault(); if (list && hover >= 0) pick(hover); else if (list && shown.length === 1) pick(0); else settle(); }

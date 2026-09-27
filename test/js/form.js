@@ -4,9 +4,9 @@
    required fields (Next is disabled until they are filled; an arrow/wheel/key attempt marks the
    empty ones with the warning state).
 
-   The payload matches data/quotes.json + md/words-we-keep-submission-system-spec.md. There is
-   no backend yet: submit() logs the entry and keeps it in localStorage (`wwk-pending`) — wire
-   SUBMIT_URL to Worker #1 when it exists. */
+   The payload matches data/quotes.json + the schema in md/handoff.md. submit()
+   posts the entry to SUBMIT_URL (Worker #1); with SUBMIT_URL empty it keeps it in localStorage
+   (`wwk-pending`) instead. */
 (() => {
   const SUBMIT_URL = 'https://api.wordswekeep.org/'; // Cloudflare Worker #1 (workers/submit); '' = offline (localStorage + console)
 
@@ -180,8 +180,18 @@
   $('prevBtn').addEventListener('click', () => go(cur - 1));
   $('nextBtn').addEventListener('click', () => go(cur + 1));
 
+  // An Enter (or arrow) that belongs to an IME — picking a candidate in Chinese, Japanese, Korean —
+  // is not ours. Safari reports the confirming Enter with isComposing false, but keyCode 229.
+  const composing = (e) => e.isComposing || e.keyCode === 229;
+  // sessionStorage throws when site data is blocked (strict privacy settings, some in-app browsers).
+  const session = {
+    get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} },
+    remove(k) { try { sessionStorage.removeItem(k); } catch (e) {} },
+  };
   const isTyping = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
   document.addEventListener('keydown', (e) => {
+    if (composing(e)) return;
     if (!sheet.hidden) { if (e.key === 'Escape') closeSheet(); return; }
     if (cur >= STEPS) return;
     const el = document.activeElement;
@@ -419,6 +429,7 @@
     input.addEventListener('input', () => { if (value) { value = ''; host.classList.remove('has-value'); icon.className = 'icon icon-chevron'; onChange(''); } render(input.value); });
     input.addEventListener('blur', settle);
     input.addEventListener('keydown', (e) => {
+      if (composing(e)) return;
       if (['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(e.key)) e.stopPropagation(); // the list's keys never turn the page
       if (e.key === 'ArrowDown') { e.preventDefault(); if (!list) render(input.value); setHover(hover + 1); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); setHover(hover - 1); }
@@ -473,10 +484,10 @@
     if (!w) return { at: -1 };
     const hay = q.toLowerCase();
     // whole words when the phrase starts/ends with a Latin letter or digit; CJK etc. as a plain substring
-    const re = new RegExp((/^[\p{L}\p{N}]/u.test(w) && /[a-z0-9]$/i.test(w) ? '(?<![\\p{L}\\p{N}])' : '') + w.split(' ').map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+') + (/[a-z0-9]$/i.test(w) ? '(?![\\p{L}\\p{N}])' : ''), 'gu');
+    const re = new RegExp((/^[\p{L}\p{N}]/u.test(w) && /[a-z0-9]$/i.test(w) ? '(^|[^\\p{L}\\p{N}])' : '()') + w.split(' ').map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+') + (/[a-z0-9]$/i.test(w) ? '(?![\\p{L}\\p{N}])' : ''), 'gu');
     const free = (a, b) => !taken.some(([s0, s1]) => a < s1 && b > s0);
     let m;
-    while ((m = re.exec(hay))) { if (free(m.index, m.index + m[0].length)) return { at: m.index, text: q.slice(m.index, m.index + m[0].length) }; }
+    while ((m = re.exec(hay))) { const at = m.index + m[1].length, end = m.index + m[0].length; if (free(at, end)) return { at, text: q.slice(at, end) }; if (end === at) re.lastIndex++; } // m[1]: the character before the word, matched rather than looked behind for (lookbehind needs Safari 16.4)
     for (let i = hay.indexOf(w); i >= 0; i = hay.indexOf(w, i + 1)) { if (free(i, i + w.length)) return { at: i, text: q.slice(i, i + w.length) }; }
     return { at: -1 };
   }
@@ -576,7 +587,7 @@
     }
   });
   $('annRows').addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter' || e.target.dataset.f !== 'word' || e.target.readOnly) return;
+    if (e.key !== 'Enter' || composing(e) || e.target.dataset.f !== 'word' || e.target.readOnly) return;
     e.preventDefault(); const r = rowOf(e.target); if (r) confirmWord(r.row, r.a);
   });
   $('annRows').addEventListener('click', (e) => {
@@ -747,15 +758,15 @@
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
     const href = e.currentTarget.href;
-    sessionStorage.setItem('wwk-home', '1');
+    session.set('wwk-home', '1');
     form.classList.add('is-leaving');
     setTimeout(() => { location.href = href; }, reduceMotion.matches ? 0 : 100);
   });
   window.addEventListener('pageshow', () => form.classList.remove('is-leaving'));
 
   // Opened from the archive's "Add words": play the entrance (css .is-arriving).
-  if (sessionStorage.getItem('wwk-arrive')) {
-    sessionStorage.removeItem('wwk-arrive');
+  if (session.get('wwk-arrive')) {
+    session.remove('wwk-arrive');
     steps[0].querySelectorAll('.content > .group > *, .content > .btn').forEach((el, k) => { el.classList.add('rise'); el.style.setProperty('--k', k); });
     form.classList.add('is-arriving');
     setTimeout(() => { form.classList.remove('is-arriving'); document.documentElement.classList.remove('is-arriving'); }, 900);

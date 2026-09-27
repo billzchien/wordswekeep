@@ -484,7 +484,7 @@
           range.setEnd(node, p.start + p.text.length);
           if (range.getClientRects().length < 2) return [p];
           let at = 0;
-          return p.text.split(/(?<=-)/).map((piece) => { const part = { text: piece, start: p.start + at, cjk: false }; at += piece.length; return part; });
+          return p.text.match(/[^-]*-|[^-]+/g).map((piece) => { const part = { text: piece, start: p.start + at, cjk: false }; at += piece.length; return part; });
         });
         parts.forEach((p) => {
           range.setStart(node, p.start);
@@ -1827,8 +1827,14 @@
       }, total + 30);
     }));
   }
-  if (sessionStorage.getItem('wwk-home')) { // back from the form: the chrome fades in around the logo
-    sessionStorage.removeItem('wwk-home');
+  // sessionStorage throws when site data is blocked (strict privacy settings, some in-app browsers).
+  const session = {
+    get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} },
+    remove(k) { try { sessionStorage.removeItem(k); } catch (e) {} },
+  };
+  if (session.get('wwk-home')) { // back from the form: the chrome fades in around the logo
+    session.remove('wwk-home');
     app.classList.add('is-arriving');
     setTimeout(() => app.classList.remove('is-arriving'), 600);
   }
@@ -1839,7 +1845,7 @@
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // let the browser open a tab
     e.preventDefault();
     const href = e.currentTarget.href;
-    sessionStorage.setItem('wwk-arrive', '1');
+    session.set('wwk-arrive', '1');
     app.classList.add('is-leaving');
     setTimeout(() => { location.href = href; }, reduceMotion.matches ? 0 : LEAVE_MS);
   });
