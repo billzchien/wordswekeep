@@ -38,6 +38,28 @@
   const regionNames = typeof Intl.DisplayNames === 'function' ? new Intl.DisplayNames(['en'], { type: 'region' }) : null;
   const REGIONS = REGION_CODES.map((c) => ({ value: c, label: regionNames ? regionNames.of(c) : c })).sort((a, b) => a.label.localeCompare(b.label));
   const NON_LATIN = new Set(('CN TW HK MO JP KR KP MN RU UA BY KZ KG TJ BG MK RS ME BA GE AM GR CY IL IR IQ SA AE KW QA BH OM YE JO SY LB EG LY TN DZ MA MR SD PS AF PK IN BD NP LK BT MM TH LA KH ET ER').split(' '));
+  // The quote faces (css/fonts.css), copied from js/app.js: `not` = the length tiers a face is
+  // not drawn for. A quote with no face of its own is Instrument, or Goudy when it is long.
+  const FONTS = [
+    { value: 'instrument', label: 'Instrument', not: ['s', 'xs'] },
+    { value: 'story',      label: 'Story',      not: ['s', 'xs'] },
+    { value: 'print',      label: 'Print',      not: [] },
+    { value: 'grotesk',    label: 'Grotesk',    not: [] },
+    { value: 'round',      label: 'Round',      not: ['s', 'xs'] },
+    { value: 'poet',       label: 'Poet',       not: ['l'] },
+    { value: 'goudy',      label: 'Goudy',      not: [] },
+    { value: 'sketch',     label: 'Sketch',     not: [] },
+    { value: 'rose',       label: 'Rose',       not: ['l'] },
+    { value: 'author',     label: 'Author',     not: [] },
+  ];
+  const FONT_FILES = ['story', 'print', 'grotesk', 'poet', 'sketch', 'rose', 'author'];
+  function tier(text) { // js/app.js → tier
+    const cjk = (text.match(/[぀-ヿ㐀-鿿가-힯]/g) || []).length;
+    const weight = text.length + cjk * 3;
+    return weight <= 64 ? 'l' : weight <= 160 ? 'm' : weight <= 260 ? 's' : 'xs';
+  }
+  const fontFits = (key, t) => { const f = FONTS.find((x) => x.value === key); return !!f && !f.not.includes(t); };
+  const fontFor = (key, t) => (fontFits(key, t) ? key : (fontFits('instrument', t) ? 'instrument' : 'goudy'));
   const THIS_YEAR = new Date().getFullYear();
   const YEARS = Array.from({ length: THIS_YEAR - 999 }, (_, i) => ({ value: String(THIS_YEAR - i), label: String(THIS_YEAR - i) }));
 
@@ -420,6 +442,7 @@
     source: { kind: q.source?.kind || '', year: q.source?.year ? String(q.source.year) : '', title: q.source?.title || '', link: q.source?.link || '' },
     context: q.context || '', annotations: q.annotations.map((a) => ({ word: a.word, explanation: a.explanation, matched: false, at: -1 })),
     reflection: q.reflection || '', keptBy: q.keptBy || '',
+    font: fontFor(q.font, tier(q.text || '')), // the face the archive shows it in
   });
   function fromDraft(d, q) {
     const t = (s) => s.trim();
@@ -435,6 +458,7 @@
     q.annotations = d.annotations.filter((a) => a.matched && a.word.trim()).map((a) => ({ word: a.word.trim(), explanation: a.explanation.trim() })); // locked rows only
     q.reflection = t(d.reflection);
     q.keptBy = t(d.keptBy) || null;
+    q.font = d.font;
     return q;
   }
   function detectLang(text) {
@@ -450,7 +474,7 @@
   const norm = (d) => JSON.stringify({ ...d, annotations: d.annotations.filter((a) => a.word.trim() || a.explanation.trim()).map((a) => ({ word: a.word, explanation: a.explanation })) });
   const isDirty = () => !!edit && norm(edit.draft) !== norm(edit.orig);
   function updateDirty() {
-    const d = isDirty(), ok = checkAnn();
+    const d = isDirty(), ok = checkAnn() && checkFont();
     $('saveBtn').disabled = !d || !ok;
     $('approveBtn').disabled = !ok;
     $('revertBtn').disabled = !d;
@@ -598,7 +622,7 @@
   // CJK text in a field is set smaller (css .is-cjk); checked as it is typed and when filled.
   const cjkSize = (el) => el.classList.toggle('is-cjk', /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(el.value));
   ['fOriginal', 'fNative', 'fText', 'fName', 'fTitle'].forEach((id) => $(id).addEventListener('input', () => cjkSize($(id))));
-  bind('fText', (v) => { edit.draft.text = v; followAnn(); });
+  bind('fText', (v) => { edit.draft.text = v; followAnn(); drawFont(); });
   bind('fOriginal', (v) => { edit.draft.original = v; edit.draft.lang = v.trim() ? detectLang(v) : ''; });
   bind('fName', (v) => { edit.draft.author.name = v; });
   bind('fNative', (v) => { edit.draft.author.nativeName = v; });
@@ -628,6 +652,7 @@
 
   const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Country or region', onChange: (v) => { if (!edit) return; mark('country'); edit.draft.author.country = v; fold($('fNativeWrap'), NON_LATIN.has(v)); updateDirty(); } });
   const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', onChange: (v) => { if (!edit) return; mark('kind'); edit.draft.source.kind = v; showSourceFields(!!v && v !== 'personal'); updateDirty(); } });
+  const font = combo($('fFont'), { options: () => FONTS.filter((f) => !edit || !f.not.includes(tier(edit.draft.text))), placeholder: 'Font', keep: true, onChange: (v) => { if (!edit || !v) return; mark('font'); edit.draft.font = v; drawFont(); updateDirty(); } });
   const year = combo($('fYear'), { options: YEARS, placeholder: 'Year', free: true, onChange: (v) => { if (!edit) return; mark('year'); edit.draft.source.year = /^\d{1,4}$/.test(v) ? v : ''; updateDirty(); } });
   year.input.inputMode = 'numeric';
   function showSourceFields(on) {
@@ -723,9 +748,34 @@
     $('fTitle').value = d.source.title; $('fLink').value = d.source.link;
     $('fContext').value = d.context; $('fReflection').value = d.reflection; $('fKeptBy').value = d.keptBy;
     ['fOriginal', 'fNative', 'fText', 'fName', 'fTitle'].forEach((id) => cjkSize($(id)));
+    font.set(d.font); drawFont();
     renderAnn();
     setAnnOpen(d.annotations.some((a) => a.word.trim() || a.explanation.trim()), false);
     document.querySelectorAll('textarea.field').forEach((ta) => ta.dispatchEvent(new Event('scroll')));
+  }
+
+  /* ---------- The quote's face ----------
+     The dropdown offers the faces drawn for the quote's length. If the words change length and
+     the chosen face is no longer one of them, the field goes into the warning state and Save /
+     Approve wait for another. The preview is the quote as the archive sets it (css/fonts.css,
+     the .quote rules of css/app.css). */
+  function checkFont() { return !edit || fontFits(edit.draft.font, tier(edit.draft.text)); }
+  function drawFont() {
+    if (!edit) return;
+    const t = tier(edit.draft.text), key = edit.draft.font;
+    $('fFont').classList.toggle('is-warn', !fontFits(key, t));
+    const text = key === 'poet' ? edit.draft.text.replace(/…/g, '...') : edit.draft.text; // Poet has no ellipsis
+    $('fontStage').innerHTML = `<blockquote class="quote" data-tier="${t}" data-font="${esc(key)}">${esc(text.trim())}</blockquote>`;
+    sizeFont();
+  }
+  function sizeFont() { const w = $('fontView').clientWidth, stage = $('fontStage').offsetWidth; if (w && stage) $('fontStage').style.setProperty('--s', (w / stage).toFixed(4)); } // the stage's own width changes with the breakpoint (css/admin.css)
+  if (typeof ResizeObserver === 'function') new ResizeObserver(sizeFont).observe($('fontView'));
+  window.addEventListener('resize', sizeFont);
+  // A local preview has no fonts Worker: the same faces, from the project's own folder.
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+    const local = document.createElement('style');
+    local.textContent = FONT_FILES.map((key) => `@font-face { font-family: '${FONTS.find((f) => f.value === key).label}'; src: url('/workers/fonts/files/${key}.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }`).join('\n');
+    document.head.appendChild(local);
   }
 
   /* ---------- Auto cleanup ----------
@@ -800,17 +850,21 @@
   document.querySelectorAll('textarea.field').forEach(attachBar);
 
   // Combobox: a text field that filters a list (js/form.js → combo, trimmed).
-  function combo(host, { options, placeholder, free = false, onChange }) {
+  function combo(host, { options: source, placeholder, free = false, keep = false, onChange }) {
+    // `source`: a list, or what makes it (the faces depend on the quote). `keep`: a value that
+    // is changed, never cleared — the chevron stays, and an emptied field takes its value back.
+    const all = () => (typeof source === 'function' ? source() : source);
     host.classList.add('combo');
     host.innerHTML = `<input class="field" type="text" placeholder="${placeholder}" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-label="${placeholder}">
       <button type="button" class="combo-btn" tabindex="-1" aria-label="Open"><span class="icon icon-chevron"></span></button>`;
     const input = host.querySelector('input'), btn = host.querySelector('.combo-btn'), icon = btn.querySelector('.icon');
-    let list = null, bar = null, value = '', hover = -1, shown = [], silent = false;
+    let list = null, bar = null, value = '', kept = '', hover = -1, shown = [], silent = false;
     const drawBar = () => { if (!list || !bar) return; const { scrollHeight: sh, clientHeight: ch, scrollTop: st, offsetTop: top } = list; if (sh <= ch + 1) { bar.hidden = true; return; } bar.hidden = false; const h = Math.max(24, (ch / sh) * ch); bar.style.top = `${top + (st / (sh - ch)) * (ch - h)}px`; bar.style.height = `${h}px`; };
-    const setValue = (v, lbl) => { value = v; input.value = lbl || ''; host.classList.toggle('has-value', !!v); icon.className = 'icon ' + (v ? 'icon-x' : 'icon-chevron'); btn.setAttribute('aria-label', v ? 'Clear' : 'Open'); if (!silent) onChange(v); };
+    const setValue = (v, lbl) => { value = v; if (v) kept = v; input.value = lbl || ''; host.classList.toggle('has-value', !!v); icon.className = 'icon ' + (v && !keep ? 'icon-x' : 'icon-chevron'); btn.setAttribute('aria-label', v && !keep ? 'Clear' : 'Open'); if (!silent) onChange(v); };
     const close = () => { if (!list) return; list.remove(); list = null; hover = -1; if (bar) { bar.remove(); bar = null; } host.classList.remove('is-open'); input.setAttribute('aria-expanded', 'false'); };
     const render = (q) => {
       const s = q.trim().toLowerCase();
+      const options = all();
       shown = s ? [...options.filter((o) => o.label.toLowerCase().startsWith(s)), ...options.filter((o) => !o.label.toLowerCase().startsWith(s) && o.label.toLowerCase().includes(s))] : options;
       if (!list) {
         list = document.createElement('div'); list.className = 'combo-list'; list.setAttribute('role', 'listbox');
@@ -831,17 +885,18 @@
     const pick = (i) => { const o = shown[i]; if (!o) return; setValue(o.value, o.label); close(); };
     const setHover = (i) => { if (!list || !shown.length) return; hover = (i + shown.length) % shown.length; [...list.children].forEach((c, k) => c.classList.toggle('is-hover', k === hover)); list.children[hover]?.scrollIntoView({ block: 'nearest' }); };
     const settle = () => {
-      const t = input.value.trim();
+      const t = input.value.trim(), options = all();
       const exact = options.find((o) => o.label.toLowerCase() === t.toLowerCase());
       if (exact) setValue(exact.value, exact.label);
       else if (free && t) setValue(t, t);
+      else if (keep) { silent = true; setValue(kept, FONTS.find((o) => o.value === kept)?.label || ''); silent = false; }
       else if (!t) setValue('', '');
       else setValue(value, options.find((o) => o.value === value)?.label || (free ? value : ''));
       close();
     };
     input.addEventListener('focus', () => render(value ? '' : input.value));
     input.addEventListener('click', () => { if (!list) render(value ? '' : input.value); });
-    input.addEventListener('input', () => { if (value) { value = ''; host.classList.remove('has-value'); icon.className = 'icon icon-chevron'; onChange(''); } render(input.value); });
+    input.addEventListener('input', () => { if (value) { value = ''; host.classList.remove('has-value'); icon.className = 'icon icon-chevron'; if (!keep) onChange(''); } render(input.value); });
     input.addEventListener('blur', settle);
     input.addEventListener('keydown', (e) => {
       if (composing(e)) return;
@@ -852,8 +907,8 @@
       else if (e.key === 'Tab') settle();
     });
     btn.addEventListener('pointerdown', (e) => e.preventDefault());
-    btn.addEventListener('click', () => { if (value) { setValue('', ''); input.focus(); render(''); } else if (list) close(); else input.focus(); });
-    return { input, set: (v) => { silent = true; const o = options.find((x) => x.value === v); setValue(v, o ? o.label : (free ? v : '')); silent = false; } };
+    btn.addEventListener('click', () => { if (value && !keep) { setValue('', ''); input.focus(); render(''); } else if (list) { close(); input.blur(); } else input.focus(); });
+    return { input, set: (v) => { silent = true; const o = (keep ? FONTS : all()).find((x) => x.value === v); setValue(v, o ? o.label : (free ? v : '')); silent = false; } };
   }
 
   /* ---------- Touch: swipe a row to the left for its action ---------- */

@@ -1,0 +1,75 @@
+/* Words We Keep — the quote faces (Figma: Type 310:3916).
+   A quote carries data-font (js/app.js → fontOf). Each face sets, per length tier, its size
+   against the site's quote scale (--qf-scale: its size ÷ Instrument's on the same Figma board),
+   its leading, tracking and features. app.css reads these in .quote and .ann-word; the tier
+   sizes themselves (tokens.css) are never touched, so notes mode, tablet and phone follow.
+   Tiers: l = Figma "Short" · m = "Medium" · s and xs = "Long".
+   The files are served by the fonts Worker (workers/fonts) to this site's pages only. */
+
+@font-face { font-family: 'Story';   src: url('https://fonts.wordswekeep.org/story.woff2') format('woff2');   font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Print';   src: url('https://fonts.wordswekeep.org/print.woff2') format('woff2');   font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Grotesk'; src: url('https://fonts.wordswekeep.org/grotesk.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Poet';    src: url('https://fonts.wordswekeep.org/poet.woff2') format('woff2');    font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Sketch';  src: url('https://fonts.wordswekeep.org/sketch.woff2') format('woff2');  font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Rose';    src: url('https://fonts.wordswekeep.org/rose.woff2') format('woff2');    font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Author';  src: url('https://fonts.wordswekeep.org/author.woff2') format('woff2');  font-weight: 400; font-style: normal; font-display: swap; }
+
+:root {
+  --native-serif: 'Noto Serif SC', 'Songti SC', serif;
+  --native-sans: 'Noto Sans SC', 'PingFang SC', sans-serif;
+}
+
+/* Instrument: the site's own settings (app.css, tokens.css) — nothing to set. */
+
+[data-font="story"]   { --qf-family: 'Story', var(--native-serif);   --qf-style: normal; --qf-leading: 1.3; }
+[data-font="story"][data-tier="m"]  { --qf-scale: 0.9167; }   /* 44 / 48 */
+[data-font="story"][data-tier="s"],
+[data-font="story"][data-tier="xs"] { --qf-scale: 0.9; }      /* 36 / 40 */
+
+[data-font="print"]   { --qf-family: 'Print', var(--native-serif);   --qf-style: normal; --qf-leading: 1.25; --qf-tracking: -0.015em; }
+[data-font="print"][data-tier="m"]  { --qf-scale: 0.9167; }
+[data-font="print"][data-tier="s"],
+[data-font="print"][data-tier="xs"] { --qf-scale: 0.9; }
+
+[data-font="grotesk"] { --qf-family: 'Grotesk', var(--native-sans);  --qf-style: normal; --qf-leading: 1.2; --qf-tracking: -0.01em; --qf-native: var(--native-sans); }
+[data-font="grotesk"][data-tier="l"]  { --qf-leading: 1.25; }
+[data-font="grotesk"][data-tier="m"]  { --qf-scale: 0.875; }  /* 42 / 48 */
+[data-font="grotesk"][data-tier="s"],
+[data-font="grotesk"][data-tier="xs"] { --qf-scale: 0.85; }   /* 34 / 40 */
+
+[data-font="round"]   { --qf-family: 'Cal Sans', var(--native-sans); --qf-style: normal; --qf-leading: 1.3; --qf-native: var(--native-sans); }
+[data-font="round"][data-tier="l"]  { --qf-scale: 0.9375; }   /* 60 / 64 */
+[data-font="round"][data-tier="m"]  { --qf-scale: 0.875; }
+[data-font="round"][data-tier="s"],
+[data-font="round"][data-tier="xs"] { --qf-scale: 0.85; }
+
+[data-font="poet"]    { --qf-family: 'Poet', var(--native-serif);    --qf-style: normal; --qf-leading: 1.2; }
+[data-font="poet"][data-tier="l"]  { --qf-scale: 1.875; }     /* 120 / 64 */
+[data-font="poet"][data-tier="m"]  { --qf-scale: 1.5; }       /* 72 / 48 */
+[data-font="poet"][data-tier="s"],
+[data-font="poet"][data-tier="xs"] { --qf-scale: 1.2; }       /* 48 / 40 */
+
+[data-font="goudy"]   { --qf-family: 'Sorts Mill Goudy', var(--native-serif); --qf-style: normal; --qf-leading: 1.25; --qf-tracking: -0.03em; }
+[data-font="goudy"][data-tier="l"]  { --qf-leading: 1.3; }
+[data-font="goudy"][data-tier="m"]  { --qf-scale: 0.9167; }
+[data-font="goudy"][data-tier="s"],
+[data-font="goudy"][data-tier="xs"] { --qf-scale: 0.9; }
+
+[data-font="sketch"]  { --qf-family: 'Sketch', var(--native-sans);   --qf-style: normal; --qf-leading: 1.25; --qf-tracking: -0.01em; --qf-native: var(--native-sans); }
+[data-font="sketch"][data-tier="l"]  { --qf-leading: 1.3; }
+[data-font="sketch"][data-tier="m"]  { --qf-scale: 0.875; }
+[data-font="sketch"][data-tier="s"],
+[data-font="sketch"][data-tier="xs"] { --qf-scale: 0.8; }     /* 32 / 40 */
+
+[data-font="rose"]    { --qf-family: 'Rose', var(--native-serif);    --qf-style: normal; --qf-leading: 1.15; --qf-tracking: -0.04em; --qf-features: "ss06" 1; } /* ss06 = the font's set 2, with the r's swash held back near a y (workers/fonts/tools/convert.py) */
+[data-font="rose"][data-tier="l"]  { --qf-scale: 1.25; }     /* 80 / 64; leading 1.15 at every length (Bill, 2026-09-27; the board drew 1.3) */
+[data-font="rose"][data-tier="m"]  { --qf-scale: 1.125; }     /* 54 / 48 */
+[data-font="rose"][data-tier="s"],
+[data-font="rose"][data-tier="xs"] { --qf-scale: 1.1; }       /* 44 / 40 */
+
+[data-font="author"]  { --qf-family: 'Author', var(--native-serif);  --qf-style: normal; --qf-leading: 1.3; --qf-tracking: -0.05em; --qf-features: "ss01" 1; }
+[data-font="author"][data-tier="m"]  { --qf-scale: 1.125; }
+
+/* The original-language version is set in Noto (serif or sans, by the face's character) at the
+   site's own native size: the face's scale does not apply to it. */
+.quote[data-native][data-font] { --qf-scale: 1; }

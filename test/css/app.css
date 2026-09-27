@@ -186,7 +186,7 @@ ul { list-style: none; }
 .app.is-dim .notes-btn { opacity: 0; pointer-events: none; }
 
 /* Mode change: the quote cut into scraps (built in js/app.js → dadaQuote). */
-.dada { position: absolute; inset: 0; z-index: 15; overflow: hidden; pointer-events: none; font-feature-settings: normal; }
+.dada { position: absolute; inset: 0; z-index: 15; overflow: hidden; pointer-events: none; font-feature-settings: normal; } /* js copies the quote's face onto it, features included */
 .dada-scrap {
   position: absolute;
   white-space: nowrap;
@@ -231,36 +231,50 @@ ul { list-style: none; }
 
 .q-wrap { position: relative; }
 
+/* The face (css/fonts.css, by data-font) may set --qf-*: family, style, leading, tracking,
+   features and --qf-scale, its size against the tier's. Without one this is Instrument. */
 .quote {
-  font-family: var(--font-display);
-  font-style: italic;
+  font-family: var(--qf-family, var(--font-display));
+  font-style: var(--qf-style, italic);
   font-weight: 400;
-  line-height: var(--quote-leading);
-  letter-spacing: 0;
-  font-feature-settings: normal;
+  line-height: var(--qf-leading, var(--quote-leading));
+  letter-spacing: var(--qf-tracking, 0);
+  font-feature-settings: var(--qf-features, normal);
   white-space: pre-line;
   overflow-wrap: break-word;
   text-wrap: pretty; /* no single-word last lines */
-  font-size: var(--q-size);
+  font-size: calc(var(--q-size) * var(--qf-scale, 1));
   width: var(--q-width);
   max-width: 100%;
 }
 /* --q-ratio: main size ÷ notes size. The notes quote is boxed by four columns; the main quote is
    boxed by the same four columns × this ratio, so its measure in em is never wider than the notes
-   quote's, and the two always break into the same lines (at any window width). */
-.quote[data-tier="l"]  { --q-size: var(--quote-l);  --q-width: 10.94em; --q-ratio: 1.0667; }  /* 700 / 64 · 64/60 */
-.quote[data-tier="m"]  { --q-size: var(--quote-m);  --q-width: 16.54em; --q-ratio: 1.0834; }  /* 860 / 52 · 52/48 */
-.quote[data-tier="s"]  { --q-size: var(--quote-s);  --q-width: 21.5em;  --q-ratio: 1.25; }    /* 860 / 40 · 40/32 */
-.quote[data-tier="xs"] { --q-size: var(--quote-xs); --q-width: 26.88em; --q-ratio: 1.1429; }  /* 860 / 32 · 32/28 */
+   quote's, and the two always break into the same lines (at any window width).
+   The box is measured in the tier's em, whatever the face's own scale. */
+.quote[data-tier="l"]  { --q-size: var(--quote-l);  --q-width: calc(10.94em / var(--qf-scale, 1)); --q-ratio: 1.0667; }  /* 700 / 64 · 64/60 */
+.quote[data-tier="m"]  { --q-size: var(--quote-m);  --q-width: calc(16.54em / var(--qf-scale, 1)); --q-ratio: 1.0834; }  /* 860 / 52 · 52/48 */
+.quote[data-tier="s"]  { --q-size: var(--quote-s);  --q-width: calc(21.5em / var(--qf-scale, 1));  --q-ratio: 1.25; }    /* 860 / 40 · 40/32 */
+.quote[data-tier="xs"] { --q-size: var(--quote-xs); --q-width: calc(26.88em / var(--qf-scale, 1)); --q-ratio: 1.1429; }  /* 860 / 32 · 32/28 */
 .slide .quote { max-width: min(100%, calc((4 * var(--colw) + 3 * var(--g)) * var(--q-ratio))); }
+/* Desktop (Figma: Type 310:3916): the main quote is boxed by the four columns from col2 with 40
+   kept clear on the right (780 at 1280) — medium and longer quotes fill that, a short one is
+   held inside it — so its right edge follows the grid at every window width. The notes quote
+   keeps the main quote's line breaks (js → lockLines); they are shorter than its four columns. */
+@media (min-width: 1024px) {
+  .slide .quote { --q-measure: calc(4 * var(--colw) + 3 * var(--g) - 40 * var(--u)); max-width: min(100%, var(--q-measure)); }
+  .slide .quote[data-tier="m"],
+  .slide .quote[data-tier="s"],
+  .slide .quote[data-tier="xs"] { --q-width: var(--q-measure); }
+}
 
 .quote[data-native] {
   font-size: calc(var(--q-size) * var(--quote-native-scale));
-  font-family: var(--font-native-quote);
+  font-family: var(--qf-native, var(--font-native-quote));
   font-weight: 500;
   font-style: normal;
   line-height: var(--quote-native-leading);
   letter-spacing: 0.02em;
+  font-feature-settings: normal;
 }
 
 .lang {
@@ -499,12 +513,12 @@ ul { list-style: none; }
 .ann-word {
   position: absolute;
   transform-origin: 0 0;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: var(--quote-annotation);
+  font-family: var(--qf-family, var(--font-display)); /* the quote's face, at its short-quote scale (js sets data-font) */
+  font-style: var(--qf-style, italic);
+  font-size: calc(var(--quote-annotation) * var(--qf-scale, 1));
   line-height: 1.2;
-  letter-spacing: 0;
-  font-feature-settings: normal;
+  letter-spacing: var(--qf-tracking, 0);
+  font-feature-settings: var(--qf-features, normal);
   white-space: nowrap;
 }
 .ann-text { position: absolute; width: min(20.4em, calc(100vw - 2 * var(--m))); }

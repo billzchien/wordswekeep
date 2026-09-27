@@ -9,11 +9,12 @@
   <title>Library — Words We Keep</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital@0;1&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=Crimson+Pro:ital@0;1&family=Instrument+Serif:ital@0;1&family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@500&family=Sorts+Mill+Goudy&display=swap" rel="stylesheet">
   <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../css/tokens.css">
   <link rel="stylesheet" href="../css/app.css">
   <link rel="stylesheet" href="../css/form.css">
+  <link rel="stylesheet" href="../css/fonts.css">
   <link rel="stylesheet" href="../css/admin.css">
 </head>
 <body>
@@ -106,6 +107,15 @@
               <p class="sec-title">Name</p>
               <div class="fw"><input class="field" id="fKeptBy" type="text" placeholder="Name" autocomplete="off" aria-label="Name"></div>
             </div>
+          </div>
+        </div>
+        <!-- The quote's face (Figma 314:5424): the faces drawn for its length, and the quote set in
+             the chosen one as the archive shows it on a desktop window, scaled to fit. -->
+        <div class="sec edit-font">
+          <p class="sec-title">Font</p>
+          <div class="font-box">
+            <div class="fw" id="fFont"></div>
+            <div class="font-view" id="fontView" aria-hidden="true"><div class="font-stage" id="fontStage"></div></div>
           </div>
         </div>
       </section>

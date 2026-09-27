@@ -19,6 +19,24 @@
   const ITALIC_KINDS = new Set(['book', 'film']);
   const LANG_GLYPH = { zh: '中', ja: '日', ko: '한' };
 
+  // The quote faces (css/fonts.css; Figma: Type 310:3916). A quote names one in `font`.
+  // `not`: the length tiers the face is not drawn for (Figma's boards at 20%).
+  const FONTS = [
+    { key: 'instrument', name: 'Instrument', not: ['s', 'xs'] },
+    { key: 'story',      name: 'Story',      not: ['s', 'xs'] },
+    { key: 'print',      name: 'Print',      not: [] },
+    { key: 'grotesk',    name: 'Grotesk',    not: [] },
+    { key: 'round',      name: 'Round',      not: ['s', 'xs'] },
+    { key: 'poet',       name: 'Poet',       not: ['l'] },
+    { key: 'goudy',      name: 'Goudy',      not: [] },
+    { key: 'sketch',     name: 'Sketch',     not: [] },
+    { key: 'rose',       name: 'Rose',       not: ['l'] },
+    { key: 'author',     name: 'Author',     not: [] },
+  ];
+  const FONT_BY_KEY = Object.fromEntries(FONTS.map((f) => [f.key, f]));
+  const DEFAULT_FONT = 'instrument', LONG_FONT = 'goudy'; // a quote with no face of its own; Instrument is not drawn for long quotes
+  const FONT_FILES = ['story', 'print', 'grotesk', 'poet', 'sketch', 'rose', 'author']; // served by the fonts Worker; the rest come from Google
+
   // A shuffled copy (Fisher–Yates). The deck is dealt once per visit / per category, so ↑ and ↓
   // stay consistent within it, but the order is never the archive's numbering.
   const shuffle = (list) => { const a = list.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -47,6 +65,46 @@
   const at = (offset) => state.list[mod(state.idx + offset, state.list.length)];
 
   // Fewer words → bigger type.
+  // The face a quote is set in: its own if it has one that is drawn for its length.
+  function fontOf(q, t) {
+    const own = FONT_BY_KEY[q.font];
+    if (own && !own.not.includes(t)) return own.key;
+    return FONT_BY_KEY[DEFAULT_FONT].not.includes(t) ? LONG_FONT : DEFAULT_FONT;
+  }
+
+  // Rose holds back an r's swash by what follows it (the font's own rule: ss06, built in
+  // workers/fonts/tools/convert.py). A copy of one letter or of a scrap — the typing, the
+  // cut-up, the language sweep — has lost what follows it, and would show the swash until the
+  // real quote takes over. So the rule is repeated here, and such an r is asked for by itself
+  // in the font's plain shape: a y within four characters, an r within two, or a q next.
+  const ROSE_TAIL = /[yYýÿÝŸ]/, ROSE_PLAIN = '"ss04" 1';
+  function plainLetters(quoteEl, text) {
+    const at = new Set();
+    if (!quoteEl || quoteEl.dataset.font !== 'rose' || quoteEl.hasAttribute('data-native')) return at;
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] !== 'r') continue;
+      const next = text.slice(i + 1, i + 5);
+      if (ROSE_TAIL.test(next) || /r/.test(next.slice(0, 2)) || /[qQ]/.test(next[0] || '')) at.add(i);
+    }
+    return at;
+  }
+  // Fill `el` with `text` (which starts at `start` in the quote's text), plain letters apart.
+  function setFaceText(el, text, plain, start) {
+    if (![...plain].some((i) => i >= start && i < start + text.length)) { el.textContent = text; return; }
+    el.textContent = '';
+    let run = '';
+    const flush = () => { if (run) { el.appendChild(document.createTextNode(run)); run = ''; } };
+    for (let k = 0; k < text.length; k++) {
+      if (!plain.has(start + k)) { run += text[k]; continue; }
+      flush();
+      const one = document.createElement('span');
+      one.style.fontFeatureSettings = ROSE_PLAIN;
+      one.textContent = text[k];
+      el.appendChild(one);
+    }
+    flush();
+  }
+
   function tier(text) {
     const cjk = (text.match(/[぀-ヿ㐀-鿿가-힯]/g) || []).length;
     const weight = text.length + cjk * 3; // a CJK character carries about as much as a short word
@@ -156,7 +214,10 @@
   function quoteHTML(q, { original = false, withAnnotations = false, keepLines = false } = {}) {
     const orig = q.originalLanguage;
     const showOrig = original && orig;
-    const raw = showOrig ? orig.text : q.text;
+    const size = tier(showOrig ? orig.text : q.text);
+    const font = fontOf(q, tier(q.text)); // the face goes by the English words' length, in either language
+    // Poet has no ellipsis: three periods instead.
+    const raw = showOrig ? orig.text : (font === 'poet' ? q.text.replace(/…/g, '...') : q.text);
     let text = noOrphans(raw);
     const locked = keepLines && lockedLines && lockedLines.text === text;
     if (locked) text = lockedLines.broken;
@@ -166,7 +227,7 @@
       ? `<button class="lang" data-lang aria-pressed="${showOrig ? 'true' : 'false'}" aria-label="${showOrig ? 'Show English' : 'Show original language'}">${showOrig ? 'EN' : esc(LANG_GLYPH[orig.lang] || orig.lang.toUpperCase())}</button>`
       : '';
     const nativeAttr = showOrig ? ` data-native lang="${esc(orig.lang)}"` : '';
-    return `${langBtn}<blockquote class="quote${locked ? ' quote--locked' : ''}" data-tier="${tier(raw)}"${nativeAttr}>${body}</blockquote>`;
+    return `${langBtn}<blockquote class="quote${locked ? ' quote--locked' : ''}" data-tier="${size}" data-font="${font}"${nativeAttr}>${body}</blockquote>`;
   }
 
   /* ---------- Deck ---------- */
@@ -519,7 +580,7 @@
         group.push(words[i + group.length]);
       }
       i += group.length;
-      scraps.push({ text: group.map((w) => w.text).join(first.cjk ? '' : ' '), left: first.left, top: first.top });
+      scraps.push({ text: group.map((w) => w.text).join(first.cjk ? '' : ' '), left: first.left, top: first.top, node: first.node, start: first.start });
     }
     return scraps;
   }
@@ -535,7 +596,7 @@
     layer.setAttribute('aria-hidden', 'true');
     Object.assign(layer.style, {
       fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontStyle: cs.fontStyle,
-      lineHeight: cs.lineHeight, letterSpacing: cs.letterSpacing,
+      lineHeight: cs.lineHeight, letterSpacing: cs.letterSpacing, fontFeatureSettings: cs.fontFeatureSettings,
     });
     app.appendChild(layer);
 
@@ -564,7 +625,7 @@
     const pieces = scraps.map((scrap) => {
       const el = document.createElement('span');
       el.className = 'dada-scrap';
-      el.textContent = scrap.text;
+      setFaceText(el, scrap.text, plainLetters(quoteEl, scrap.node.data), scrap.start);
       el.style.left = `${scrap.left}px`;
       el.style.top = `${scrap.top}px`;
       layer.appendChild(el);
@@ -1126,9 +1187,13 @@
     while (walker.nextNode()) nodes.push(walker.currentNode);
     nodes.forEach((node) => {
       const frag = document.createDocumentFragment();
+      const plain = plainLetters(quoteEl, node.data);
+      let at = 0;
       [...node.data].forEach((ch) => {
+        const i = at; at += ch.length;
         if (/\s/.test(ch)) { frag.appendChild(document.createTextNode(ch)); return; }
         const span = document.createElement('span');
+        if (plain.has(i)) span.style.fontFeatureSettings = ROSE_PLAIN;
         span.textContent = ch;
         frag.appendChild(span);
         chars.push(span);
@@ -1276,6 +1341,8 @@
     const rect = el.getClientRects()[0];
     const overlay = $('annOverlay'), word = $('annWord'), text = $('annText'), back = $('annBack');
     word.textContent = el.textContent;
+    const quoteEl = el.closest('.quote'); // the enlarged word is set in the quote's face, at the quote's scale
+    word.dataset.font = quoteEl.dataset.font; word.dataset.tier = quoteEl.dataset.tier;
     text.textContent = noOrphans(a.explanation);
     [word, text, back].forEach((n) => { n.style.transition = 'none'; });
     word.style.transform = '';
@@ -1775,6 +1842,15 @@
   // The pinned quote can change height without a window resize (fluid type, fonts, language toggle).
   if (typeof ResizeObserver === 'function') new ResizeObserver(layoutNotes).observe($('nQuoteWrap'));
 
+  /* ---------- Quote faces ---------- */
+
+  // A local preview has no fonts Worker: the same faces, from the project's own folder.
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+    const local = document.createElement('style');
+    local.textContent = FONT_FILES.map((key) => `@font-face { font-family: '${FONT_BY_KEY[key].name}'; src: url('/workers/fonts/files/${key}.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }`).join('\n');
+    document.head.appendChild(local);
+  }
+
   /* ---------- Boot ---------- */
 
   fetch(DATA_URL)
@@ -1838,12 +1914,13 @@
     return at;
   }
   function measureLetters(quoteEl) {
-    const letters = [], range = document.createRange();
+    const letters = [], range = document.createRange(), plainOf = new Map();
     measureWords(quoteEl).forEach((w) => {
+      if (!plainOf.has(w.node)) plainOf.set(w.node, plainLetters(quoteEl, w.node.data));
       for (let i = w.start; i < w.end; i++) {
         range.setStart(w.node, i); range.setEnd(w.node, i + 1);
         const r = inkRect(range);
-        if (r) letters.push({ text: w.node.data[i], left: r.left, top: r.top, wordStart: i === w.start });
+        if (r) letters.push({ text: w.node.data[i], left: r.left, top: r.top, wordStart: i === w.start, plain: plainOf.get(w.node).has(i) });
       }
     });
     return letters;
@@ -1877,7 +1954,7 @@
       const layer = document.createElement('div');
       layer.className = 'dada';
       layer.setAttribute('aria-hidden', 'true');
-      Object.assign(layer.style, { fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontStyle: cs.fontStyle, lineHeight: cs.lineHeight, letterSpacing: cs.letterSpacing });
+      Object.assign(layer.style, { fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontStyle: cs.fontStyle, lineHeight: cs.lineHeight, letterSpacing: cs.letterSpacing, fontFeatureSettings: cs.fontFeatureSettings });
       app.appendChild(layer);
       const range = document.createRange();
       const easing = getComputedStyle(document.documentElement).getPropertyValue('--ease').trim() || 'ease';
@@ -1886,6 +1963,7 @@
         const el = document.createElement('span');
         el.className = 'dada-scrap';
         el.textContent = l.text;
+        if (l.plain) el.style.fontFeatureSettings = ROSE_PLAIN;
         el.style.left = `${l.left}px`; el.style.top = `${l.top}px`;
         if (ARRIVE_LETTER_MS > 0) el.style.opacity = '0'; else el.style.visibility = 'hidden';
         layer.appendChild(el);

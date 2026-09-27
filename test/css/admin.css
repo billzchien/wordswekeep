@@ -311,3 +311,33 @@
 /* The login's field and button are the public form's size (48 on desktop, 40 on tablet / phone), not the edit view's 40. */
 .login { --fh: calc(48 * var(--u)); }
 @media (max-width: 1023px) { .login { --fh: 40px; } }
+
+/* ---------- The quote's face (Figma 314:5424) ----------
+   Under the two columns, four columns wide: the dropdown, and 1px below it the preview — a
+   stage the shape of the archive's window at this breakpoint, with that breakpoint's quote
+   sizes and measure, scaled to the panel's width by js (--s = panel ÷ stage).
+   Desktop: 1168 × 657; the quote 104 from the left, 700 wide when short and 780 otherwise.
+   Tablet: 768 × 1024; the quote from col2 to a column short of the right edge.
+   Phone: 375 × 667; the quote margin to margin (a short one 40 less). */
+.edit-font { margin-top: calc(40 * var(--u)); }
+.font-box { display: flex; flex-direction: column; gap: 1px; }
+.font-view { position: relative; aspect-ratio: 820 / 461; overflow: hidden; background: var(--field); }
+.font-stage {
+  position: absolute; left: 0; top: 0; width: 1168px; height: 657px;
+  transform-origin: 0 0; transform: scale(var(--s, 0.702));
+  --u: 1px; --quote-l: 64px; --quote-m: 52px; --quote-s: 40px; --quote-xs: 32px;
+  color: var(--ink);
+}
+.font-stage .quote { position: absolute; left: 104px; top: 50%; translate: 0 calc(-50% - 27px); width: 780px; max-width: none; margin: 0; -webkit-user-select: none; user-select: none; }
+.font-stage .quote[data-tier="l"] { width: 700px; }
+@media (max-width: 1023px) {
+  .font-view { aspect-ratio: 768 / 1024; }
+  .font-stage { width: 768px; height: 1024px; --quote-l: 48px; --quote-m: 40px; --quote-s: 32px; --quote-xs: 26px; }
+  .font-stage .quote, .font-stage .quote[data-tier="l"] { left: 145px; width: 478px; }
+}
+@media (max-width: 599px) {
+  .font-view { aspect-ratio: 375 / 667; }
+  .font-stage { width: 375px; height: 667px; --quote-l: 40px; --quote-m: 32px; --quote-s: 28px; --quote-xs: 22px; }
+  .font-stage .quote { left: 20px; width: 335px; }
+  .font-stage .quote[data-tier="l"] { left: 20px; width: 295px; }
+}
