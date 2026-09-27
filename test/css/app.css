@@ -242,7 +242,7 @@ ul { list-style: none; }
   font-feature-settings: var(--qf-features, normal);
   white-space: pre-line;
   overflow-wrap: break-word;
-  text-wrap: pretty; /* no single-word last lines */
+  text-wrap: auto; /* every line is filled as far as it goes, the same in every browser. Not `pretty`: Safari re-balances the whole paragraph with it and leaves lines short ("to live, each / has to do."), Chrome does not. No single-word last lines and no stranded openers: js/app.js → noOrphans */
   font-size: calc(var(--q-size) * var(--qf-scale, 1));
   width: var(--q-width);
   max-width: 100%;
