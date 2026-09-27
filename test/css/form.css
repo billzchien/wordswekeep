@@ -126,6 +126,7 @@ textarea.field::-webkit-scrollbar { display: none; }
 textarea.field--tall { height: var(--ta-m); }
 textarea.field--taller { height: var(--ta-l); }
 .field::placeholder { color: var(--placeholder); opacity: 1; }
+#fNative { font-family: 'Crimson Pro', var(--font-native); } /* the name in its own script: Noto Sans, as the archive shows it (the form and the library) */
 @media (hover: hover) { .field:hover { background: var(--field-hover); } }
 .field:focus { background: var(--field-hover); }
 .field:focus-visible { outline: none; }

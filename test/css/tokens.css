@@ -22,9 +22,13 @@
   /* ---------- Type: families ---------- */
   --font-display:   'Instrument Serif', 'Noto Serif SC', Georgia, serif;  /* quotes, always italic */
   --font-text:      'Crimson Pro', Georgia, serif;                        /* navigation, meta, notes */
-  --font-native:    'Noto Sans SC', 'PingFang SC', sans-serif;            /* native-script names (sans) */
+  /* Native scripts are always Noto Sans (the quote itself may be Noto Serif): Chinese first,
+     then Japanese, Korean, and Noto Sans for Cyrillic, Greek and the rest of Latin. No system
+     font in between, so every device shows the same letters. */
+  --noto-sans: 'Noto Sans SC', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans', sans-serif;
+  --font-native:    var(--noto-sans);                                     /* native-script names (sans) */
   --font-native-quote: 'Noto Serif SC', 'Songti SC', serif;               /* original-language quotes, medium */
-  --font-native-ui: 'Noto Sans SC', 'PingFang SC', sans-serif;            /* language button glyph */
+  --font-native-ui: var(--noto-sans);                                     /* language button: 中 日 한 / EN */
 
   /* ---------- Fluid unit ----------
      --u is "one design pixel". It is exactly 1px up to a 1440px-wide window, then grows with
