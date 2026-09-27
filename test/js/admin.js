@@ -887,6 +887,41 @@
     $('rows').addEventListener('click', (e) => { const row = e.target.closest('.row'); if (row && row.dataset.swiped) e.stopImmediatePropagation(); }, true);
   }
 
+  /* ---------- Smooth (eased) wheel scrolling ----------
+     The archive's notes pattern (js/app.js): the wheel moves a target and the page glides after
+     it, covering SCROLL_EASE of the remaining distance every frame. Touch, keys and the rest stay
+     native; a textarea or a dropdown under the pointer scrolls itself first. */
+  const SCROLL_EASE = 0.11;   // lower = longer, silkier glide; higher = tighter
+  const glide = { pos: 0, target: 0, raf: 0, at: 0 };
+  const dropGlide = () => { cancelAnimationFrame(glide.raf); glide.raf = 0; };
+  function glideStep() {
+    if (Math.abs(scroll.scrollTop - glide.at) > 1) { glide.raf = 0; return; } // something else moved the page (a new view, a search)
+    const gap = glide.target - glide.pos;
+    glide.pos = Math.abs(gap) < 0.4 ? glide.target : glide.pos + gap * SCROLL_EASE; // kept as a fraction: scrollTop itself rounds
+    scroll.scrollTop = glide.pos;
+    glide.at = scroll.scrollTop;
+    glide.raf = glide.pos === glide.target ? 0 : requestAnimationFrame(glideStep);
+  }
+  // An element under the pointer that can still scroll the way the wheel is going.
+  function scrollsInside(el, dy) {
+    for (; el && el !== scroll; el = el.parentElement) {
+      if (el.scrollHeight <= el.clientHeight + 1 || !/auto|scroll/.test(getComputedStyle(el).overflowY)) continue;
+      if (dy < 0 ? el.scrollTop > 0 : el.scrollTop + el.clientHeight < el.scrollHeight - 1) return true;
+    }
+    return false;
+  }
+  scroll.addEventListener('wheel', (e) => {
+    if (reduceMotion.matches || e.ctrlKey || scrollsInside(e.target, e.deltaY)) return; // ctrl+wheel = pinch zoom
+    e.preventDefault();
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? scroll.clientHeight : 1; // lines / pages → px
+    if (!glide.raf) glide.pos = glide.target = glide.at = scroll.scrollTop;
+    const max = scroll.scrollHeight - scroll.clientHeight;
+    glide.target = Math.max(0, Math.min(max, glide.target + e.deltaY * unit));
+    if (!glide.raf) glide.raf = requestAnimationFrame(glideStep);
+  }, { passive: false });
+  ['touchstart', 'mousedown'].forEach((type) => scroll.addEventListener(type, dropGlide, { passive: true }));
+  window.addEventListener('keydown', dropGlide);
+
   /* ---------- Go ---------- */
 
   load().then(() => { refreshChrome(); route(); });
