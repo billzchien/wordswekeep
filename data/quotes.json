@@ -23,7 +23,8 @@
     "reflection": "Our lives are trivial, but we often give meaning to the meaningless. What unites us is our singular place in the universe. No one can escape it. No one can deny it.",
     "keptBy": null,
     "submittedAt": "2026-06-19T18:28:47",
-    "approvedAt": "2026-06-19T18:28:47"
+    "approvedAt": "2026-06-19T18:28:47",
+    "font": "print"
   },
   {
     "id": 2,
@@ -49,7 +50,8 @@
     "reflection": "People forget failure is necessary to succeed.",
     "keptBy": null,
     "submittedAt": "2026-06-19T18:30:56",
-    "approvedAt": "2026-06-19T18:30:56"
+    "approvedAt": "2026-06-19T18:30:56",
+    "font": "grotesk"
   },
   {
     "id": 3,
@@ -75,7 +77,8 @@
     "reflection": "We must raise the bar for society or be judged for those we leave behind. This is a stark reminder of what it means to exist in a modern society.",
     "keptBy": null,
     "submittedAt": "2026-06-19T18:36:09",
-    "approvedAt": "2026-06-19T18:36:09"
+    "approvedAt": "2026-06-19T18:36:09",
+    "font": "story"
   },
   {
     "id": 4,
@@ -101,7 +104,8 @@
     "reflection": "Life is about the people who took the time to hold the door, listen to a story, or stick their neck out for you.",
     "keptBy": null,
     "submittedAt": "2026-06-19T18:38:28",
-    "approvedAt": "2026-06-19T18:38:28"
+    "approvedAt": "2026-06-19T18:38:28",
+    "font": "poet"
   },
   {
     "id": 5,
@@ -127,7 +131,8 @@
     "reflection": "This is a universal truth that becomes more scary as your perception of time speeds up.",
     "keptBy": null,
     "submittedAt": "2026-06-19T18:42:50",
-    "approvedAt": "2026-06-19T18:42:50"
+    "approvedAt": "2026-06-19T18:42:50",
+    "font": "sketch"
   },
   {
     "id": 6,
@@ -143,18 +148,14 @@
       "nativeName": null,
       "country": "US"
     },
-    "source": {
-      "title": null,
-      "year": null,
-      "kind": null,
-      "link": null
-    },
+    "source": null,
     "context": null,
     "annotations": [],
     "reflection": "To me it represents the need to stay resilient and continue to press forward",
     "keptBy": null,
     "submittedAt": "2026-06-27T10:22:56",
-    "approvedAt": "2026-06-27T10:22:56"
+    "approvedAt": "2026-06-27T10:22:56",
+    "font": "round"
   },
   {
     "id": 7,
@@ -180,7 +181,8 @@
     "reflection": "I love how it illustrates the relationship of god and us, the relationship of work and rest, the relationship of joy and peace. it gives an assurance that god’s hand is in our lives and if we are still at times it will be revealed.",
     "keptBy": "Harbor",
     "submittedAt": "2026-06-27T11:14:12",
-    "approvedAt": "2026-06-27T11:14:12"
+    "approvedAt": "2026-06-27T11:14:12",
+    "font": "rose"
   },
   {
     "id": 8,
@@ -227,7 +229,8 @@
     "reflection": "This is one of the most memorable lines from my middle school Chinese class. Whenever life gets hard, my mind uses this line to remind me that hardship is what makes me stronger, so I keep moving forward.",
     "keptBy": "Bill",
     "submittedAt": "2026-07-07T12:12:48",
-    "approvedAt": "2026-07-07T12:12:48"
+    "approvedAt": "2026-07-07T12:12:48",
+    "font": "print"
   },
   {
     "id": 9,
@@ -253,7 +256,8 @@
     "reflection": "We often chase success defined by others, and lose ourselves in the process. This quote reminds me that clarity comes from turning inward, not outward. It also echoes another idea I carry around — “I am who I think you think I am” — how much of our self-image is shaped by imagining what others think, rather than real self-knowledge.",
     "keptBy": "Bill",
     "submittedAt": "2026-07-07T13:30:05",
-    "approvedAt": "2026-07-07T13:30:05"
+    "approvedAt": "2026-07-07T13:30:05",
+    "font": "author"
   },
   {
     "id": 10,
@@ -279,7 +283,8 @@
     "reflection": "This quote puts life into perspective — it’s the ultimate question: are you satisfied with this version of you? It makes me think about who I can be and who I want to be, as opposed to who I’m expected to be. The only happy path is to stay true and be my own person.",
     "keptBy": "Bill",
     "submittedAt": "2026-07-07T14:05:57",
-    "approvedAt": "2026-07-07T14:05:57"
+    "approvedAt": "2026-07-07T14:05:57",
+    "font": "story"
   },
   {
     "id": 11,
@@ -306,7 +311,8 @@
     "reflection": "I came across this quote right after I learned my green card application had been denied, randomly, after two years of waiting. I was disappointed, angry, and helpless. Then I found this video, and it ignited something in me — to think of solutions, to try again. I have no doubt this setback will eventually lead to many great achievements in my life.",
     "keptBy": "Bill",
     "submittedAt": "2026-07-07T14:39:59",
-    "approvedAt": "2026-07-07T14:39:59"
+    "approvedAt": "2026-07-07T14:39:59",
+    "font": "instrument"
   },
   {
     "id": 12,
@@ -321,18 +327,14 @@
       "nativeName": null,
       "country": "US"
     },
-    "source": {
-      "title": null,
-      "year": null,
-      "kind": null,
-      "link": null
-    },
+    "source": null,
     "context": "My dad’s full of one liners and catch phrases. But this one’s always stuck with me.",
     "annotations": [],
     "reflection": "It reminds me that life’s a journey filled with ups, downs, small victories and unexpected turns. That phase always grounds me, and brings a smile to my face. It reminds me that tomorrow’s a new day, and its all part of the journey.",
     "keptBy": "Katie",
     "submittedAt": "2026-07-10T18:45:08",
-    "approvedAt": "2026-07-10T18:45:08"
+    "approvedAt": "2026-07-10T18:45:08",
+    "font": "round"
   },
   {
     "id": 13,
@@ -347,18 +349,14 @@
       "nativeName": null,
       "country": "CN"
     },
-    "source": {
-      "title": null,
-      "year": null,
-      "kind": null,
-      "link": null
-    },
+    "source": null,
     "context": "Li-Ying Bao was one of my Design professors in college. Anytime she was done critiquing your work, she would smile at you, nod her head and say ‘keep going’.",
     "annotations": [],
     "reflection": "It was her way of telling you, you’re not there yet, but keep going, and you’ll get there. She taught me perseverance through iteration and problem solving. Late at night in the design lab, we’d write it on the whiteboard, and remember to keep going.",
     "keptBy": "Katie",
     "submittedAt": "2026-07-10T18:54:07",
-    "approvedAt": "2026-07-10T18:54:07"
+    "approvedAt": "2026-07-10T18:54:07",
+    "font": "goudy"
   },
   {
     "id": 14,
@@ -416,7 +414,8 @@
     "reflection": "It aligns with another quote that I believe - regret nothing.",
     "keptBy": "Lynn Tian",
     "submittedAt": "2026-07-18T12:15:38",
-    "approvedAt": "2026-07-18T12:15:38"
+    "approvedAt": "2026-07-18T12:15:38",
+    "font": "story"
   },
   {
     "id": 16,
@@ -445,7 +444,8 @@
     "reflection": "It’s so true. It reminds me of my younger self, full of energy and drive, excited for my dreams and future. But as we all learn, life sometimes hits you hard. Still — if we all die one day anyway, it won’t hurt to live a little.",
     "keptBy": "Bill",
     "submittedAt": "2026-07-24T15:47:55",
-    "approvedAt": "2026-07-24T15:47:55"
+    "approvedAt": "2026-07-24T15:47:55",
+    "font": "sketch"
   },
   {
     "id": 17,
@@ -471,7 +471,8 @@
     "reflection": "I hung this quote on my wall. It reminds me that I have the ability to be the change I want to see, and it makes me feel powerful — like I want to get things done. I feel like it also sums up why Beyoncé is as successful as she is.",
     "keptBy": "Bill",
     "submittedAt": "2026-07-24T15:55:33",
-    "approvedAt": "2026-07-24T15:55:33"
+    "approvedAt": "2026-07-24T15:55:33",
+    "font": "round"
   },
   {
     "id": 18,
@@ -486,18 +487,14 @@
       "nativeName": null,
       "country": "TW"
     },
-    "source": {
-      "title": null,
-      "year": null,
-      "kind": null,
-      "link": null
-    },
+    "source": null,
     "context": "As we are busy glued to our computers and screens, “let your dog take you on a walk” is a good reminder to myself that - instead of it feels like a responsibility / chore, it is an invitation, a gift to go outside an breathing fresh air.",
     "annotations": [],
     "reflection": "I have been working from home since 2020, and I’m guilty of never leaving my desk. The WFH is a privilege, but also a logistics challenge to not have separation between work and self. \n\nI used to have this phrase written on a post it, right on my monitor. It’s a little reminder daily that - hey, look up, and look out.",
     "keptBy": "Jess",
     "submittedAt": "2026-07-24T16:13:30",
-    "approvedAt": "2026-07-24T16:13:30"
+    "approvedAt": "2026-07-24T16:13:30",
+    "font": "sketch"
   },
   {
     "id": 19,
@@ -549,7 +546,8 @@
     "reflection": "I came across this quote during the height of the BLM movement. At the time, there was constant bombardment on the news about violence against innocent people. It was easy to tune out and become numb to it. I got this statement tattooed to remind myself to remain impassioned about injustice, even if we feel like it would be easier to tune out.",
     "keptBy": null,
     "submittedAt": "2026-07-25T14:07:26",
-    "approvedAt": "2026-07-25T14:07:26"
+    "approvedAt": "2026-07-25T14:07:26",
+    "font": "round"
   },
   {
     "id": 21,
@@ -565,18 +563,14 @@
       "nativeName": null,
       "country": "US"
     },
-    "source": {
-      "title": null,
-      "year": null,
-      "kind": null,
-      "link": null
-    },
+    "source": null,
     "context": null,
     "annotations": [],
     "reflection": "Creatives are often seen as second rate citizens, expected to be able to handle routines, practices and customs like non creatives would, but fail to see the need for this restriction. Leading to them being excluded form life. Yet, everything non-creative people consume every single day, often for hours, was made by people like this. The quote to me is a help for all creatives stuck in a reality that will destroy them if they can’t find a smart hack to survive it.",
     "keptBy": "Petra Quilitz",
     "submittedAt": "2026-07-27T17:53:06",
-    "approvedAt": "2026-07-27T17:53:06"
+    "approvedAt": "2026-07-27T17:53:06",
+    "font": "author"
   },
   {
     "id": 22,
@@ -591,17 +585,13 @@
       "nativeName": null,
       "country": "US"
     },
-    "source": {
-      "title": null,
-      "year": null,
-      "kind": null,
-      "link": null
-    },
+    "source": null,
     "context": null,
     "annotations": [],
     "reflection": "Besides being a fan of Miles Davis’ work, this quote spoke to me and my approach to my own life and work. Technical skills or doing things by the book can be learnt. Heart, soul, courage, confidence, character, personal touch or emotional intent comes from within.",
     "keptBy": "RR",
     "submittedAt": "2026-08-02T15:44:54",
-    "approvedAt": "2026-08-02T15:44:54"
+    "approvedAt": "2026-08-02T15:44:54",
+    "font": "print"
   }
 ]
