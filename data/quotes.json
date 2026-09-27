@@ -520,7 +520,8 @@
     "reflection": "It’s inspired my drive for not being afraid to challenge myself and try new things, even if it’s risky or scary.",
     "keptBy": "David",
     "submittedAt": "2026-07-24T21:00:22",
-    "approvedAt": "2026-07-24T21:00:22"
+    "approvedAt": "2026-07-24T21:00:22",
+    "font": "goudy"
   },
   {
     "id": 20,
@@ -592,6 +593,6 @@
     "keptBy": "RR",
     "submittedAt": "2026-08-02T15:44:54",
     "approvedAt": "2026-08-02T15:44:54",
-    "font": "print"
+    "font": "instrument"
   }
 ]
