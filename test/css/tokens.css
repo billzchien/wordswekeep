@@ -10,10 +10,10 @@
 
   /* ---------- Color: category palettes (notes mode) ---------- */
   --perspective-bg: #05071f;  --perspective-fg: #dba5ff;
-  --growth-bg:      #1e1812;  --growth-fg:      #f9cd49;
-  --drive-bg:       #230505;  --drive-fg:       #ccdf70;
-  --community-bg:   #141f00;  --community-fg:   #f38284;
-  --romance-bg:     #210726;  --romance-fg:     #f15c5c;
+  --growth-bg:      #1e1212;  --growth-fg:      #f9cd49;
+  --drive-bg:       #000238;  --drive-fg:       #ccdf70;
+  --community-bg:   #141f00;  --community-fg:   #ff859d;
+  --romance-bg:     #3c0001;  --romance-fg:     #ced5ff;
 
   /* ---------- Color: semantic (what components use) ---------- */
   --bg: var(--paper);
