@@ -1,10 +1,11 @@
-/* Words We Keep — the library (admin CMS). Plain JS, no backend yet.
+/* Words We Keep — the library (admin CMS). Plain JS.
    Three lists (Live / Pending / Archive) and an edit / review view, routed by the URL hash:
    #live · #pending · #archive · #edit/<id>. #reset throws the demo data away.
 
-   Data: the live quotes come from data/quotes.json; pending and archived ones are made up here
-   (seed()). Everything the admin does is kept in localStorage (STORE_KEY) so it survives a
-   reload. When the Workers exist, load() / persist() / publish() are the three seams to wire. */
+   Data: served by the library's Worker (workers/admin), everything comes from and goes to its
+   /api (load() / persist() / publish()), behind the login. Opened anywhere else (the staging
+   site, a local preview) it is a demo: the live quotes come from data/quotes.json, pending and
+   archived ones are made up here (seed()) and what the admin does is kept in localStorage. */
 (() => {
   const STORE_KEY = 'wwk-admin-demo';
   const $ = (id) => document.getElementById(id);
@@ -42,11 +43,51 @@
   /* ---------- Data ---------- */
 
   let store = null; // { live: [], pending: [], archive: [], lastPublishedAt, publishDirty }
-  const persist = () => localStorage.setItem(STORE_KEY, JSON.stringify(store));
+  const API = '/api';
+  let remote = false;    // true: the Worker is behind this page
+  let rev = 0;           // the Worker's revision of the store; a save from an older one is refused
+  let known = new Set(); // keys the Worker has; one that is gone from the store was removed for good
+  const allKeys = () => [...store.live, ...store.pending, ...store.archive].map((q) => q.key);
+  const isJSON = (r) => (r.headers.get('Content-Type') || '').includes('json');
+  const call = (path, method = 'GET', body) => fetch(API + path, { method, credentials: 'same-origin', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+  function adopt(s) {
+    rev = s.rev;
+    store = { live: s.live, pending: s.pending, archive: s.archive, lastPublishedAt: s.lastPublishedAt, publishDirty: s.publishDirty };
+    known = new Set(allKeys());
+  }
+  // The store as the Worker has it now took over (it changed on another device): what is on
+  // screen is drawn again from it.
+  function redraw() { if (edit && !findItem(edit.key)) edit = null; if (edit) { refreshChrome(); return; } renderList(); refreshChrome(); route(); }
+
+  // Saving. One request at a time, always the latest store: an action taken while a save is
+  // on its way is sent when that one is back.
+  let saving = null, again = false;
+  function persist() {
+    if (!remote) { localStorage.setItem(STORE_KEY, JSON.stringify(store)); return Promise.resolve(); }
+    if (saving) { again = true; return saving; }
+    saving = send().finally(() => { saving = null; if (again) { again = false; persist(); } });
+    return saving;
+  }
+  async function send() {
+    const keys = new Set(allKeys());
+    let r;
+    try { r = await call('/store', 'PUT', { store, removed: [...known].filter((k) => !keys.has(k)), rev }); } catch (e) { r = null; }
+    if (r && r.ok) { rev = (await r.json()).rev; known = keys; return; }
+    if (r && r.status === 401) { await signIn(); return send(); }
+    if (r && r.status === 409) { adopt((await r.json()).store); redraw(); await ask('The library was changed somewhere else. This is how it stands now.', 'Carry on', 'Close'); return; }
+    if (await ask('That could not be saved.', 'Try again', 'Not yet')) return send();
+  }
   const nowISO = () => new Date().toISOString();
   const daysAgo = (n) => new Date(Date.now() - n * 864e5).toISOString();
 
   async function load() {
+    const r = await call('/store').catch(() => null);
+    if (r && isJSON(r) && (r.ok || r.status === 401)) {
+      remote = true;
+      if (!r.ok) { await signIn(); return load(); }
+      adopt(await r.json());
+      return;
+    }
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) { try { store = JSON.parse(raw); if (store && store.live && store.live.every((q) => q.key)) return; } catch (e) { /* fall through */ } } // no keys = an older demo store: re-seed
     const res = await fetch('../../data/quotes.json');
@@ -102,7 +143,7 @@
   let tab = 'live';
   function route() {
     const h = location.hash.slice(1) || 'live';
-    if (h === 'reset') { localStorage.removeItem(STORE_KEY); location.hash = '#live'; location.reload(); return; }
+    if (h === 'reset' && !remote) { localStorage.removeItem(STORE_KEY); location.hash = '#live'; location.reload(); return; }
     const [view, id] = h.split('/');
     if (view === 'edit' && findItem(id)) openEdit(id);
     else showList(view in TABS ? view : 'live');
@@ -250,9 +291,20 @@
     store.publishDirty = true;
     persist();
   }
-  // Publish: the live list becomes the site. Here it only stamps the dates and logs what would
-  // be sent to the Worker.
-  function publish() {
+  // Publish: the live list becomes the site — the Worker commits it as data/quotes.json. In
+  // the demo it only stamps the dates and logs what would be sent.
+  async function publish() {
+    if (remote) {
+      $('publishBtn').disabled = true;
+      await persist(); // whatever is still on its way goes first
+      let r;
+      try { r = await call('/publish', 'POST', { rev }); } catch (e) { r = null; }
+      if (r && r.status === 401) { await signIn(); return publish(); }
+      if (r && (r.ok || r.status === 409)) adopt((await r.json()).store);
+      else await ask('That could not be published. Nothing on the site changed.', 'Close', 'Not yet');
+      renderList(); refreshChrome();
+      return;
+    }
     const t = nowISO();
     store.live.forEach((q) => { if (q.dirty) { q.dirty = false; q.approvedAt = q.approvedAt || t; q.publishedAt = t; } });
     store.publishDirty = false; store.lastPublishedAt = t;
@@ -265,6 +317,37 @@
     if (!(await ask('Are you sure you want to remove all quotes?', 'Remove', 'Not yet'))) return;
     store.archive = []; persist(); renderList(); refreshChrome();
   });
+
+  /* ---------- Login ---------- */
+
+  // Shows the login over the library; done once the Worker took the password. The password
+  // goes to the Worker and nowhere else; what comes back is a cookie this script cannot read.
+  let signingIn = null;
+  function signIn() {
+    if (signingIn) return signingIn;
+    const login = $('login'), field = $('fPassword'), wrap = $('fPasswordWrap');
+    const warn = (text) => { field.value = ''; field.placeholder = text; wrap.classList.add('is-warn'); $('enterBtn').disabled = false; field.focus({ preventScroll: true }); };
+    login.hidden = false; login.classList.remove('is-out');
+    field.value = ''; field.placeholder = 'Password'; wrap.classList.remove('is-warn');
+    field.focus({ preventScroll: true });
+    signingIn = new Promise((done) => {
+      field.oninput = () => { if (wrap.classList.contains('is-warn')) { wrap.classList.remove('is-warn'); field.placeholder = 'Password'; } };
+      login.onsubmit = async (e) => {
+        e.preventDefault();
+        if (!field.value) { warn('Password'); return; }
+        $('enterBtn').disabled = true;
+        let r;
+        try { r = await call('/login', 'POST', { password: field.value }); } catch (err) { r = null; }
+        if (!r || !r.ok) { warn(!r ? 'No connection' : r.status === 429 ? 'Too many tries, wait 15 minutes' : 'Wrong password'); return; }
+        field.value = ''; $('enterBtn').disabled = false; field.blur();
+        login.classList.add('is-out');
+        setTimeout(() => { login.hidden = true; }, ms(300));
+        signingIn = null;
+        done();
+      };
+    });
+    return signingIn;
+  }
 
   /* ---------- Pop-up ---------- */
 

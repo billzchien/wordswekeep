@@ -8,7 +8,7 @@
    no backend yet: submit() logs the entry and keeps it in localStorage (`wwk-pending`) — wire
    SUBMIT_URL to Worker #1 when it exists. */
 (() => {
-  const SUBMIT_URL = ''; // Cloudflare Worker #1 endpoint — empty = offline (localStorage + console)
+  const SUBMIT_URL = 'https://api.wordswekeep.org/'; // Cloudflare Worker #1 (workers/submit); '' = offline (localStorage + console)
 
   const CATEGORIES = [
     { key: 'perspective', name: 'Perspective', desc: 'The lens we bring to life. Outlooks, values, and the search for meaning.' },

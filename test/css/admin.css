@@ -257,3 +257,22 @@
 @media (prefers-reduced-motion: reduce) {
   .tab, .page, .row-inner, .row-swipe, .c-act { transition: none; }
 }
+
+/* ---------- Login (Figma 299:1030) ----------
+   A sheet of paper over the library: the mark, the title centred on the top line, and the
+   password + Enter (296 + 4 + 100, 40 high) in the middle of the window. */
+:root { --login-ms: 300ms; }
+.login { position: absolute; inset: 0; z-index: 60; background: var(--paper); transition: opacity var(--login-ms) var(--ease); }
+.login.is-out { opacity: 0; pointer-events: none; }
+.login-title { top: var(--line-top); left: 50%; transform: translateX(-50%); white-space: nowrap; }
+.login-row {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: calc(400 * var(--u)); max-width: calc(100% - 2 * var(--m));
+  display: flex; align-items: flex-start; gap: calc(4 * var(--u));
+}
+.login-row .fw { flex: 1 1 0; min-width: 0; }
+.login-row .btn { flex: none; width: auto; min-width: calc(100 * var(--u)); }
+@media (prefers-reduced-motion: reduce) { .login { transition: none; } }
+/* The login's field and button are the public form's size (48 on desktop, 40 on tablet / phone), not the edit view's 40. */
+.login { --fh: calc(48 * var(--u)); }
+@media (max-width: 1023px) { .login { --fh: 40px; } }
