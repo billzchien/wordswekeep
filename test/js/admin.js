@@ -179,7 +179,7 @@
     pending: [{ c: 'c-num', t: 'Number', short: 'No.', sort: 'id' }, { c: 'c-date', t: 'Date submitted', sort: 'submittedAt' }, { c: 'c-cat', t: 'Category' }, { c: 'c-quote', t: 'Quote', count: true }, { c: 'c-act', t: '' }],
     archive: [{ c: 'c-date', t: 'Date archived', sort: 'archivedAt' }, { c: 'c-cat', t: 'Category' }, { c: 'c-quote', t: 'Quote', count: true }, { c: 'c-act', t: '' }],
   };
-  const sortState = { live: { key: 'id', dir: 1 }, pending: { key: 'id', dir: 1 }, archive: { key: 'archivedAt', dir: -1 } };
+  const sortState = { live: { key: 'id', dir: -1 }, pending: { key: 'id', dir: -1 }, archive: { key: 'archivedAt', dir: -1 } }; // every list opens newest first
   const dateOf = { live: (q) => q.dirty ? '' : (q.approvedAt || ''), pending: (q) => q.submittedAt, archive: (q) => q.archivedAt };
 
   function showList(t) {
