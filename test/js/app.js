@@ -224,12 +224,12 @@
         currentWrap().style.visibility = 'hidden';
         c.leaving.dissolve();
       } else c.arriving.pose(b - GROUPS - 1, false);                             // home
-      if (c.n === beats()) setTimeout(end, SCRAP_FADE_MS + 60); // slack: Safari runs the last fade a frame or two late
+      if (c.n === beats()) setTimeout(end, fadeMs() + 60); // slack: Safari runs the last fade a frame or two late
     };
     c.back = () => {
       if (c.n === 0 || c.n > GROUPS) return; // nothing to undo, or past the swap
       c.leaving.pose(--c.n, false);
-      if (c.n === 0) setTimeout(() => { if (c.n === 0) end(); }, SCRAP_FADE_MS + 60); // all home again (and still so): no change after all
+      if (c.n === 0) setTimeout(() => { if (c.n === 0) end(); }, fadeMs() + 60); // all home again (and still so): no change after all
     };
     c.rewind = () => { // before the swap: the groups that are out jump home at the normal pace
       if (c.playing || c.ended || c.n > GROUPS) return;
@@ -450,11 +450,31 @@
   function beatAt(n) {
     const x = n / (2 * GROUPS), p = CUT_SLOWMO;
     const f = x < 0.5 ? 0.5 * Math.pow(2 * x, p) : 1 - 0.5 * Math.pow(2 * (1 - x), p);
-    return Math.round(CUT_MS * f);
+    return Math.round(cutMs() * f);
   }
   const SCRAP_FADE_MS = 100;    // softness of each jump — characters only; the page still cuts
   const SCRAP_SCALE = 1.15;     // scattered scraps are only slightly larger than the landed quote
   const SCRAP_GAP = 14;         // breathing room kept between scraps (px)
+  // Lens depth (a trial: only with ?depth in the address). Each scattered scrap
+  // gets its own distance: the closer it is, the larger and the more out of focus. Home is sharp.
+  // Each knob can be set from the address to try values: ?depth&min=1&max=8&blur=12&alpha=0.05&overlap=1&linger=250&scraps=12&cut=450&fade=150&bias=1.6
+  const depthQuery = new URLSearchParams(location.search);
+  const depthKnob = (name, fallback) => { const v = parseFloat(depthQuery.get(name)); return Number.isFinite(v) ? v : fallback; };
+  const DEPTH_ON = depthQuery.has('depth');
+  const DEPTH_MIN_WIDTH = depthKnob('from', 0);      // narrowest window that gets it (0 = every breakpoint; 1024 = desktop only)
+  const DEPTH_SCALE_MIN = depthKnob('min', 1);       // the farthest scrap: the landed size, sharp
+  const DEPTH_SCALE_MAX = depthKnob('max', 8);     // the closest scrap
+  const DEPTH_BLUR_MAX = depthKnob('blur', 12);      // blur of the closest scrap (px on screen)
+  const DEPTH_ALPHA_MIN = depthKnob('alpha', 0.05); // opacity of the closest scrap; the farthest is 1
+  const DEPTH_OVERLAP = depthKnob('overlap', 1);   // scraps further apart in distance than this (0–1) may overlap; 1 = never
+  const DEPTH_LINGER_MS = depthKnob('linger', 250);  // extra time the closest scrap takes to disappear (the farthest: none)
+  const DEPTH_MAX_SCRAPS = depthKnob('scraps', 12);  // how many scraps scatter at most; the rest fade in place
+  const DEPTH_CUT_MS = depthKnob('cut', 450);        // the whole cut-up with depth (CUT_MS without): beats 75ms apart
+  const DEPTH_FADE_MS = depthKnob('fade', 150);      // softness of each jump with depth (SCRAP_FADE_MS without)
+  const depthActive = () => DEPTH_ON && window.innerWidth >= DEPTH_MIN_WIDTH;
+  const cutMs = () => (depthActive() ? DEPTH_CUT_MS : CUT_MS);
+  const fadeMs = () => (depthActive() ? DEPTH_FADE_MS : SCRAP_FADE_MS);
+  const DEPTH_BIAS = depthKnob('bias', 1.6);         // 1 = distances spread evenly; higher = fewer close ones
   let modeBusy = false;
 
   // A range's first box with ink in it. Safari lists, first, a zero-width box at the end of the
@@ -530,6 +550,29 @@
     app.appendChild(layer);
 
     const vw = window.innerWidth, vh = window.innerHeight, range = document.createRange();
+    const depth = depthActive();
+    // A scrap's distance (0 = farthest, 1 = closest) sets its size, blur and opacity.
+    const setDepth = (p, near) => {
+      p.near = near;
+      p.scale = depth ? DEPTH_SCALE_MIN + (DEPTH_SCALE_MAX - DEPTH_SCALE_MIN) * near : SCRAP_SCALE;
+      p.w = p.w0 * p.scale;
+      p.h = p.h0 * p.scale;
+      p.dx = p.dy = 0;
+      if (!depth) { p.blur = ''; return; }
+      // Measured in the larger type, not worked out: at these sizes a rounding of the line box
+      // is tens of pixels, enough to put one scrap on another.
+      p.el.style.fontSize = `${p.scale.toFixed(3)}em`;
+      range.selectNodeContents(p.el);
+      const r = range.getBoundingClientRect();
+      p.el.style.fontSize = '';
+      if (r.width) { p.w = r.width; p.h = r.height; p.dx = r.left - p.scrap.left; p.dy = r.top - p.scrap.top; }
+      // Never much wider than the window (a phone): it comes further away until it fits.
+      if (p.w > 1.2 * vw && near > 0.02) return setDepth(p, near * 0.8);
+      p.el.style.zIndex = Math.round(near * 1000); // the closer scrap is always in front of the farther
+      // The opacity rides in the filter too, so it stays clear of the jump's own fade.
+      p.blur = near * DEPTH_BLUR_MAX >= 0.25
+        ? `blur(${(near * DEPTH_BLUR_MAX).toFixed(2)}px) opacity(${(1 - (1 - DEPTH_ALPHA_MIN) * near).toFixed(3)})` : '';
+    };
     const pieces = scraps.map((scrap) => {
       const el = document.createElement('span');
       el.className = 'dada-scrap';
@@ -541,7 +584,9 @@
       range.selectNodeContents(el);
       const own = inkRect(range);
       if (own) { el.style.left = `${2 * scrap.left - own.left}px`; el.style.top = `${2 * scrap.top - own.top}px`; }
-      return { el, scrap, w: el.offsetWidth * SCRAP_SCALE, h: el.offsetHeight * SCRAP_SCALE };
+      const p = { el, scrap, w0: el.offsetWidth, h0: el.offsetHeight };
+      setDepth(p, depth ? Math.pow(Math.random(), DEPTH_BIAS) : 0);
+      return p;
     });
 
     // Scatter: spread over the whole screen — and a little past its edges, so some scraps get
@@ -549,20 +594,35 @@
     const taken = [...app.querySelectorAll('.chrome, .n-cats li, .n-from, .n-kept, .n-body, .thumb')]
       .map((el) => el.getBoundingClientRect())
       .filter((r) => r.width && r.height && r.top < vh && r.bottom > 0);
+    // With depth the quote itself is kept clear too: its words are still there, or already
+    // there, while the scraps are out.
+    if (depth) { range.selectNodeContents(quoteEl); taken.push(range.getBoundingClientRect()); }
     const overlap = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left) + SCRAP_GAP)
       * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) + SCRAP_GAP);
-    pieces.forEach((p) => {
+    // With depth, only so many scraps scatter (picked at random); the rest stay where they are
+    // and fade out, or in, on their group's beat.
+    if (depth) pieces.map((_, i) => i).sort(() => Math.random() - 0.5).slice(DEPTH_MAX_SCRAPS).forEach((i) => { pieces[i].stay = true; });
+    // With depth the largest are placed first, and a scrap that finds no clear spot comes
+    // a step further away (smaller, sharper) and tries again.
+    (depth ? [...pieces].sort((a, b) => b.near - a.near) : pieces).forEach((p) => {
+      if (p.stay) return;
       let best = null;
-      for (let attempt = 0; attempt < 60; attempt++) {
+      for (let attempt = 0, round = 0; attempt < (depth ? 120 : 60); attempt++) {
+        if (depth && attempt === 119 && best.cost > 0 && round < 10 && p.near > 0.02) { setDepth(p, p.near * 0.75); best = null; attempt = 0; round++; }
         const left = -0.35 * p.w + Math.random() * (vw - 0.3 * p.w);
         const top = -0.25 * p.h + Math.random() * (vh - 0.5 * p.h);
         const box = { left, top, right: left + p.w, bottom: top + p.h };
-        const cost = taken.reduce((sum, r) => sum + overlap(box, r), 0);
+        // With depth, scraps far apart in distance may pass in front of each other; those at a
+        // similar distance (and the page's own text) are still kept clear.
+        const cost = taken.reduce((sum, r) => sum + (depth && r.near !== undefined && Math.abs(r.near - p.near) > DEPTH_OVERLAP ? 0 : overlap(box, r)), 0);
         if (!best || cost < best.cost) best = { box, cost };
         if (cost === 0) break;
       }
-      taken.push(best.box);
-      p.out = `translate(${best.box.left - p.scrap.left}px, ${best.box.top - p.scrap.top}px) scale(${SCRAP_SCALE})`;
+      taken.push({ ...best.box, near: p.near });
+      // With depth the scrap is set in larger type, not scaled up: a scaled scrap is drawn small
+      // and enlarged, which muddies the blur.
+      p.out = `translate(${best.box.left - p.scrap.left - p.dx}px, ${best.box.top - p.scrap.top - p.dy}px)` + (depth ? '' : ` scale(${p.scale})`);
+      p.size = depth ? `${p.scale.toFixed(3)}em` : '';
     });
 
     // Deal the scraps into groups at random (as evenly as possible).
@@ -572,25 +632,55 @@
     // A jump is still a jump — position changes in one frame — but the characters soften it:
     // the scrap dissolves out of its old spot while it dissolves into the new one.
     const easing = getComputedStyle(document.documentElement).getPropertyValue('--ease').trim() || 'ease';
-    const fade = (el, from, to) => el.animate([{ opacity: from }, { opacity: to }], { duration: SCRAP_FADE_MS, easing, fill: 'forwards' });
+    const fade = (el, from, to, ms = fadeMs()) => el.animate([{ opacity: from }, { opacity: to }], { duration: ms, easing, fill: 'forwards' });
+    // With depth, a scattered scrap takes longer to go the closer (more blurred) it is.
+    const leaveMs = (p) => fadeMs() + (depth && p.isOut ? Math.round(p.near * DEPTH_LINGER_MS) : 0);
     // A scrap that has finished fading in goes back to being plain text: while the (filled)
     // animation is attached, Safari keeps the scrap on a composited layer and shows a reused,
     // scaled, clipped raster of it — lighter and softer than the real quote, which then
     // "snapped" crisp at the handover. Cancelling the finished animation drops the layer.
-    const settle = (el) => setTimeout(() => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = ''; }, SCRAP_FADE_MS + 30);
+    // One settle per scrap, the latest: an earlier one would cut a later fade short (a blink).
+    const settling = new Map();
+    const unsettle = (el) => { clearTimeout(settling.get(el)); settling.delete(el); };
+    const settle = (el) => { unsettle(el); settling.set(el, setTimeout(() => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = ''; }, fadeMs() + 30)); };
     const fadeIn = (el) => { fade(el, 0, 1); settle(el); };
+    // Where a scrap's fade has got to: what leaves starts from there, not from full strength.
+    const shown = (el) => { const o = parseFloat(getComputedStyle(el).opacity); return Number.isFinite(o) ? o : 1; };
+    // Safari draws a filtered scrap on a layer the size of its box and crops what falls outside:
+    // the blur's spread, the italic overhang, the tall letters. A scattered scrap gets a wider
+    // box (padding, with the same negative margin so the glyphs stay where they are).
+    const room = (p, out) => {
+      if (!depth) return;
+      const spread = Math.ceil(p.near * DEPTH_BLUR_MAX * 3);
+      p.el.style.padding = out ? `calc(0.4em + ${spread}px) calc(0.5em + ${spread}px)` : '';
+      p.el.style.margin = out ? `calc(-0.4em - ${spread}px) calc(-0.5em - ${spread}px)` : '';
+    };
     const pose = (group, out) => pieces.forEach((p) => {
       if (p.group !== group) return;
+      if (p.stay) {
+        if (out) { const from = shown(p.el); unsettle(p.el); p.el.getAnimations().forEach((a) => a.cancel()); fade(p.el, from, 0); p.el.style.opacity = '0'; }
+        else { p.el.style.opacity = ''; fadeIn(p.el); }
+        return;
+      }
       const ghost = p.el.cloneNode(true);
+      const from = depth ? shown(p.el) : 1;
       ghost.getAnimations?.().forEach((a) => a.cancel());
       layer.appendChild(ghost);
-      fade(ghost, 1, 0);
-      setTimeout(() => ghost.remove(), SCRAP_FADE_MS + 30); // timers, not onfinish: animations stall in hidden tabs
+      fade(ghost, from, 0, leaveMs(p));
+      setTimeout(() => ghost.remove(), leaveMs(p) + 30); // timers, not onfinish: animations stall in hidden tabs
       p.el.style.transform = out ? p.out : 'none';
+      p.el.style.filter = out ? p.blur : '';
+      p.el.style.fontSize = out ? p.size : '';
+      room(p, out);
+      p.isOut = out;
       fadeIn(p.el);
     });
-    if (startOut) pieces.forEach((p) => { p.el.style.transform = p.out; fadeIn(p.el); });
-    const dissolve = () => { fade(layer, 1, 0); setTimeout(() => layer.remove(), SCRAP_FADE_MS + 30); };
+    if (startOut) pieces.forEach((p) => { if (p.stay) { p.el.style.opacity = '0'; return; } p.el.style.transform = p.out; p.el.style.filter = p.blur; p.el.style.fontSize = p.size; room(p, true); p.isOut = true; fadeIn(p.el); });
+    const dissolve = () => {
+      if (!depth) { fade(layer, 1, 0); setTimeout(() => layer.remove(), fadeMs() + 30); return; }
+      pieces.forEach((p) => { const from = shown(p.el); unsettle(p.el); p.el.getAnimations().forEach((a) => a.cancel()); fade(p.el, from, 0, leaveMs(p)); });
+      setTimeout(() => layer.remove(), fadeMs() + DEPTH_LINGER_MS + 30);
+    };
     return { layer, pose, dissolve };
   }
 
@@ -1669,8 +1759,10 @@
       if (state.mode === 'notes') return setMode('main');
     }
     if (state.mode !== 'main' || !$('menu').hidden) return;
-    if (['ArrowDown', 'ArrowRight', 'PageDown', ' ', 'j'].includes(e.key)) { e.preventDefault(); go(1); }
-    if (['ArrowUp', 'ArrowLeft', 'PageUp', 'k'].includes(e.key)) { e.preventDefault(); go(-1); }
+    // With depth, a held key changes the quote once: chained cut-ups are a long run of flashes.
+    const held = e.repeat && depthActive();
+    if (['ArrowDown', 'ArrowRight', 'PageDown', ' ', 'j'].includes(e.key)) { e.preventDefault(); if (!held) go(1); }
+    if (['ArrowUp', 'ArrowLeft', 'PageUp', 'k'].includes(e.key)) { e.preventDefault(); if (!held) go(-1); }
   });
 
   let relayoutTimer;
