@@ -93,7 +93,12 @@ ul { list-style: none; }
 
 .chrome { position: absolute; z-index: 20; }
 .menu-btn  { top: var(--mark-top); left: var(--mark-top); } /* the same distance from the top and the left edge */ /* centred on the caps of No. / Notes; same spot as the first category mark in notes mode */
-.number    { top: calc(20px - var(--cap-offset)); left: var(--col2); white-space: nowrap; font-feature-settings: var(--numeral-features); } /* caps on the mark's top edge; lining figures */
+.number    { top: calc(20px - var(--cap-offset)); left: var(--col2); white-space: nowrap; font-feature-settings: "ss01" 1, "ss07" 1, "lnum" 1, "pnum" 1; } /* caps on the mark's top edge; lining figures, proportional: tabular ones (--numeral-features) set a gap around the 1 of "16" */
+/* The number rolls on a change (js/app.js → setNumber): a box one line high, the old and the next
+   number stacked in it. Padding (and the same negative margin) keeps the crop off the digits' sides. */
+.num { display: inline-block; vertical-align: top; height: calc(var(--text-size) * var(--text-leading)); overflow: hidden; padding: 0 2px; margin: 0 -2px; }
+.num-roll { display: block; }
+.num-roll > span { display: block; height: calc(var(--text-size) * var(--text-leading)); }
 .notes-btn { top: calc(20px - var(--cap-offset)); right: var(--m); }
 .add-btn   { left: var(--m); bottom: 20px; }
 .arrows    { right: 16px; bottom: 16px; display: flex; }

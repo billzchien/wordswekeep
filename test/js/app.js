@@ -239,6 +239,25 @@
 
   /* ---------- Deck ---------- */
 
+  // "No. 8": on a change the number rolls like the form's pager. The box shows one line; the old
+  // number slides out of it and the next slides in, upward going forward, downward going back.
+  const NUMBER_MS = 300;
+  let numberDir = 0, numberShown = null, numberTimer = 0;
+  function setNumber(id) {
+    const el = $('number'), dir = numberDir, old = numberShown;
+    numberDir = 0;
+    numberShown = id;
+    clearTimeout(numberTimer);
+    const still = () => { el.innerHTML = `No. <span class="num"><span class="num-roll"><span>${id}</span></span></span>`; };
+    if (!dir || old === null || old === id || reduceMotion.matches) return still();
+    const lines = dir > 0 ? [old, id] : [id, old];
+    el.innerHTML = `No. <span class="num"><span class="num-roll">${lines.map((n) => `<span${n === id ? '' : ' aria-hidden="true"'}>${n}</span>`).join('')}</span></span>`;
+    const easing = getComputedStyle(document.documentElement).getPropertyValue('--ease').trim() || 'ease';
+    const up = 'translateY(-50%)', rest = 'translateY(0)'; // half the roll = one line
+    el.querySelector('.num-roll').animate([{ transform: dir > 0 ? rest : up }, { transform: dir > 0 ? up : rest }], { duration: NUMBER_MS, easing, fill: 'forwards' });
+    numberTimer = setTimeout(still, NUMBER_MS + 30); // a timer, not onfinish: animations stall in hidden tabs
+  }
+
   function renderDeck() {
     track.style.transition = 'none';
     track.style.transform = '';
@@ -246,7 +265,7 @@
       `<div class="slide" data-pos="${pos}"${pos ? ' aria-hidden="true"' : ''}><div class="q-wrap">${
         quoteHTML(at(pos), { original: pos === 0 && state.original })}</div></div>`).join('');
     const q = current();
-    $('number').textContent = `No. ${q.id}`;
+    setNumber(q.id);
     const video = videoOf(q);
     if (video) { const warm = new Image(); warm.src = `https://i.ytimg.com/vi/${video.id}/hq720.jpg`; } // so the notes thumbnail never pops in
     history.replaceState(null, '', `#${q.id}`);
@@ -255,6 +274,7 @@
   const advance = (dir) => {
     state.idx = mod(state.idx + dir, state.list.length);
     state.original = false;
+    numberDir = dir;
     renderDeck();
   };
   const currentWrap = () => track.querySelector('.slide[data-pos="0"] .q-wrap');
