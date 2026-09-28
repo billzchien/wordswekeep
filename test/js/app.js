@@ -218,7 +218,38 @@
     lockedLines = { text, broken: out };
   }
 
-  function quoteHTML(q, { original = false, withAnnotations = false, keepLines = false } = {}) {
+  // A short quote is meant to sit on one or two lines. Where it takes more — a wide face, a
+  // narrow window — it is set in the medium size instead (and takes the medium quote's box).
+  // Measured on the rendered quote, so it follows the face, the window and the language.
+  const SHORT_MAX_LINES = 2;
+  function lineCount(quoteEl) {
+    let lines = 0, last = null;
+    measureWords(quoteEl).forEach((w) => { if (last === null || Math.abs(w.top - last) > 4) { lines++; last = w.top; } });
+    return lines;
+  }
+  function fitTier(quoteEl) {
+    if (!quoteEl || !quoteEl.hasAttribute('data-short')) return;
+    quoteEl.dataset.tier = 'l';
+    if (lineCount(quoteEl) > SHORT_MAX_LINES) quoteEl.dataset.tier = 'm';
+  }
+  const fitDeck = () => track.querySelectorAll('.quote[data-short]').forEach(fitTier);
+  // The size the main screen shows this quote in (the notes quote takes the same): tried on a
+  // hidden copy in the main quote's place.
+  function fittedTier(q, original) {
+    const wrap = currentWrap();
+    if (!wrap) return null;
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute;left:0;top:0;width:100%;visibility:hidden;pointer-events:none';
+    probe.innerHTML = quoteHTML(q, { original });
+    wrap.appendChild(probe);
+    const el = probe.querySelector('.quote');
+    fitTier(el);
+    const t = el.dataset.tier;
+    probe.remove();
+    return t;
+  }
+
+  function quoteHTML(q, { original = false, withAnnotations = false, keepLines = false, tierAs = null } = {}) {
     const orig = q.originalLanguage;
     const showOrig = original && orig;
     const size = tier(showOrig ? orig.text : q.text);
@@ -234,7 +265,7 @@
       ? `<button class="lang" data-lang aria-pressed="${showOrig ? 'true' : 'false'}" aria-label="${showOrig ? 'Show English' : 'Show original language'}">${showOrig ? 'EN' : esc(LANG_GLYPH[orig.lang] || orig.lang.toUpperCase())}</button>`
       : '';
     const nativeAttr = showOrig ? ` data-native lang="${esc(orig.lang)}"` : '';
-    return `${langBtn}<blockquote class="quote${locked ? ' quote--locked' : ''}" data-tier="${size}" data-font="${font}"${nativeAttr}>${body}</blockquote>`;
+    return `${langBtn}<blockquote class="quote${locked ? ' quote--locked' : ''}" data-tier="${tierAs || size}"${size === 'l' ? ' data-short' : ''} data-font="${font}"${nativeAttr}>${body}</blockquote>`;
   }
 
   /* ---------- Deck ---------- */
@@ -264,6 +295,7 @@
     track.innerHTML = [-1, 0, 1].map((pos) =>
       `<div class="slide" data-pos="${pos}"${pos ? ' aria-hidden="true"' : ''}><div class="q-wrap">${
         quoteHTML(at(pos), { original: pos === 0 && state.original })}</div></div>`).join('');
+    fitDeck();
     const q = current();
     setNumber(q.id);
     const video = videoOf(q);
@@ -486,14 +518,15 @@
 
   function renderNotesQuote() {
     const wrap = $('nQuoteWrap');
-    wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true, keepLines: true });
+    const tierAs = fittedTier(current(), state.original);
+    wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true, keepLines: true, tierAs });
     // Belt and braces: if a locked line does not fit here after all (it would wrap into an
     // orphan), let the quote wrap naturally rather than show a broken line.
     const locked = wrap.querySelector('.quote--locked');
     if (locked) {
       const wanted = locked.textContent.split('\n').length;
       const got = new Set(measureWords(locked).map((w) => Math.round(w.top))).size;
-      if (got !== wanted) wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true });
+      if (got !== wanted) wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true, tierAs });
     }
     wrap.classList.toggle('has-lang', !!current().originalLanguage);
     layoutNotes();
@@ -646,8 +679,11 @@
       if (p.w > 1.2 * vw && near > 0.02) return setDepth(p, near * 0.8);
       p.el.style.zIndex = Math.round(near * 1000); // the closer scrap is always in front of the farther
       // The opacity rides in the filter too, so it stays clear of the jump's own fade.
-      p.blur = near * DEPTH_BLUR_MAX >= 0.25
-        ? `blur(${(near * DEPTH_BLUR_MAX).toFixed(2)}px) opacity(${(1 - (1 - DEPTH_ALPHA_MIN) * near).toFixed(3)})` : '';
+      // Whole pixels: with a fractional radius Safari (iOS) leaves a row of the layer unpainted,
+      // which shows as a pink hairline along the scrap's top edge.
+      p.blurPx = Math.round(near * DEPTH_BLUR_MAX);
+      p.blur = p.blurPx >= 1
+        ? `blur(${p.blurPx}px) opacity(${(1 - (1 - DEPTH_ALPHA_MIN) * near).toFixed(3)})` : '';
     };
     const pieces = scraps.map((scrap) => {
       const el = document.createElement('span');
@@ -696,7 +732,7 @@
       taken.push(best.box);
       // The scrap is set in larger type, not scaled up: a scaled scrap is drawn small
       // and enlarged, which muddies the blur.
-      p.out = `translate(${best.box.left - p.scrap.left - p.dx}px, ${best.box.top - p.scrap.top - p.dy}px)`;
+      p.out = `translate(${Math.round(best.box.left - p.scrap.left - p.dx)}px, ${Math.round(best.box.top - p.scrap.top - p.dy)}px)`; // whole pixels (see the blur)
       p.size = `${p.scale.toFixed(3)}em`;
     });
 
@@ -726,8 +762,11 @@
     // box (padding, with the same negative margin so the glyphs stay where they are).
     const room = (p, out) => {
       const spread = Math.ceil(p.near * DEPTH_BLUR_MAX * 3);
-      p.el.style.padding = out ? `calc(0.4em + ${spread}px) calc(0.5em + ${spread}px)` : '';
-      p.el.style.margin = out ? `calc(-0.4em - ${spread}px) calc(-0.5em - ${spread}px)` : '';
+      p.el.style.padding = out ? `calc(var(--ink-y) + ${spread}px) calc(var(--ink-x) + ${spread}px)` : ''; // the letters' own reach (app.css) plus the blur's
+      p.el.style.margin = out ? `calc(-1 * var(--ink-y) - ${spread}px) calc(-1 * var(--ink-x) - ${spread}px)` : '';
+      // The outermost pixels of a filtered layer are where Safari's pink hairline is drawn:
+      // they are cut away (nothing of the scrap reaches that far).
+      p.el.style.clipPath = out && p.blur ? 'inset(2px)' : '';
     };
     const pose = (group, out) => pieces.forEach((p) => {
       if (p.group !== group) return;
@@ -1090,7 +1129,12 @@
 
       // Start posed exactly on the notes quote, set off when the edge reaches it.
       const lift = Math.round(easeTimeFor(Math.min(1, Math.max(0, from.top / window.innerHeight)), dropCurve) * REVEAL_MS);
-      float.style.transformOrigin = `${getComputedStyle(float).paddingLeft} 0`; // the text's corner (the layer is wider than the text: app.css, --overhang)
+      // Room for the letters' ink on the layer (app.css, --ink-x / --ink-y), at the larger of the two sizes.
+      const em = Math.max(fromSize, parseFloat(cs.fontSize));
+      float.style.setProperty('--overhang', `${Math.ceil(0.8 * em)}px`);
+      float.style.setProperty('--overhang-y', `${Math.ceil(0.5 * em)}px`);
+      const pad = getComputedStyle(float);
+      float.style.transformOrigin = `${pad.paddingLeft} ${pad.paddingTop}`; // the text's corner (the layer is larger than the text)
       float.style.scale = fromSize / parseFloat(cs.fontSize);
       float.style.translate = `${from.left - to.left}px ${from.top - to.top}px`;
       float.getBoundingClientRect(); // commit the start pose
@@ -1272,7 +1316,8 @@
     ghost.setAttribute('aria-hidden', 'true');
     Object.assign(ghost.style, { left: `${old.offsetLeft}px`, top: `${old.offsetTop}px`, width: `${old.offsetWidth}px` });
     // …while the incoming text takes its real place underneath.
-    wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: inNotes });
+    wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: inNotes, tierAs: inNotes ? fittedTier(current(), state.original) : null });
+    if (!inNotes) fitTier(wrap.querySelector('.quote'));
     wrap.appendChild(ghost);
     wrap.classList.add('is-typing');
 
@@ -1853,6 +1898,7 @@
     // under the notes), so the two never disagree after a resize — now, and again once fluid
     // type has settled.
     const relock = () => {
+      if (!state.animating && !modeBusy && !langBusy) fitDeck(); // a short quote's size follows the window
       if (!$('menu').hidden) updateMenuPreview(); // the description's place depends on the breakpoint
       if (state.mode === 'notes' && !modeBusy && !langBusy) {
         lockLines(track.querySelector('.slide[data-pos="0"] .quote'));
@@ -1865,6 +1911,9 @@
     relayoutTimer = setTimeout(relock, 200);
   });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutNotes);
+  // A face that arrives late (the next quote's, fetched as it is first shown) can change how
+  // many lines a short quote takes.
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', () => { if (!state.animating && !modeBusy && !langBusy && !app.classList.contains('is-typing')) fitDeck(); });
   document.addEventListener('visibilitychange', layoutNotes); // a hidden tab gets no resize events
   // The pinned quote can change height without a window resize (fluid type, fonts, language toggle).
   if (typeof ResizeObserver === 'function') new ResizeObserver(layoutNotes).observe($('nQuoteWrap'));
@@ -1976,6 +2025,7 @@
     ]);
     ready.then(() => requestAnimationFrame(() => {
       if (currentWrap() !== wrap) { done(); return; } // the deck was rebuilt meanwhile
+      fitDeck(); // the face is in now: a short quote that takes three lines goes down a size before it is typed
       const letters = measureLetters(quoteEl);
       const cs = getComputedStyle(quoteEl);
       const layer = document.createElement('div');

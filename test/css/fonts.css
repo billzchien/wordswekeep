@@ -46,7 +46,7 @@
 [data-font="round"][data-tier="s"],
 [data-font="round"][data-tier="xs"] { --qf-scale: 0.85; }
 
-[data-font="poet"]    { --qf-family: 'Poet', var(--native-serif);    --qf-style: normal; --qf-leading: 1.2; }
+[data-font="poet"]    { --qf-family: 'Poet', var(--native-serif);    --qf-style: normal; --qf-leading: 1.1; --qf-tracking: 0.05em; } /* Bill, 2026-09-27 (the boards drew 1.2 and 0) */
 [data-font="poet"][data-tier="l"]  { --qf-scale: 1.875; }     /* 120 / 64 */
 [data-font="poet"][data-tier="m"]  { --qf-scale: 1.5; }       /* 72 / 48 */
 [data-font="poet"][data-tier="s"],
