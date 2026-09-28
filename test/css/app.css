@@ -136,7 +136,7 @@ ul { list-style: none; }
 /* iOS crops a composited layer at its box, and an italic capital (J, f) hangs out of it to the
    left: the layer is --overhang wider on both sides (js/app.js puts the transform origin back on
    the text's corner). */
-.quote-float { position: absolute; will-change: translate, scale; --overhang: 24px; box-sizing: content-box; padding: 0 var(--overhang); margin: 0 calc(-1 * var(--overhang)); }
+.quote-float { position: absolute; will-change: translate, scale; --overhang: 24px; --overhang-y: 0px; box-sizing: content-box; padding: var(--overhang-y) var(--overhang); margin: calc(-1 * var(--overhang-y)) calc(-1 * var(--overhang)); } /* js sets both from the quote's size (--ink-x, --ink-y) */
 
 /* Scanner head: sits with its bottom on the dropping edge (moved by js with a transform).
    The "glow" is real, not painted on: a band above the edge blurs and brightens the content it
@@ -175,7 +175,7 @@ ul { list-style: none; }
 
 /* The quote's line-by-line stand-in during the scan (js/app.js → scanQuoteLines). */
 .quote.quote-lines { position: absolute; margin: 0; max-width: none; pointer-events: none; white-space: nowrap; }
-.quote-line { position: absolute; left: 0; top: 0; display: block; padding: 0.15em 0.3em; margin: -0.15em -0.3em; transform-origin: 0.3em 0.15em; will-change: transform; } /* the padding: room for the italic overhang inside the layer (iOS crops a layer at its box); origin on the text's corner */
+.quote-line { position: absolute; left: 0; top: 0; display: block; padding: var(--ink-y) var(--ink-x); margin: calc(-1 * var(--ink-y)) calc(-1 * var(--ink-x)); transform-origin: var(--ink-x) var(--ink-y); will-change: transform; } /* the padding: room for the italic overhang inside the layer (iOS crops a layer at its box); origin on the text's corner */
 
 /* Afterglow patches (one per scanned item), behind the notes content. Opacity-only animation. */
 .scan-glows { position: absolute; left: 0; top: 0; width: 100%; height: 0; z-index: 0; pointer-events: none; }
@@ -190,16 +190,25 @@ ul { list-style: none; }
 
 .app.is-dim .notes-btn { opacity: 0; pointer-events: none; }
 
+/* How far a letter's ink may reach outside its box, in em of the quote's size: every copy of
+   the quote that moves or fades on a layer of its own (scraps, typed letters, the notes
+   stand-in's lines, the travelling quote) is padded by this much, or Safari crops the ink at
+   the box. Measured on the faces (2026-09-27): Rose reaches 0.74 right, 0.50 left, 0.47 below;
+   Author 0.36 below, 0.16 above; Story and Print 0.6 right. (Was 0.3 / 0.15, for an italic
+   capital's overhang only.) */
+:root { --ink-x: 0.8em; --ink-y: 0.5em; }
+
 /* Mode change: the quote cut into scraps (built in js/app.js → dadaQuote). */
 .dada { position: absolute; inset: 0; z-index: 15; overflow: hidden; pointer-events: none; font-feature-settings: normal; } /* js copies the quote's face onto it, features included */
 .dada-scrap {
   position: absolute;
   white-space: nowrap;
   transform-origin: 0 0;
-  /* Room for italic overhang: while a scrap fades it is a composited layer the size of its box,
-     and iOS clips the glyphs at that box. The negative margin keeps the glyphs where they are. */
-  padding: 0.15em 0.3em;
-  margin: -0.15em -0.3em;
+  /* Room for the letters' overhang: while a scrap fades it is a composited layer the size of
+     its box, and Safari clips the glyphs at that box. The negative margin keeps the glyphs
+     where they are. */
+  padding: var(--ink-y) var(--ink-x);
+  margin: calc(-1 * var(--ink-y)) calc(-1 * var(--ink-x));
 }
 
 /* ---------- Deck (main) ---------- */

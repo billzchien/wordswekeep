@@ -810,8 +810,21 @@
     const text = key === 'poet' ? edit.draft.text.replace(/…/g, '...') : edit.draft.text; // Poet has no ellipsis
     $('fontStage').innerHTML = `<blockquote class="quote" data-tier="${t}" data-font="${esc(key)}">${esc(noOrphans(text.trim()))}</blockquote>`;
     sizeFont();
+    fitFont();
   }
-  function sizeFont() { const w = $('fontView').clientWidth, stage = $('fontStage').offsetWidth; if (w && stage) $('fontStage').style.setProperty('--s', (w / stage).toFixed(4)); } // the stage's own width changes with the breakpoint (css/admin.css)
+  // As in the archive (js/app.js → fitTier): a short quote that takes more than two lines is
+  // set in the medium size. Counted on the preview itself, and again when its face has loaded.
+  function fitFont() {
+    const q = $('fontStage').querySelector('.quote');
+    if (!q || !edit || tier(edit.draft.text) !== 'l' || !q.firstChild) return;
+    q.dataset.tier = 'l';
+    const r = document.createRange(); r.selectNodeContents(q);
+    let lines = 0, last = null;
+    [...r.getClientRects()].filter((b) => b.width > 0).forEach((b) => { if (last === null || Math.abs(b.top - last) > b.height / 2) { lines++; last = b.top; } });
+    if (lines > 2) q.dataset.tier = 'm';
+  }
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', fitFont);
+  function sizeFont() { const w = $('fontView').clientWidth, stage = $('fontStage').offsetWidth; if (w && stage) $('fontStage').style.setProperty('--s', (w / stage).toFixed(4)); fitFont(); } // the stage's own width changes with the breakpoint (css/admin.css)
   if (typeof ResizeObserver === 'function') new ResizeObserver(sizeFont).observe($('fontView'));
   window.addEventListener('resize', sizeFont);
   // A local preview has no fonts Worker: the same faces, from the project's own folder.
