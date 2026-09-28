@@ -205,6 +205,9 @@
     archive: [{ c: 'c-date', t: 'Date archived', sort: 'archivedAt' }, { c: 'c-cat', t: 'Category' }, { c: 'c-quote', t: 'Quote', count: true }, { c: 'c-act', t: '' }],
   };
   const sortState = { live: { key: 'id', dir: -1 }, pending: { key: 'id', dir: -1 }, archive: { key: 'archivedAt', dir: -1 } }; // every list opens newest first
+  // A live quote waiting for Publish: "Updated" if the site shows an older version of it, "Not
+  // published" if the site does not show it at all (newly approved or put back).
+  const unpublished = (q) => (q.dirty ? (q.updated ? 'Updated' : 'Not published') : '');
   const dateOf = { live: (q) => q.dirty ? '' : (q.approvedAt || ''), pending: (q) => q.submittedAt, archive: (q) => q.archivedAt };
 
   function showList(t) {
@@ -237,13 +240,13 @@
   // number (from its first digit: "1" finds 1, 10, 11…), as a whole part of its date (9 or 09
   // finds September and the 9th) and at the start of a word; anything with a "/" in the date as
   // shown (09/26, 9/26/26); anything else anywhere in the words: the quote, its original, the
-  // author, the source, the categories, who kept it, and "Not published".
+  // author, the source, the categories, who kept it, and "Updated" / "Not published".
   const SEARCH_TABS = { live: 1, pending: 1 };
   let query = '';
   const fold_ = (s) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').toLowerCase().trim();
   function hit(q, t, w) {
     const date = t === 'live' && q.dirty ? '' : fmtDate(dateOf[t](q));
-    const words = fold_([q.text, q.originalLanguage && q.originalLanguage.text, q.author && q.author.name, q.author && q.author.nativeName, q.source && q.source.title, catLabel(q.categories), q.keptBy, t === 'live' && q.dirty ? 'Not published' : ''].filter(Boolean).join(' \n '));
+    const words = fold_([q.text, q.originalLanguage && q.originalLanguage.text, q.author && q.author.name, q.author && q.author.nativeName, q.source && q.source.title, catLabel(q.categories), q.keptBy, t === 'live' ? unpublished(q) : ''].filter(Boolean).join(' \n '));
     if (/^\d+$/.test(w)) return String(numberOf(q)).startsWith(w) || date.split('/').some((p) => Number(p) === Number(w)) || new RegExp(`(^|[^\\d])${w}`).test(words);
     if (w.includes('/')) return date.includes(w) || date.replace(/(^|\/)0/g, '$1').includes(w);
     return words.includes(w);
@@ -266,7 +269,7 @@
       <div class="row" data-key="${q.key}" tabindex="0">
         <div class="row-inner">
           <p class="c-num num">${numberOf(q)}</p>
-          <p class="c-date num">${tab === 'live' && q.dirty ? 'Not published' : fmtDate(dateOf[tab](q))}</p>
+          <p class="c-date num">${tab === 'live' && q.dirty ? unpublished(q) : fmtDate(dateOf[tab](q))}</p>
           <p class="c-cat">${esc(catLabel(q.categories))}</p>
           <p class="c-quote">${esc(q.text)}</p>
           <div class="c-act">${acts}</div>
@@ -350,7 +353,7 @@
   function revertItem(key) {
     const f = take(key); if (!f) return;
     const to = f.q.archivedFrom === 'live' ? 'live' : 'pending';
-    const q = { ...f.q }; delete q.archivedAt; delete q.archivedFrom;
+    const q = { ...f.q }; delete q.archivedAt; delete q.archivedFrom; delete q.updated;
     if (to === 'live') { q.status = 'live'; q.dirty = true; store.publishDirty = true; store.live.push(q); store.live.sort((a, b) => a.id - b.id); }
     else { q.status = 'pending'; q.seen = true; store.pending.push(q); store.pending.sort((a, b) => a.id - b.id); }
     persist();
@@ -377,10 +380,10 @@
       return;
     }
     const t = nowISO();
-    store.live.forEach((q) => { if (q.dirty) { q.dirty = false; q.approvedAt = q.approvedAt || t; q.publishedAt = t; } });
+    store.live.forEach((q) => { if (q.dirty) { q.dirty = false; delete q.updated; q.approvedAt = q.approvedAt || t; q.publishedAt = t; } });
     store.publishDirty = false; store.lastPublishedAt = t;
     persist();
-    console.log('[library] publish →', store.live.map(({ dirty, seen, publishedAt, ...q }) => q));
+    console.log('[library] publish →', store.live.map(({ dirty, updated, seen, publishedAt, ...q }) => q));
     renderList(); refreshChrome();
     toast('Published');
   }
@@ -568,7 +571,7 @@
     tab = f.tab;
     $('backBtn').href = `#${f.tab}`;
     $('editNo').textContent = `No. ${numberOf(f.q)}`;
-    $('editDate').textContent = f.tab === 'live' ? (f.q.dirty || !f.q.approvedAt ? 'Not published' : `Published: ${fmtDate(f.q.approvedAt)}`) : `Submitted: ${fmtDate(f.q.submittedAt)}`;
+    $('editDate').textContent = f.tab === 'live' ? (f.q.dirty || !f.q.approvedAt ? unpublished(f.q) || 'Not published' : `Published: ${fmtDate(f.q.approvedAt)}`) : `Submitted: ${fmtDate(f.q.submittedAt)}`;
     fill(edit.draft);
     updateDirty();
     const list = sorted(f.tab), i = list.findIndex((x) => x.key === key);
@@ -619,10 +622,11 @@
   function saveEdit() {
     const f = findItem(edit.key); if (!f) return;
     fromDraft(edit.draft, f.q);
+    if (!f.q.dirty) f.q.updated = true; // on the site as it was: an update, not a new quote
     f.q.dirty = true; store.publishDirty = true;
     edit.orig = clone(edit.draft);
     persist(); updateDirty(); refreshChrome();
-    $('editDate').textContent = 'Not published';
+    $('editDate').textContent = unpublished(f.q);
     toast('Saved');
   }
   $('saveBtn').addEventListener('click', saveEdit);
