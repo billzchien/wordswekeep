@@ -18,22 +18,52 @@
   // (Form kinds: book · film · song · poem · speech · writing · personal · other.)
   const ITALIC_KINDS = new Set(['book', 'film']);
   const LANG_GLYPH = { zh: '中', ja: '日', ko: '한' };
+  // The language button: a glyph for Chinese, Japanese and Korean; for any other language its
+  // two-letter code in capitals (ES, FR…), set like "EN"; "Aa" when the language is not known.
+  const langLabel = (code) => LANG_GLYPH[code] || (/^[a-z]{2}$/i.test(code || '') ? code.toUpperCase() : 'Aa');
 
   // The quote faces (css/fonts.css; Figma: Type 310:3916). A quote names one in `font`.
   // `not`: the length tiers the face is not drawn for (Figma's boards at 20%).
   const FONTS = [
-    { key: 'instrument', name: 'Instrument', not: ['s', 'xs'] },
-    { key: 'story',      name: 'Story',      not: ['s', 'xs'] },
-    { key: 'print',      name: 'Print',      not: [] },
-    { key: 'grotesk',    name: 'Grotesk',    not: [] },
-    { key: 'round',      name: 'Round',      not: ['s', 'xs'] },
-    { key: 'poet',       name: 'Poet',       not: ['l'] },
-    { key: 'goudy',      name: 'Goudy',      not: [] },
-    { key: 'sketch',     name: 'Sketch',     not: [] },
-    { key: 'rose',       name: 'Rose',       not: ['l'] },
-    { key: 'author',     name: 'Author',     not: [] },
+    { key: 'instrument', name: 'Instrument', not: ['s', 'xs'],
+      latin: 'A1-A3 A5 A7-AB AE-B0 B4 B6-B8 BA-BB BF-107 10A-113 116-11B 11E-123 126-127 12A-12B 12E-133 136-137 139-13E 141-148 14A-14D 150-15B 15E-161 164-165 16A-17E 1CD-1CE 218-21B 237 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2022 2026 2039-203A 20AC' },
+    { key: 'story',      name: 'Story',      not: ['s', 'xs'],
+      latin: 'A1-AC AE-B4 B6-13E 141-148 14A-17E 181 186 18A 18E-190 192 197-199 19D 1A0-1A1 1AF-1B0 1B3-1B4 1CD-1DD 1E2-1E3 1E6-1E7 218-21B 232-233 237 245 1E04-1E05 1E0C-1E0F 1E20-1E21 1E24-1E2B 1E32-1E3B 1E40-1E49 1E56-1E5F 1E62-1E63 1E6C-1E6F 1E80-1E85 1E88-1E89 1E8C-1E8F 1E92-1E96 1E9E 1EA0-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2039-203A 2044 2070 2074-2079 2080-2089 20A1 20A6 20A9-20AC' },
+    { key: 'print',      name: 'Print',      not: [],
+      latin: 'A1-AC AE-B4 B6-131 134-137 139-13E 141-148 14A-165 168-17E 181 186 18A 18E-190 197-199 19D 1A0-1A1 1AF-1B0 1B3-1B4 1CD-1DD 1E2-1E3 1E6-1E7 218-21B 232-233 237 245 1E04-1E05 1E0C-1E0F 1E20-1E21 1E24-1E2B 1E32-1E3B 1E40-1E49 1E56-1E5F 1E62-1E63 1E6C-1E6F 1E80-1E85 1E88-1E89 1E8C-1E8F 1E92-1E96 1E9E 1EA0-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2039-203A 2044 2070 2074-2079 2080-2089 20A1 20A6 20A9 20AB-20AC' },
+    { key: 'grotesk',    name: 'Grotesk',    not: [],
+      latin: 'A1-A3 A5-B4 B6-137 139-148 14A-17E 192 1FC-1FF 218-21B 237 1E80-1E85 1EBC-1EBD 1EF2-1EF3 1EF8-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 2044 20AC' },
+    { key: 'round',      name: 'Round',      not: ['s', 'xs'],
+      latin: 'A1-AC AE-B1 B4-B8 BA-113 116-12B 12E-13E 141-148 14A-14D 150-165 168-17E 18F 192 1A0-1A1 1AF-1B0 1E2-1E3 218-21B 237 1E0C-1E0D 1E20-1E21 1E24-1E25 1E2A-1E2B 1E34-1E3B 1E40-1E49 1E5C-1E5F 1E62-1E63 1E6C-1E6F 1E80-1E85 1E8E-1E8F 1E92-1E96 1E9E 1EA0-1EF9 2013-2014 2018-201A 201C-201E 2020 2022 2026 2032-2033 2039-203A 2044 20AC' },
+    { key: 'poet',       name: 'Poet',       not: ['l'],
+      latin: 'A1-A3 A5 A7 A9-AB AD-AE B0 B2-B3 B9-BB BF-F6 F8-10F 112-121 124-125 128-131 134-137 139-13E 141-148 14C-14F 152-155 158-165 168-16F 172-17E 218-21B 237 1E9E 2013-2014 2018-201A 201C-201E 2022 2039-203A 20AC' },
+    { key: 'goudy',      name: 'Goudy',      not: [],
+      latin: 'A1-137 139-149 14C-17F 192 218-21B 237 2013-2014 2018-201A 201C-201E 2020 2022 2026 2039-203A 2044 20AC' },
+    { key: 'sketch',     name: 'Sketch',     not: [],
+      latin: 'A1-B4 B6-12B 12E-149 14C-17E 192 218-21B 237 1E80-1E85 1E9E 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 2044 20A3-20A4 20AC' },
+    { key: 'rose',       name: 'Rose',       not: ['l'],
+      latin: 'A1-A9 AB-AC AE-B1 B4 B6-B8 BB BF-DD DF-FD FF-107 10C-10F 112-113 116-11B 122-123 12A-12B 12E-12F 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-17E 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
+    { key: 'author',     name: 'Author',     not: [],
+      latin: 'A1-A9 AB AE-B1 B4 B6-B8 BB BF-107 10C-113 116-11B 122-123 12A-12B 12E-12F 131-133 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-17E 237 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
   ];
   const FONT_BY_KEY = Object.fromEntries(FONTS.map((f) => [f.key, f]));
+  // An original-language quote written in Latin letters (Spanish, French, Vietnamese, pinyin…)
+  // is set in the quote's own face when the face has every character it needs; anything else —
+  // another script, or a letter the face lacks — is set in Noto. `latin`: what a face has beyond
+  // ASCII, as hex ranges (made by workers/fonts/tools/coverage.py; the same table is in
+  // js/admin.js: change both). Poet's missing "…" is dealt with separately.
+  const faceChars = new Map();
+  function nativeInFace(text, key) {
+    const face = FONT_BY_KEY[key];
+    if (!face || !text) return false;
+    if (!faceChars.has(key)) {
+      const has = new Set();
+      face.latin.split(' ').forEach((r) => { const [a, b = a] = r.split('-').map((h) => parseInt(h, 16)); for (let c = a; c <= b; c++) has.add(c); });
+      faceChars.set(key, has);
+    }
+    const has = faceChars.get(key);
+    return [...text].every((ch) => { const c = ch.codePointAt(0); return /\s/.test(ch) || (c >= 0x20 && c <= 0x7e) || has.has(c) || (ch === '…' && key === 'poet'); });
+  }
   const DEFAULT_FONT = 'instrument', LONG_FONT = 'goudy'; // a quote with no face of its own; Instrument is not drawn for long quotes
   const FONT_FILES = ['story', 'print', 'grotesk', 'poet', 'sketch', 'rose', 'author']; // served by the fonts Worker; the rest come from Google
 
@@ -255,16 +285,18 @@
     const size = tier(showOrig ? orig.text : q.text);
     const font = fontOf(q, tier(q.text)); // the face goes by the English words' length, in either language
     // Poet has no ellipsis: three periods instead.
-    const raw = showOrig ? orig.text : (font === 'poet' ? q.text.replace(/…/g, '...') : q.text);
+    const shown = showOrig ? orig.text : q.text;
+    const inFace = !showOrig || nativeInFace(orig.text, font); // the original in the quote's own face, or in Noto
+    const raw = inFace && font === 'poet' ? shown.replace(/…/g, '...') : shown;
     let text = noOrphans(raw);
     const locked = keepLines && lockedLines && lockedLines.text === text;
     if (locked) text = lockedLines.broken;
     const body = withAnnotations && !showOrig && q.annotations && q.annotations.length
       ? annotate(text, q.annotations) : esc(text);
     const langBtn = orig
-      ? `<button class="lang" data-lang aria-pressed="${showOrig ? 'true' : 'false'}" aria-label="${showOrig ? 'Show English' : 'Show original language'}">${showOrig ? 'EN' : esc(LANG_GLYPH[orig.lang] || orig.lang.toUpperCase())}</button>`
+      ? `<button class="lang" data-lang${showOrig || LANG_GLYPH[orig.lang] ? '' : ' data-code'} aria-pressed="${showOrig ? 'true' : 'false'}" aria-label="${showOrig ? 'Show English' : 'Show original language'}">${showOrig ? 'EN' : esc(langLabel(orig.lang))}</button>`
       : '';
-    const nativeAttr = showOrig ? ` data-native lang="${esc(orig.lang)}"` : '';
+    const nativeAttr = showOrig ? `${inFace ? '' : ' data-native'} lang="${esc(orig.lang)}"` : ''; // data-native = set in Noto (css)
     return `${langBtn}<blockquote class="quote${locked ? ' quote--locked' : ''}" data-tier="${tierAs || size}"${size === 'l' ? ' data-short' : ''} data-font="${font}"${nativeAttr}>${body}</blockquote>`;
   }
 

@@ -65,16 +65,35 @@
   let cur = 0;
 
   // A rough script sniff for the original-language code; the admin can correct it.
+  // The language of the original words, as a two-letter code. Other scripts are told apart by
+  // their letters. Latin script is guessed from its commonest words and letters (LATIN_HINTS);
+  // no clear winner = 'other'. The library shows the guess and lets the admin correct it.
+  // (The same function is in js/form.js and js/admin.js: change both.)
+  const LATIN_HINTS = {
+    es: [' el ', ' la ', ' los ', ' las ', ' que ', ' y ', ' en ', ' un ', ' una ', ' no ', ' se ', ' es ', ' por ', ' con ', 'ñ', '¿', '¡'],
+    fr: [' le ', ' la ', ' les ', ' des ', ' est ', ' et ', ' un ', ' une ', ' que ', ' pas ', ' ne ', ' je ', ' dans ', 'ç', 'œ', ' l’', ' d’', ' qu’', " l'", " d'"],
+    de: [' der ', ' die ', ' das ', ' und ', ' ist ', ' nicht ', ' ein ', ' eine ', ' ich ', ' zu ', ' den ', ' mit ', 'ß', 'ü', 'ä'],
+    it: [' il ', ' che ', ' non ', ' è ', ' di ', ' per ', ' un ', ' una ', ' gli ', ' sono ', ' della ', ' e ', ' più '],
+    pt: [' o ', ' os ', ' que ', ' não ', ' um ', ' uma ', ' é ', ' do ', ' da ', ' em ', ' para ', ' com ', 'ã', 'õ'],
+    nl: [' de ', ' het ', ' een ', ' en ', ' van ', ' niet ', ' is ', ' dat ', ' ik ', ' je ', 'ij'],
+    la: [' et ', ' est ', ' non ', ' in ', ' ad ', ' qui ', ' quod ', ' sed ', ' ut ', ' cum ', 'ae', 'um '],
+    vi: ['ơ', 'ư', 'đ', 'ạ', 'ả', 'ấ', 'ề', 'ệ', 'ộ', 'ữ', ' không ', ' là ', ' của '],
+    pl: ['ł', 'ż', 'ś', 'ć', 'ę', 'ą', ' nie ', ' się ', ' jest ', ' to '],
+    tr: ['ş', 'ğ', 'ı', ' bir ', ' ve ', ' bu ', ' için ', ' değil '],
+  };
   function detectLang(text) {
-    if (/[぀-ヿ]/.test(text)) return 'ja';
-    if (/[가-힯]/.test(text)) return 'ko';
-    if (/[一-鿿]/.test(text)) return 'zh';
-    if (/[Ѐ-ӿ]/.test(text)) return 'ru';
-    if (/[؀-ۿ]/.test(text)) return 'ar';
-    if (/[֐-׿]/.test(text)) return 'he';
-    if (/[฀-๿]/.test(text)) return 'th';
-    if (/[Ͱ-Ͽ]/.test(text)) return 'el';
-    return 'other';
+    if (/[\u3040-\u30ff]/.test(text)) return 'ja';
+    if (/[\uac00-\ud7af]/.test(text)) return 'ko';
+    if (/[\u4e00-\u9fff]/.test(text)) return 'zh';
+    if (/[\u0400-\u04ff]/.test(text)) return 'ru';
+    if (/[\u0600-\u06ff]/.test(text)) return 'ar';
+    if (/[\u0590-\u05ff]/.test(text)) return 'he';
+    if (/[\u0e00-\u0e7f]/.test(text)) return 'th';
+    if (/[\u0370-\u03ff\u1f00-\u1fff]/.test(text)) return 'el';
+    if (/[\u0900-\u097f]/.test(text)) return 'hi';
+    const t = ` ${text.toLowerCase().replace(/[.,;:!?"“”«»()\n]/g, ' ').replace(/\s+/g, ' ')} `;
+    const scores = Object.entries(LATIN_HINTS).map(([code, hints]) => [code, hints.reduce((n, h) => n + (t.split(h).length - 1), 0)]).sort((a, b) => b[1] - a[1]);
+    return scores[0][1] >= 2 && scores[0][1] > scores[1][1] ? scores[0][0] : 'other';
   }
 
   // House style: every paragraph of a note starts with a capital letter.

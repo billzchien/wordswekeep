@@ -44,18 +44,45 @@
   // The quote faces (css/fonts.css), copied from js/app.js: `not` = the length tiers a face is
   // not drawn for. A quote with no face of its own is Instrument, or Goudy when it is long.
   const FONTS = [
-    { value: 'instrument', label: 'Instrument', not: ['s', 'xs'] },
-    { value: 'story',      label: 'Story',      not: ['s', 'xs'] },
-    { value: 'print',      label: 'Print',      not: [] },
-    { value: 'grotesk',    label: 'Grotesk',    not: [] },
-    { value: 'round',      label: 'Round',      not: ['s', 'xs'] },
-    { value: 'poet',       label: 'Poet',       not: ['l'] },
-    { value: 'goudy',      label: 'Goudy',      not: [] },
-    { value: 'sketch',     label: 'Sketch',     not: [] },
-    { value: 'rose',       label: 'Rose',       not: ['l'] },
-    { value: 'author',     label: 'Author',     not: [] },
+    { value: 'instrument', label: 'Instrument', not: ['s', 'xs'],
+      latin: 'A1-A3 A5 A7-AB AE-B0 B4 B6-B8 BA-BB BF-107 10A-113 116-11B 11E-123 126-127 12A-12B 12E-133 136-137 139-13E 141-148 14A-14D 150-15B 15E-161 164-165 16A-17E 1CD-1CE 218-21B 237 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2022 2026 2039-203A 20AC' },
+    { value: 'story',      label: 'Story',      not: ['s', 'xs'],
+      latin: 'A1-AC AE-B4 B6-13E 141-148 14A-17E 181 186 18A 18E-190 192 197-199 19D 1A0-1A1 1AF-1B0 1B3-1B4 1CD-1DD 1E2-1E3 1E6-1E7 218-21B 232-233 237 245 1E04-1E05 1E0C-1E0F 1E20-1E21 1E24-1E2B 1E32-1E3B 1E40-1E49 1E56-1E5F 1E62-1E63 1E6C-1E6F 1E80-1E85 1E88-1E89 1E8C-1E8F 1E92-1E96 1E9E 1EA0-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2039-203A 2044 2070 2074-2079 2080-2089 20A1 20A6 20A9-20AC' },
+    { value: 'print',      label: 'Print',      not: [],
+      latin: 'A1-AC AE-B4 B6-131 134-137 139-13E 141-148 14A-165 168-17E 181 186 18A 18E-190 197-199 19D 1A0-1A1 1AF-1B0 1B3-1B4 1CD-1DD 1E2-1E3 1E6-1E7 218-21B 232-233 237 245 1E04-1E05 1E0C-1E0F 1E20-1E21 1E24-1E2B 1E32-1E3B 1E40-1E49 1E56-1E5F 1E62-1E63 1E6C-1E6F 1E80-1E85 1E88-1E89 1E8C-1E8F 1E92-1E96 1E9E 1EA0-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2039-203A 2044 2070 2074-2079 2080-2089 20A1 20A6 20A9 20AB-20AC' },
+    { value: 'grotesk',    label: 'Grotesk',    not: [],
+      latin: 'A1-A3 A5-B4 B6-137 139-148 14A-17E 192 1FC-1FF 218-21B 237 1E80-1E85 1EBC-1EBD 1EF2-1EF3 1EF8-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 2044 20AC' },
+    { value: 'round',      label: 'Round',      not: ['s', 'xs'],
+      latin: 'A1-AC AE-B1 B4-B8 BA-113 116-12B 12E-13E 141-148 14A-14D 150-165 168-17E 18F 192 1A0-1A1 1AF-1B0 1E2-1E3 218-21B 237 1E0C-1E0D 1E20-1E21 1E24-1E25 1E2A-1E2B 1E34-1E3B 1E40-1E49 1E5C-1E5F 1E62-1E63 1E6C-1E6F 1E80-1E85 1E8E-1E8F 1E92-1E96 1E9E 1EA0-1EF9 2013-2014 2018-201A 201C-201E 2020 2022 2026 2032-2033 2039-203A 2044 20AC' },
+    { value: 'poet',       label: 'Poet',       not: ['l'],
+      latin: 'A1-A3 A5 A7 A9-AB AD-AE B0 B2-B3 B9-BB BF-F6 F8-10F 112-121 124-125 128-131 134-137 139-13E 141-148 14C-14F 152-155 158-165 168-16F 172-17E 218-21B 237 1E9E 2013-2014 2018-201A 201C-201E 2022 2039-203A 20AC' },
+    { value: 'goudy',      label: 'Goudy',      not: [],
+      latin: 'A1-137 139-149 14C-17F 192 218-21B 237 2013-2014 2018-201A 201C-201E 2020 2022 2026 2039-203A 2044 20AC' },
+    { value: 'sketch',     label: 'Sketch',     not: [],
+      latin: 'A1-B4 B6-12B 12E-149 14C-17E 192 218-21B 237 1E80-1E85 1E9E 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 2044 20A3-20A4 20AC' },
+    { value: 'rose',       label: 'Rose',       not: ['l'],
+      latin: 'A1-A9 AB-AC AE-B1 B4 B6-B8 BB BF-DD DF-FD FF-107 10C-10F 112-113 116-11B 122-123 12A-12B 12E-12F 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-17E 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
+    { value: 'author',     label: 'Author',     not: [],
+      latin: 'A1-A9 AB AE-B1 B4 B6-B8 BB BF-107 10C-113 116-11B 122-123 12A-12B 12E-12F 131-133 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-17E 237 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
   ];
   const FONT_FILES = ['story', 'print', 'grotesk', 'poet', 'sketch', 'rose', 'author'];
+  // An original-language quote written in Latin letters (Spanish, French, Vietnamese, pinyin…)
+  // is set in the quote's own face when the face has every character it needs; anything else —
+  // another script, or a letter the face lacks — is set in Noto. `latin`: what a face has beyond
+  // ASCII, as hex ranges (made by workers/fonts/tools/coverage.py; the same table is in
+  // js/app.js: change both). Poet's missing "…" is dealt with separately.
+  const faceChars = new Map();
+  function nativeInFace(text, key) {
+    const face = FONTS.find((f) => f.value === key);
+    if (!face || !text) return false;
+    if (!faceChars.has(key)) {
+      const has = new Set();
+      face.latin.split(' ').forEach((r) => { const [a, b = a] = r.split('-').map((h) => parseInt(h, 16)); for (let c = a; c <= b; c++) has.add(c); });
+      faceChars.set(key, has);
+    }
+    const has = faceChars.get(key);
+    return [...text].every((ch) => { const c = ch.codePointAt(0); return /\s/.test(ch) || (c >= 0x20 && c <= 0x7e) || has.has(c) || (ch === '…' && key === 'poet'); });
+  }
   function tier(text) { // js/app.js → tier
     const cjk = (text.match(/[぀-ヿ㐀-鿿가-힯]/g) || []).length;
     const weight = text.length + cjk * 3;
@@ -63,6 +90,14 @@
   }
   const fontFits = (key, t) => { const f = FONTS.find((x) => x.value === key); return !!f && !f.not.includes(t); };
   const fontFor = (key, t) => (fontFits(key, t) ? key : (fontFits('instrument', t) ? 'instrument' : 'goudy'));
+  // Languages an original can be in: the code is what the archive's language button shows
+  // (中 日 한 for those three, the two letters in capitals for the rest).
+  const LANGUAGES = [['zh', 'Chinese'], ['ja', 'Japanese'], ['ko', 'Korean'], ['es', 'Spanish'], ['fr', 'French'], ['de', 'German'], ['it', 'Italian'], ['pt', 'Portuguese'],
+    ['nl', 'Dutch'], ['la', 'Latin'], ['el', 'Greek'], ['ru', 'Russian'], ['uk', 'Ukrainian'], ['pl', 'Polish'], ['cs', 'Czech'], ['hu', 'Hungarian'], ['ro', 'Romanian'],
+    ['sv', 'Swedish'], ['da', 'Danish'], ['no', 'Norwegian'], ['fi', 'Finnish'], ['is', 'Icelandic'], ['ga', 'Irish'], ['cy', 'Welsh'], ['ca', 'Catalan'], ['eu', 'Basque'],
+    ['tr', 'Turkish'], ['ar', 'Arabic'], ['he', 'Hebrew'], ['fa', 'Persian'], ['ur', 'Urdu'], ['hi', 'Hindi'], ['bn', 'Bengali'], ['ta', 'Tamil'], ['th', 'Thai'],
+    ['vi', 'Vietnamese'], ['id', 'Indonesian'], ['ms', 'Malay'], ['tl', 'Tagalog'], ['sw', 'Swahili'], ['eo', 'Esperanto'], ['other', 'Other']]
+    .map(([value, label]) => ({ value, label: value === 'other' ? label : `${label} (${value.toUpperCase()})` }));
   const THIS_YEAR = new Date().getFullYear();
   const YEARS = Array.from({ length: THIS_YEAR - 999 }, (_, i) => ({ value: String(THIS_YEAR - i), label: String(THIS_YEAR - i) }));
 
@@ -487,13 +522,35 @@
     q.font = d.font;
     return q;
   }
+  // The language of the original words, as a two-letter code. Other scripts are told apart by
+  // their letters. Latin script is guessed from its commonest words and letters (LATIN_HINTS);
+  // no clear winner = 'other'. The library shows the guess and lets the admin correct it.
+  // (The same function is in js/form.js and js/admin.js: change both.)
+  const LATIN_HINTS = {
+    es: [' el ', ' la ', ' los ', ' las ', ' que ', ' y ', ' en ', ' un ', ' una ', ' no ', ' se ', ' es ', ' por ', ' con ', 'ñ', '¿', '¡'],
+    fr: [' le ', ' la ', ' les ', ' des ', ' est ', ' et ', ' un ', ' une ', ' que ', ' pas ', ' ne ', ' je ', ' dans ', 'ç', 'œ', ' l’', ' d’', ' qu’', " l'", " d'"],
+    de: [' der ', ' die ', ' das ', ' und ', ' ist ', ' nicht ', ' ein ', ' eine ', ' ich ', ' zu ', ' den ', ' mit ', 'ß', 'ü', 'ä'],
+    it: [' il ', ' che ', ' non ', ' è ', ' di ', ' per ', ' un ', ' una ', ' gli ', ' sono ', ' della ', ' e ', ' più '],
+    pt: [' o ', ' os ', ' que ', ' não ', ' um ', ' uma ', ' é ', ' do ', ' da ', ' em ', ' para ', ' com ', 'ã', 'õ'],
+    nl: [' de ', ' het ', ' een ', ' en ', ' van ', ' niet ', ' is ', ' dat ', ' ik ', ' je ', 'ij'],
+    la: [' et ', ' est ', ' non ', ' in ', ' ad ', ' qui ', ' quod ', ' sed ', ' ut ', ' cum ', 'ae', 'um '],
+    vi: ['ơ', 'ư', 'đ', 'ạ', 'ả', 'ấ', 'ề', 'ệ', 'ộ', 'ữ', ' không ', ' là ', ' của '],
+    pl: ['ł', 'ż', 'ś', 'ć', 'ę', 'ą', ' nie ', ' się ', ' jest ', ' to '],
+    tr: ['ş', 'ğ', 'ı', ' bir ', ' ve ', ' bu ', ' için ', ' değil '],
+  };
   function detectLang(text) {
-    if (/[぀-ヿ]/.test(text)) return 'ja';
-    if (/[가-힯]/.test(text)) return 'ko';
-    if (/[一-鿿]/.test(text)) return 'zh';
-    if (/[Ѐ-ӿ]/.test(text)) return 'ru';
-    if (/[؀-ۿ]/.test(text)) return 'ar';
-    return 'other';
+    if (/[\u3040-\u30ff]/.test(text)) return 'ja';
+    if (/[\uac00-\ud7af]/.test(text)) return 'ko';
+    if (/[\u4e00-\u9fff]/.test(text)) return 'zh';
+    if (/[\u0400-\u04ff]/.test(text)) return 'ru';
+    if (/[\u0600-\u06ff]/.test(text)) return 'ar';
+    if (/[\u0590-\u05ff]/.test(text)) return 'he';
+    if (/[\u0e00-\u0e7f]/.test(text)) return 'th';
+    if (/[\u0370-\u03ff\u1f00-\u1fff]/.test(text)) return 'el';
+    if (/[\u0900-\u097f]/.test(text)) return 'hi';
+    const t = ` ${text.toLowerCase().replace(/[.,;:!?"“”«»()\n]/g, ' ').replace(/\s+/g, ' ')} `;
+    const scores = Object.entries(LATIN_HINTS).map(([code, hints]) => [code, hints.reduce((n, h) => n + (t.split(h).length - 1), 0)]).sort((a, b) => b[1] - a[1]);
+    return scores[0][1] >= 2 && scores[0][1] > scores[1][1] ? scores[0][0] : 'other';
   }
 
   // Compared without empty annotation pairs (the blank pair the view shows is not a change).
@@ -566,6 +623,7 @@
     if (stepping) { view.style.setProperty('--dir', stepDir); view.classList.add('is-stepping-out'); await new Promise((r) => setTimeout(r, ms(STEP_MS))); }
     edit = { key, tab: f.tab, draft: toDraft(f.q), orig: null, undo: [], redo: [], mark: null };
     relockAnn(edit.draft);
+    edit.langPicked = !!edit.draft.lang && edit.draft.lang !== 'other'; // a stored language is kept; 'other' is guessed again as the words change
     edit.orig = clone(edit.draft);
     admin.dataset.kind = f.tab;
     tab = f.tab;
@@ -653,7 +711,8 @@
   const cjkSize = (el) => el.classList.toggle('is-cjk', /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(el.value));
   ['fOriginal', 'fNative', 'fText', 'fName', 'fTitle'].forEach((id) => $(id).addEventListener('input', () => cjkSize($(id))));
   bind('fText', (v) => { edit.draft.text = v; followAnn(); drawFont(); });
-  bind('fOriginal', (v) => { edit.draft.original = v; edit.draft.lang = v.trim() ? detectLang(v) : ''; });
+  // The language is guessed from the words until the admin picks one; a picked language stays.
+  bind('fOriginal', (v) => { edit.draft.original = v; if (!edit.langPicked) { edit.draft.lang = v.trim() ? detectLang(v) : ''; lang.set(edit.draft.lang); } drawFont(); });
   bind('fName', (v) => { edit.draft.author.name = v; });
   bind('fNative', (v) => { edit.draft.author.nativeName = v; });
   bind('fTitle', (v) => { edit.draft.source.title = v; });
@@ -665,7 +724,7 @@
   // "In original language +" adds the second field; it stays as long as there is text in it.
   $('origToggle').addEventListener('click', () => { mark(); fold($('fOriginalWrap'), true); $('origToggle').hidden = true; setTimeout(() => $('fOriginal').focus({ preventScroll: true }), 200); });
   // The × on the original-language field: the words go, the field folds shut, the "+" is back.
-  $('origClose').addEventListener('click', () => { mark(); edit.draft.original = ''; edit.draft.lang = ''; $('fOriginal').value = ''; fold($('fOriginalWrap'), false); $('origToggle').hidden = false; updateDirty(); });
+  $('origClose').addEventListener('click', () => { mark(); edit.draft.original = ''; edit.draft.lang = ''; edit.langPicked = false; lang.set(''); $('fOriginal').value = ''; fold($('fOriginalWrap'), false); $('origToggle').hidden = false; drawFont(); updateDirty(); });
 
   $('catList').innerHTML = CATEGORIES.map((c) => `
     <button type="button" class="chk" role="checkbox" aria-checked="false" data-key="${c.key}">
@@ -682,6 +741,14 @@
 
   const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Country or region', onChange: (v) => { if (!edit) return; mark('country'); edit.draft.author.country = v; fold($('fNativeWrap'), NON_LATIN.has(v)); updateDirty(); } });
   const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', onChange: (v) => { if (!edit) return; mark('kind'); edit.draft.source.kind = v; showSourceFields(!!v && v !== 'personal'); updateDirty(); } });
+  const lang = combo($('fLang'), { options: LANGUAGES, placeholder: 'Language', onChange: (v) => {
+    if (!edit) return;
+    mark('lang');
+    edit.langPicked = !!v;
+    edit.draft.lang = v || (edit.draft.original.trim() ? detectLang(edit.draft.original) : ''); // cleared: back to the guess
+    if (!v && edit.draft.lang) setTimeout(() => { if (edit && !edit.langPicked && document.activeElement !== lang.input) lang.set(edit.draft.lang); }, 0);
+    updateDirty();
+  } });
   const font = combo($('fFont'), { options: () => FONTS.filter((f) => !edit || !f.not.includes(tier(edit.draft.text))), placeholder: 'Font', keep: true, onChange: (v) => { if (!edit || !v) return; mark('font'); edit.draft.font = v; drawFont(); updateDirty(); } });
   const year = combo($('fYear'), { options: YEARS, placeholder: 'Year', free: true, onChange: (v) => { if (!edit) return; mark('year'); edit.draft.source.year = /^\d{1,4}$/.test(v) ? v : ''; updateDirty(); } });
   year.input.inputMode = 'numeric';
@@ -778,7 +845,7 @@
     $('fTitle').value = d.source.title; $('fLink').value = d.source.link;
     $('fContext').value = d.context; $('fReflection').value = d.reflection; $('fKeptBy').value = d.keptBy;
     ['fOriginal', 'fNative', 'fText', 'fName', 'fTitle'].forEach((id) => cjkSize($(id)));
-    font.set(d.font); drawFont();
+    font.set(d.font); lang.set(d.lang); drawFont();
     renderAnn();
     setAnnOpen(d.annotations.some((a) => a.word.trim() || a.explanation.trim()), false);
     document.querySelectorAll('textarea.field').forEach((ta) => ta.dispatchEvent(new Event('scroll')));
@@ -807,29 +874,50 @@
     }).join('\n');
   }
   function checkFont() { return !edit || fontFits(edit.draft.font, tier(edit.draft.text)); }
+  // Two panels: the English words, and under them the original-language ones when there are
+  // any — in the quote's own face if it is Latin script the face can set (nativeInFace), else
+  // in Noto, as the archive does (css: .quote[data-native]).
+  const quoteIn = (text, key, native) => {
+    const t = tier(text), inFace = !native || nativeInFace(text, key);
+    const shown = inFace && key === 'poet' ? text.replace(/…/g, '...') : text; // Poet has no ellipsis
+    return `<blockquote class="quote" data-tier="${t}"${t === 'l' ? ' data-short' : ''} data-font="${esc(key)}"${inFace ? '' : ' data-native'}>${esc(noOrphans(shown.trim()))}</blockquote>`;
+  };
   function drawFont() {
     if (!edit) return;
-    const t = tier(edit.draft.text), key = edit.draft.font;
-    $('fFont').classList.toggle('is-warn', !fontFits(key, t));
-    const text = key === 'poet' ? edit.draft.text.replace(/…/g, '...') : edit.draft.text; // Poet has no ellipsis
-    $('fontStage').innerHTML = `<blockquote class="quote" data-tier="${t}" data-font="${esc(key)}">${esc(noOrphans(text.trim()))}</blockquote>`;
+    const key = edit.draft.font, original = edit.draft.original.trim();
+    $('fFont').classList.toggle('is-warn', !fontFits(key, tier(edit.draft.text)));
+    $('fontStage').innerHTML = quoteIn(edit.draft.text, key, false);
+    $('fontViewNative').hidden = !original;
+    $('fontStageNative').innerHTML = original ? quoteIn(original, key, true) : '';
     sizeFont();
-    fitFont();
   }
   // As in the archive (js/app.js → fitTier): a short quote that takes more than two lines is
   // set in the medium size. Counted on the preview itself, and again when its face has loaded.
-  function fitFont() {
-    const q = $('fontStage').querySelector('.quote');
-    if (!q || !edit || tier(edit.draft.text) !== 'l' || !q.firstChild) return;
+  function fitFont(q) {
+    if (!q || !q.firstChild) return;
     q.dataset.tier = 'l';
     const r = document.createRange(); r.selectNodeContents(q);
     let lines = 0, last = null;
     [...r.getClientRects()].filter((b) => b.width > 0).forEach((b) => { if (last === null || Math.abs(b.top - last) > b.height / 2) { lines++; last = b.top; } });
     if (lines > 2) q.dataset.tier = 'm';
   }
-  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', fitFont);
-  function sizeFont() { const w = $('fontView').clientWidth, stage = $('fontStage').offsetWidth; if (w && stage) $('fontStage').style.setProperty('--s', (w / stage).toFixed(4)); fitFont(); } // the stage's own width changes with the breakpoint (css/admin.css)
-  if (typeof ResizeObserver === 'function') new ResizeObserver(sizeFont).observe($('fontView'));
+  // A panel is its stage scaled to the panel's width (--s); the stage is as tall as the quote
+  // needs, and never less than its minimum (css/admin.css), so nothing is cut and no room is
+  // left over. The stage's own width changes with the breakpoint.
+  function sizeFont() {
+    [['fontView', 'fontStage'], ['fontViewNative', 'fontStageNative']].forEach(([v, st]) => {
+      const view = $(v), stage = $(st);
+      if (view.hidden) return;
+      const w = view.clientWidth, sw = stage.offsetWidth;
+      if (!w || !sw) return;
+      const k = w / sw;
+      stage.style.setProperty('--s', k.toFixed(4));
+      stage.querySelectorAll('.quote[data-short]').forEach(fitFont);
+      view.style.height = `${Math.ceil(stage.offsetHeight * k)}px`;
+    });
+  }
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', sizeFont);
+  if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(sizeFont); ro.observe($('fontView')); ro.observe($('fontViewNative')); }
   window.addEventListener('resize', sizeFont);
   // A local preview has no fonts Worker: the same faces, from the project's own folder.
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
