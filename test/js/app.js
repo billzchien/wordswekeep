@@ -609,6 +609,7 @@
   }
   const SCRAP_FADE_MS = 150;    // softness of each jump: a cross-dissolve that overlaps the next beat
   const SCRAP_GAP = 14;         // breathing room kept between scraps (px)
+  const SCRAP_ROOM = 1;         // em of box around a scattered scrap's letters, so Safari's layer never crops them, whatever the face
   // Lens depth: each scattered scrap has its own distance. The closer it is, the larger, the more
   // out of focus and the fainter; home is sharp.
   const DEPTH_SCALE_MIN = 1;    // the farthest scrap: the landed size, sharp
@@ -708,6 +709,7 @@
       p.el.style.fontSize = '';
       if (r.width) { p.w = r.width; p.h = r.height; p.dx = r.left - p.scrap.left; p.dy = r.top - p.scrap.top; }
       // Never much wider than the window (a phone): it comes further away until it fits.
+      p.spread = Math.ceil(near * DEPTH_BLUR_MAX * 3);
       if (p.w > 1.2 * vw && near > 0.02) return setDepth(p, near * 0.8);
       p.el.style.zIndex = Math.round(near * 1000); // the closer scrap is always in front of the farther
       // The opacity rides in the filter too, so it stays clear of the jump's own fade.
@@ -793,9 +795,11 @@
     // the blur's spread, the italic overhang, the tall letters. A scattered scrap gets a wider
     // box (padding, with the same negative margin so the glyphs stay where they are).
     const room = (p, out) => {
-      const spread = Math.ceil(p.near * DEPTH_BLUR_MAX * 3);
-      p.el.style.padding = out ? `calc(var(--ink-y) + ${spread}px) calc(var(--ink-x) + ${spread}px)` : ''; // the letters' own reach (app.css) plus the blur's
-      p.el.style.margin = out ? `calc(-1 * var(--ink-y) - ${spread}px) calc(-1 * var(--ink-x) - ${spread}px)` : '';
+      const spread = p.spread;
+      // A full em on every side, whatever the face (the measured --ink-x / --ink-y still cropped
+      // in places, and each new face reaches differently), plus the blur's spread.
+      p.el.style.padding = out ? `calc(${SCRAP_ROOM}em + ${spread}px)` : '';
+      p.el.style.margin = out ? `calc(-${SCRAP_ROOM}em - ${spread}px)` : '';
       // The outermost pixels of a filtered layer are where Safari's pink hairline is drawn:
       // they are cut away (nothing of the scrap reaches that far).
       p.el.style.clipPath = out && p.blur ? 'inset(2px)' : '';
