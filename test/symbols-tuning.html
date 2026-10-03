@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Symbols tuning — Words We Keep</title>
+  <style>
+    /* A tuning page for the ribbon draw (assets/symbols). Nothing here is saved: the values
+       shown at the bottom are what would go into the two JSON files. */
+    * { box-sizing: border-box; margin: 0; }
+    body { background: #E6E6E6; color: #000; font: 14px/1.4 ui-sans-serif, system-ui, sans-serif; display: grid; grid-template-columns: 1fr 320px; min-height: 100vh; }
+    .stage { display: grid; place-items: center; position: relative; }
+    .stage svg { overflow: visible; }
+    #big { width: min(60vh, 60%); aspect-ratio: 1; }
+    #small { position: absolute; left: 20px; top: 20px; width: 24px; height: 24px; }
+    .panel { background: #f3f3f3; padding: 20px; overflow: auto; max-height: 100vh; }
+    h2 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin: 20px 0 8px; }
+    h2:first-child { margin-top: 0; }
+    label { display: grid; grid-template-columns: 1fr 56px; align-items: center; gap: 2px 8px; margin-bottom: 10px; }
+    label span { grid-column: 1; }
+    label output { grid-column: 2; text-align: right; font-variant-numeric: tabular-nums; }
+    label input[type=range] { grid-column: 1 / -1; width: 100%; }
+    .row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+    select, button { font: inherit; padding: 4px 8px; }
+    pre { background: #fff; padding: 10px; font: 12px/1.5 ui-monospace, monospace; white-space: pre-wrap; margin-top: 8px; }
+    @media (max-width: 700px) { body { grid-template-columns: 1fr; } .stage { min-height: 60vh; } }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <svg id="small" viewBox="0 0 60 60"></svg>
+    <svg id="big" viewBox="0 0 60 60"></svg>
+  </div>
+  <div class="panel">
+    <h2>Play</h2>
+    <div class="row">
+      <select id="mode"><option value="transition">Transition</option><option value="drawIn">Draw-in</option></select>
+      <select id="from"></select><span>→</span><select id="to"></select>
+    </div>
+    <div class="row">
+      <button id="play">Play</button>
+      <label style="display:flex;margin:0"><input type="checkbox" id="loop" checked> Loop (back and forth)</label>
+    </div>
+    <label><span>Scrub (pauses)</span><output id="tOut">0</output><input type="range" id="t" min="0" max="1" step="0.001" value="0"></label>
+
+    <h2>Transition</h2>
+    <label><span>Max fade</span><output></output><input type="range" data-k="t.maxFade" min="0" max="1" step="0.01"></label>
+    <label><span>Max blur (% of box)</span><output></output><input type="range" data-k="t.maxBlur" min="0" max="12" step="0.1"></label>
+    <div class="row"><label style="display:flex;margin:0"><input type="checkbox" id="span" checked> Thick end always crisp (gradient runs thick → thin end)</label></div>
+    <label><span>Effect eases in over (share)</span><output></output><input type="range" data-k="t.depthEaseIn" min="0.01" max="0.6" step="0.01"></label>
+    <label><span>Effect clears over (share)</span><output></output><input type="range" data-k="t.depthClear" min="0.01" max="0.8" step="0.01"></label>
+    <label><span>Duration (ms)</span><output></output><input type="range" data-k="t.durationMs" min="200" max="2400" step="50"></label>
+    <label><span>Thin end delay (ms)</span><output></output><input type="range" data-k="t.thinEndDelayMs" min="0" max="400" step="10"></label>
+
+    <h2>Draw-in</h2>
+    <label><span>Max fade</span><output></output><input type="range" data-k="d.maxFade" min="0" max="1" step="0.01"></label>
+    <label><span>Max blur (% of box)</span><output></output><input type="range" data-k="d.maxBlur" min="0" max="12" step="0.1"></label>
+    <label><span>Duration (ms)</span><output></output><input type="range" data-k="d.durationMs" min="200" max="2400" step="50"></label>
+
+    <h2>Values</h2>
+    <button id="reset">Reset to the files</button>
+    <pre id="out"></pre>
+  </div>
+
+  <script type="module">
+    import { createModel, createRenderer } from '../assets/symbols/ribbon-draw.js';
+    const DIR = '../assets/symbols/';
+    const [TR, DI] = await Promise.all(['symbol-transitions.json', 'symbol-draw-in.json'].map((f) => fetch(DIR + f).then((r) => r.json())));
+    const $ = (id) => document.getElementById(id);
+    const names = Object.keys(TR.symbols);
+
+    // The values being tuned; they start as the files have them.
+    const fromFiles = () => ({
+      t: { maxFade: TR.settings.depth.maxFade, maxBlur: TR.settings.depth.maxBlur, depthEaseIn: TR.constants.depthEaseIn, depthClear: TR.constants.depthClear, durationMs: TR.settings.durationMs, thinEndDelayMs: TR.settings.thinEndDelayMs },
+      d: { maxFade: DI.settings.depth.maxFade, maxBlur: DI.settings.depth.maxBlur, durationMs: DI.settings.durationMs },
+    });
+    let v = fromFiles();
+
+    let tm, dm, big, small;
+    function build() {
+      tm = createModel(TR, { durationMs: v.t.durationMs, thinEndDelayMs: v.t.thinEndDelayMs, depth: { maxFade: v.t.maxFade, maxBlur: v.t.maxBlur, span: $('span').checked ? 'ribbon' : 'symbol' } });
+      tm.C = { ...tm.C, depthEaseIn: v.t.depthEaseIn, depthClear: v.t.depthClear };
+      dm = createModel(DI, { durationMs: v.d.durationMs, depth: { maxFade: v.d.maxFade, maxBlur: v.d.maxBlur } });
+      $('big').innerHTML = ''; $('small').innerHTML = '';
+      big = createRenderer($('big'), tm, { drawInModel: dm });
+      small = createRenderer($('small'), tm, { drawInModel: dm, levels: 2, pieces: 10 });
+      $('out').textContent =
+        `symbol-transitions.json\n  depth.maxFade: ${v.t.maxFade}\n  depth.maxBlur: ${v.t.maxBlur}\n  depth.span: ${$('span').checked ? "'ribbon' (thick end always crisp)" : 'as the file (from the new symbol\'s thick tip)'}\n  depthEaseIn: ${v.t.depthEaseIn}\n  depthClear: ${v.t.depthClear}\n  durationMs: ${v.t.durationMs}\n  thinEndDelayMs: ${v.t.thinEndDelayMs}\n\n`
+        + `symbol-draw-in.json\n  depth.maxFade: ${v.d.maxFade}\n  depth.maxBlur: ${v.d.maxBlur}\n  durationMs: ${v.d.durationMs}`;
+    }
+
+    // Playback: t runs 0 → 1; with Loop the pair is then played the other way round.
+    let a = 'All', b = 'Growth', t = 0, playing = true, t0 = performance.now(), hold = 0;
+    const HOLD_MS = 500; // the pause at rest between two plays
+    function paint() {
+      const drawIn = $('mode').value === 'drawIn';
+      [[big, 1], [small, 3]].forEach(([r, stride]) => (drawIn ? r.drawIn(b, t, stride) : r.transition(a, b, t, stride)));
+      $('t').value = t; $('tOut').textContent = t.toFixed(2);
+    }
+    function frame(now) {
+      if (playing) {
+        const ms = $('mode').value === 'drawIn' ? v.d.durationMs : v.t.durationMs;
+        t = Math.min(1, Math.max(0, (now - t0) / ms));
+        paint();
+        if (t >= 1) {
+          if (!hold) hold = now;
+          if ($('loop').checked) { if (now - hold > HOLD_MS) { if ($('mode').value !== 'drawIn') [a, b] = [b, a]; start(now + 0); } }
+          else playing = false;
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+    function start(now = performance.now()) { t0 = now; hold = 0; playing = true; }
+
+    // Controls
+    ['from', 'to'].forEach((id) => { $(id).innerHTML = names.map((n) => `<option>${n}</option>`).join(''); });
+    $('from').value = a; $('to').value = b;
+    const pick = () => {
+      a = $('from').value; b = $('to').value;
+      if (a === b && $('mode').value !== 'drawIn') { b = names[(names.indexOf(a) + 1) % names.length]; $('to').value = b; }
+      start();
+    };
+    $('from').onchange = $('to').onchange = $('mode').onchange = pick;
+    $('play').onclick = () => { a = $('from').value; b = $('to').value; start(); };
+    $('t').oninput = () => { playing = false; t = +$('t').value; paint(); };
+    const sliders = [...document.querySelectorAll('input[data-k]')];
+    const sync = () => sliders.forEach((el) => { const [g, k] = el.dataset.k.split('.'); el.value = v[g][k]; el.previousElementSibling.textContent = v[g][k]; });
+    sliders.forEach((el) => { el.oninput = () => { const [g, k] = el.dataset.k.split('.'); v[g][k] = +el.value; el.previousElementSibling.textContent = el.value; build(); if (!playing) paint(); }; });
+    $('span').onchange = () => { build(); if (!playing) paint(); };
+    $('reset').onclick = () => { v = fromFiles(); sync(); build(); if (!playing) paint(); };
+
+    sync(); build(); requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

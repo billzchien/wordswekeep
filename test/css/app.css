@@ -83,7 +83,15 @@ ul { list-style: none; }
   -webkit-mask: var(--src) center / 100% 100% no-repeat;
   mask: var(--src) center / 100% 100% no-repeat;
 }
-.icon-mark  { --src: url(../../assets/icons/mark.svg); width: var(--mark); height: var(--mark); }
+/* The category symbols as still images (assets/symbols/svg). With no data-sym it is "All": the logo. */
+.icon-mark  { --src: url(../../assets/symbols/svg/All.svg); width: var(--mark); height: var(--mark); }
+.icon-mark[data-sym="perspective"] { --src: url(../../assets/symbols/svg/Perspective.svg); }
+.icon-mark[data-sym="growth"]      { --src: url(../../assets/symbols/svg/Growth.svg); }
+.icon-mark[data-sym="drive"]       { --src: url(../../assets/symbols/svg/Drive.svg); }
+.icon-mark[data-sym="community"]   { --src: url(../../assets/symbols/svg/Community.svg); }
+.icon-mark[data-sym="romance"]     { --src: url(../../assets/symbols/svg/Romance.svg); }
+/* The symbols drawn live (js/app.js → "Symbols"): an <svg viewBox="0 0 60 60">, inked in the text colour. */
+.sym { display: block; overflow: visible; }
 .icon-arrow { --src: url(../../assets/icons/arrow-up.svg); width: 12px; height: 12px; }
 .icon-arrow--down { transform: rotate(180deg); }
 .icon-asterisk   { --src: url(../../assets/icons/asterisk.svg); width: 8px; height: 8px; }
@@ -92,6 +100,8 @@ ul { list-style: none; }
 /* ---------- Chrome ---------- */
 
 .chrome { position: absolute; z-index: 20; }
+.menu-btn .sym { width: var(--mark); height: var(--mark); }
+.menu-btn.is-static::before { content: ""; position: absolute; inset: 0; background: currentColor; -webkit-mask: url(../../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; mask: url(../../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; } /* the still logo, until the drawn one is ready (back from the form; symbols' files missing) */
 .menu-btn  { top: var(--mark-top); left: var(--mark-top); } /* the same distance from the top and the left edge */ /* centred on the caps of No. / Notes; same spot as the first category mark in notes mode */
 .number    { top: calc(20px - var(--cap-offset)); left: var(--col2); white-space: nowrap; font-feature-settings: "ss01" 1, "ss07" 1, "lnum" 1, "pnum" 1; } /* caps on the mark's top edge; lining figures, proportional: tabular ones (--numeral-features) set a gap around the 1 of "16" */
 /* The number rolls on a change (js/app.js → setNumber): a box one line high, the old and the next
@@ -358,6 +368,7 @@ ul { list-style: none; }
   z-index: 3;
   transition: filter 0.4s var(--ease);
 }
+.n-cats .sym { flex: none; width: var(--mark); height: var(--mark); } /* each category's symbol, drawn in by js/app.js (drawNoteSym) */
 .n-cats li { display: flex; align-items: center; gap: 1.333em; height: var(--mark); margin-bottom: calc(4 * var(--u)); white-space: nowrap; }
 
 .n-pin {
@@ -557,65 +568,51 @@ ul { list-style: none; }
 
 /* ---------- Menu ---------- */
 
+/* Figma 412:522. One symbol for the whole menu (js/app.js → "Symbols"): it draws in as the menu
+   opens and redraws itself into the symbol of the category under the pointer / the tapped row.
+   The names never move. Desktop and tablet: the symbol sits on the left margin, centred on the
+   previewed row, and glides to the next one while it redraws. */
 .menu {
   position: absolute;
   inset: 0;
   z-index: 40;
   background: var(--paper);
   color: var(--ink);
-  overflow: hidden;
-  --list-top: 26.3vh; /* no overlay fade: same grey as the page, the rows animate in (js/app.js) */
-  --row: 64px;        /* a category row (tablet/phone) */
-}
-/* Desktop and tablet: the list spans --list-span of the window, centred — the five plain rows
-   share what the enlarged row (mark-large + 20px above and below) leaves. */
-@media (min-width: 600px) {
-  .menu {
-    --list-span: 60vh;
-    --row: calc((var(--list-span) - var(--mark-large) - 40px) / 5);
-    --list-top: calc((100vh - var(--list-span)) / 2);
-  }
-  /* The enlarged row keeps its 20px above even when first, so the list is always exactly
-     --list-span tall and the rows never shift by 20px as the preview moves. */
-  .menu .cat-list li:first-child .cat-row.is-big { margin-top: 20px; }
-  /* The descriptor column follows the list: its first line sits exactly on "All words" (the text
-     line centred in the enlarged row), and the count line sits exactly on the last row's text. */
-  .menu .cat-desc { /* .menu: outranks the general rule further down */
-    --lh: calc(var(--text-size) * var(--text-leading));
-    top: calc(var(--list-top) + 20px + var(--mark-large) / 2 - var(--lh) / 2);
-    height: calc(var(--list-span) - var(--row) / 2 - 20px - var(--mark-large) / 2 + var(--lh));
-  }
+  overflow: hidden; /* no overlay fade: same grey as the page, the rows animate in (js/app.js) */
+  --lh: calc(var(--text-size) * var(--text-leading));
+  --menu-sym: calc(200 * var(--u));                 /* the symbol's box */
+  --row: max(48px, 8.9vh);                          /* from one name to the next: 74 in an 832 window */
+  --list-top: 30vh;                                 /* the first name's top: 250 in an 832 window */
+  --list-left: calc(var(--m) + var(--menu-sym) + 80 * var(--u));
+  --desc-left: var(--col4);
 }
 .menu-back { position: absolute; top: calc(20px - var(--cap-offset)); left: var(--m); }
 
-.cat-list { position: absolute; top: var(--list-top); left: 0; right: 0; }
+.menu-sym {
+  position: absolute;
+  left: var(--m);
+  top: calc(var(--list-top) + var(--lh) / 2 - var(--menu-sym) / 2); /* centred on the first name… */
+  width: var(--menu-sym);
+  height: var(--menu-sym);
+  translate: 0 calc(var(--at, 0) * var(--row));                     /* …then on row --at (js) */
+  transition: translate var(--sym-ms, 0.8s) var(--ease);            /* --sym-ms: the redraw's own length (js, from the symbols' file) */
+  pointer-events: none;
+}
+
+.cat-list { position: absolute; top: calc(var(--list-top) - (var(--row) - var(--lh)) / 2); left: var(--list-left); right: calc(100% - var(--desc-left) + var(--g)); } /* rows stop before the descriptor column, so reading it never re-triggers a row */
 .cat-row {
   position: relative;
   display: flex;
   align-items: center;
   gap: 24px;
-  width: calc(var(--col4) - var(--g)); /* rows stop before the descriptor column, so reading it never re-triggers a row */
+  width: 100%;
   height: var(--row);
-  padding-left: var(--col2);
   text-align: left;
   white-space: nowrap;
-  transition: height 0.45s var(--ease), margin 0.45s var(--ease);
 }
-.cat-row .cat-mark {
-  position: absolute;
-  left: var(--col1-mid);
-  top: 50%;
-  width: var(--mark);
-  height: var(--mark);
-  translate: -50% -50%; /* not `transform`: a scale animation would shrink that offset too and pull the mark off-centre */
-  transition: width 0.45s var(--ease), height 0.45s var(--ease);
-}
-.cat-row .cat-name { display: inline-block; padding-bottom: var(--link-gap); --line: var(--hairline); }
+.cat-row .cat-name { display: inline-block; margin-top: var(--link-gap); padding-bottom: var(--link-gap); --line: var(--hairline); } /* the margin balances the underline's room: the text itself is centred in the row */
 @media (max-resolution: 1.5dppx) { .cat-row .cat-name { --line: 1px; } }
 .cat-row[data-empty] { opacity: 0.35; cursor: default; }
-.cat-row.is-big { height: var(--mark-large); margin: 20px 0; }
-.cat-list li:first-child .cat-row.is-big { margin-top: 0; }
-.cat-row.is-big .cat-mark { width: var(--mark-large); height: var(--mark-large); }
 .cat-row .cat-ind { visibility: hidden; width: 8px; height: 8px; }
 .cat-row.is-selected .cat-ind,
 .cat-row.is-preview .cat-ind { visibility: visible; }
@@ -623,13 +620,14 @@ ul { list-style: none; }
 .cat-row.is-preview:not(.is-selected) .cat-ind { --src: url(../../assets/icons/arrow-left.svg); }
 .cat-row[data-empty] .cat-ind { visibility: hidden; } /* nothing to go to: no arrow */
 
+/* The descriptor column: its first line sits on "All words", its count on the last row. */
 .cat-desc {
   position: absolute;
-  top: calc(var(--list-top) + 23px);
-  left: var(--col4);
-  width: 26.667em;
-  max-width: calc(100vw - var(--col4) - var(--m));
-  height: 394px;
+  top: var(--list-top);
+  left: var(--desc-left);
+  width: 25em;
+  max-width: calc(100% - var(--desc-left) - var(--m));
+  height: calc(5 * var(--row) + var(--lh));
   display: flex;
   flex-direction: column;
   gap: 1.333em;
@@ -646,10 +644,19 @@ ul { list-style: none; }
   text-align: center;
 }
 
-/* Touch layouts (tablet, phone): a tap grows a row and draws a hairline under its name — that is
-   the preview, with the description; a tap on the underlined row applies it. No apply button. */
+/* Touch layouts (tablet, phone): a tap redraws the symbol and draws a hairline under the name —
+   that is the preview, with the description; a tap on the underlined row applies it. */
 @media (max-width: 1023px) {
-  .cat-desc { width: 320px; } /* list span, row height and the column's alignment: the ≥600px block above */
+  .menu {
+    /* 160, and 60 to the names, in an 834 window; both give way on a narrower one, so the
+       names never reach the descriptor (which also keeps clear of the longest name + its arrow). */
+    --menu-sym: clamp(96px, 19.2vw, 160px);
+    --row: max(48px, 10.2vh);   /* 85 in an 832 window */
+    --list-top: 24.9vh;         /* 207 */
+    --list-left: calc(var(--m) + var(--menu-sym) + clamp(20px, calc(60px - (834px - 100vw) * 0.17), 60px)); /* 60 at 834 wide, 20 at 600 */
+    --desc-left: max(50%, calc(var(--list-left) + 130px));
+  }
+  .cat-desc { width: 320px; }
   .cat-row.is-preview:not([data-empty]) .cat-name { /* an empty category can't be applied: no underline */
     background: linear-gradient(currentColor, currentColor) left bottom / 100% var(--line) no-repeat;
     animation: link-in 0.5s var(--ease);
@@ -658,33 +665,27 @@ ul { list-style: none; }
 @keyframes link-in { from { background-size: 0% var(--line); } }
 
 @media (max-width: 599px) {
-  /* Phone (Figma 305:2859): everything on the left margin, under Back; the marks on the right
-     margin; a rule between rows. The list is centred in the window and spans MENU_SPAN of its
-     height: js/app.js (sizeRows) sets --mark-large (the grown mark gives way on a short window)
-     and --row (the plain rows share what the grown row and its description leave). */
+  /* Phone (Figma 412:302): the symbol in the top right corner, redrawing in place; the list on
+     the left margin under it, a rule between rows, the description under the previewed name.
+     Symbol, rows and the space between them give way on a short window; past that the menu
+     scrolls. */
   .menu {
     --rule: #b2b2b2;
-    --lh: calc(var(--text-size) * var(--text-leading));
-    --name-drop: calc((var(--row) - var(--lh)) / 2);
-    --mark-gap: calc((var(--row) - var(--mark)) / 2); /* from a row's rule to its mark: the same when the mark is grown */
+    --menu-sym: clamp(96px, 18.8vh, 160px);   /* 160 in an 852 window */
+    --row: clamp(50px, 7.75vh, 66px);         /* 66 */
+    --list-top: calc(20px + var(--menu-sym) + min(40px, 4.7vh));
+    overflow-y: auto;
+    scrollbar-width: none;
   }
-  .cat-list { top: 50%; left: var(--m); right: var(--m); translate: 0 -50%; }
-  .cat-row { width: 100%; padding-left: 0; align-items: flex-end; } /* the whole row is the tap target */
-  /* The name is centred on the mark when idle and sits on the mark's bottom edge when grown:
-     one bottom margin that glides between the two, in step with the row. */
-  .cat-row .cat-name { margin-bottom: calc(var(--name-drop) - var(--link-gap)); transition: margin-bottom 0.45s var(--ease); }
-  .cat-row .cat-ind { margin-bottom: calc(var(--name-drop) + (var(--lh) - 8px) / 2); transition: margin-bottom 0.45s var(--ease); }
-  .cat-row.is-big { height: calc(var(--mark-gap) + var(--mark-large)); margin: 0; --name-drop: 0px; }
-  /* The glyph is inset 3/32 of its box: the box overhangs the margin by that much, so the
-     glyph's right edge is on the margin at both sizes. */
-  .cat-row .cat-mark { top: var(--mark-gap); left: auto; right: calc(var(--mark) * -0.09375); translate: none; transition: width 0.45s var(--ease), height 0.45s var(--ease), right 0.45s var(--ease); }
-  .cat-row.is-big .cat-mark { right: calc(var(--mark-large) * -0.09375); }
-  /* The hairline between rows belongs to the lower row, so it comes and goes with it. */
+  .menu::-webkit-scrollbar { display: none; }
+  .menu-sym { left: auto; right: var(--m); top: 20px; translate: none; }
+  .cat-list { left: var(--m); right: var(--m); padding-bottom: 20px; }
+  /* The hairline between rows belongs to the lower row. */
   li + li > .cat-row::before { content: ""; position: absolute; left: 0; right: 0; top: 0; border-top: var(--hairline) solid var(--rule); }
-  .cat-row[data-empty] { opacity: 1; } /* the rule keeps its colour: only the name and the mark are dimmed */
+  .cat-row[data-empty] { opacity: 1; } /* the rule keeps its colour: only the name is dimmed */
   .cat-row[data-empty] > * { opacity: 0.35; }
-  /* The description sits in the list, under the grown row (js/app.js moves it into that row's li). */
-  .cat-desc { position: static; margin: 24px 0; padding-right: 4px; width: auto; max-width: none; height: auto; } /* folds open/shut by height (js/app.js → placeDesc); the text is never clipped: each line fades in once the space has opened for it */
+  /* The description sits in the list, under the previewed row (js/app.js moves it into that row's li). */
+  .cat-desc { position: static; margin: 0 0 calc((var(--row) - var(--lh)) / 2); padding-right: 4px; width: auto; max-width: none; height: auto; } /* folds open/shut by height (js/app.js → placeDesc); the text is never clipped: each line fades in once the space has opened for it */
   .cat-desc-line, #catCount { display: none; }
 }
 

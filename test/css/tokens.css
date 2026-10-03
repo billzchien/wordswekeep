@@ -71,16 +71,14 @@
   --ann-gap: calc(24 * var(--u));            /* annotation overlay: enlarged word → its note */
 
   /* ---------- Mark (logo / category mark) — grows with the type ---------- */
-  --mark: calc(20 * var(--u));
-  --mark-large: calc(80 * var(--u));   /* highlighted category in the menu */
+  --mark: calc(24 * var(--u));   /* the symbol at the top left of every page, and beside a category's name in notes */
 
   /* Crimson Pro's capitals start this far below the top of their line box (16px text, leading
      1.2). Text that should line up with the mark's top edge is raised by it, so the caps —
      not the invisible line box — sit on the same line as the mark. */
   --cap-offset: 0.37em;
   --cap-height: 0.575em;   /* Crimson Pro capital height; the mark is centred on the caps */
-  /* The mark's top so that its centre sits on the centre of the capitals whose line is at 20px. */
-  --mark-top: calc(20px + var(--cap-height) / 2 - var(--mark) / 2);
+  --mark-top: 20px;   /* the mark's top and left: on the page margin (Bill, 2026-10-03) */
 
   --hairline: 0.5px;
   --link-gap: 2px;   /* space between a link's text box and its underline */

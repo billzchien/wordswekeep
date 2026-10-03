@@ -289,7 +289,7 @@ textarea.field--taller { height: var(--ta-l); }
 .pager-num { display: block; width: calc(8 * var(--u)); height: calc(var(--text-size) * var(--text-leading)); overflow: hidden; text-align: center; }
 .pager-roll { --p: 0; display: block; transform: translateY(calc(var(--p) * -1 * var(--text-size) * var(--text-leading))); transition: transform var(--pager-ms) var(--ease); } /* every digit stacked; slides by --p whole lines (a % would be of the whole stack) */
 .pager-roll > span { display: block; height: calc(var(--text-size) * var(--text-leading)); }
-.pager-track { display: block; position: relative; width: calc(40 * var(--u)); height: 1px; background: color-mix(in srgb, currentColor 25%, transparent); }
+.pager-track { --track: color-mix(in srgb, currentColor 25%, transparent); display: block; position: relative; width: calc(40 * var(--u)); height: 1px; background: linear-gradient(var(--track), var(--track)) left / 100% 100% no-repeat; } /* a gradient, so the entrance can draw it left to right (pager-draw) without touching the fill inside it */
 .pager-fill { position: absolute; left: 0; top: 0; height: 100%; width: 20%; background: currentColor; transition: width var(--pager-ms) var(--ease); }
 .form.is-done .count, .form.is-done .arrows { display: none; }
 .arrows button:disabled { opacity: 0.3; cursor: default; }
@@ -371,7 +371,17 @@ textarea.field--taller { height: var(--ta-l); }
    are not painted at all, so nothing shows before it fades in. */
 html.is-arriving .count, html.is-arriving .arrows,
 html.is-arriving .step:first-child .content > .group > *, html.is-arriving .step:first-child .content > .btn { opacity: 0; }
-.form.is-arriving .count, .form.is-arriving .arrows { animation: fade-in 0.3s var(--ease) both; }
+.form.is-arriving .arrows { animation: fade-in 0.3s var(--ease) both; }
+/* The pager comes in once the form's blocks have landed (--pager-at, from js/form.js), by parts, 100ms apart: the current number fades up 10px, the line draws
+   left to right (the grey track, and the dark fill 50ms behind it), the total fades up 10px. */
+.form.is-arriving .count { opacity: 1; --pager-in: 300ms; --pager-gap: 100ms; }
+.form.is-arriving .pager-num { animation: pager-up var(--pager-in) var(--ease) var(--pager-at, 0ms) both; }
+.form.is-arriving .pager-track { animation: pager-draw var(--pager-in) var(--ease) calc(var(--pager-at, 0ms) + var(--pager-gap)) both; }
+.form.is-arriving .pager-fill { transform-origin: 0 50%; animation: pager-fill var(--pager-in) var(--ease) calc(var(--pager-at, 0ms) + var(--pager-gap) + 50ms) both; }
+.form.is-arriving .pager-track + .pager-num { animation-delay: calc(var(--pager-at, 0ms) + 2 * var(--pager-gap)); }
+@keyframes pager-up { from { opacity: 0; translate: 0 10px; } }
+@keyframes pager-draw { from { background-size: 0% 100%; } }
+@keyframes pager-fill { from { transform: scaleX(0); } }
 /* The form's blocks (title, field, toggle, button) fade up one by one: 300ms each, all starting
    together but 50ms apart (js sets --k, the block's place in the sequence). */
 .form.is-arriving .rise { animation: rise-in 0.3s var(--ease) calc(var(--k) * 50ms) both; }
