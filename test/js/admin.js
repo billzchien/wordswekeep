@@ -64,8 +64,14 @@
       latin: 'A1-A9 AB-AC AE-B1 B4 B6-B8 BB BF-DD DF-FD FF-107 10C-10F 112-113 116-11B 122-123 12A-12B 12E-12F 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-17E 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
     { value: 'author',     label: 'Author',     not: [],
       latin: 'A1-A9 AB AE-B1 B4 B6-B8 BB BF-107 10C-113 116-11B 122-123 12A-12B 12E-12F 131-133 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-17E 237 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
+    { value: 'fig',       label: 'Fig',       not: [], fresh: true, // fresh = still being tuned: in ink, and first, in the Fonts tab's list
+      latin: 'A1-AC AE-B4 B6-127 12A-137 139-148 14A-167 16A-17E 18F 192 1FC-1FF 218-21B 237 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 2044 20A9 20AC' },
+    { value: 'stone',     label: 'Stone',     not: [], fresh: true,
+      latin: 'A1-A9 AB AE-B1 B4 B6-B8 BB BF-EF F1-107 10A-113 116-11B 11E-123 126-127 12A-12B 12E-131 136-137 139-13E 141-148 14A-14D 150-15B 15E-167 16A-16B 16E-17E 218-21B 1E80-1E85 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
+    { value: 'rondeau',   label: 'Rondeau',   not: [], fresh: true,
+      latin: 'A1-AB AE-B4 B6-148 14A-17E 1E6-1E7 1FC-1FF 218-21B 232-233 237 1E80-1E85 1E9E 1EBC-1EBD 1EF2-1EF3 1EF8-1EF9 2010 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2032-2033 2039-203A 2044 2070 2074-2079 2080-2089 20AC' },
   ];
-  const FONT_FILES = ['story', 'print', 'grotesk', 'poet', 'sketch', 'rose', 'author'];
+  const FONT_FILES = ['story', 'print', 'grotesk', 'poet', 'sketch', 'rose', 'author', 'fig', 'stone', 'rondeau'];
   // An original-language quote written in Latin letters (Spanish, French, Vietnamese, pinyin…)
   // is set in the quote's own face when the face has every character it needs; anything else —
   // another script, or a letter the face lacks — is set in Noto. `latin`: what a face has beyond
@@ -207,16 +213,18 @@
     if (h === 'reset' && !remote) { localStorage.removeItem(STORE_KEY); location.hash = '#live'; location.reload(); return; }
     const [view, id] = h.split('/');
     if (view === 'edit' && findItem(id)) openEdit(id);
+    else if (view === 'fonts') showFonts(id);
     else showList(view in TABS ? view : 'live');
   }
   window.addEventListener('hashchange', route);
 
   // The list and the edit view cross-fade (--view-ms) and the page scrolls back to the top.
+  const VIEWS = { list: 'listView', edit: 'editView', fonts: 'fontsView' };
   let viewTimer = 0;
   function switchView(view) {
     const cur = admin.dataset.view;
     if (cur === view) return Promise.resolve();
-    const from = view === 'edit' ? $('listView') : $('editView'), to = view === 'edit' ? $('editView') : $('listView');
+    const from = $(VIEWS[cur]), to = $(VIEWS[view]);
     from.classList.add('is-out');
     clearTimeout(viewTimer);
     return new Promise((res) => {
@@ -249,7 +257,7 @@
     tab = t;
     admin.dataset.tab = t;
     document.querySelectorAll('.tab').forEach((a) => a.classList.toggle('is-active', a.dataset.tab === t));
-    $('ctaLive').hidden = t !== 'live'; $('ctaArchive').hidden = t !== 'archive';
+    $('ctaLive').hidden = t !== 'live'; $('ctaArchive').hidden = t !== 'archive'; $('ctaFonts').hidden = true;
     if (t === 'pending' && store.pending.some((q) => !q.seen)) { store.pending.forEach((q) => { q.seen = true; }); persist(); } // read: the mark goes
     renderList();
     switchView('list');
@@ -926,6 +934,217 @@
     document.head.appendChild(local);
   }
 
+  /* ---------- The quote faces (the Fonts tab) ----------
+     Each face's size at each length, its leading and its tracking can be tuned here on a
+     short, a medium and a long quote set as the archive sets them. What is saved (`faces`) is
+     laid over css/fonts.css, here and on the site (data/faces.json, js/app.js → facesCSS).
+     Save sends the whole table: the Worker commits it, and the site follows in about a
+     minute. In the demo it is kept in this browser only. */
+  const FACES_KEY = 'wwk-faces-demo';
+  let faces = {};
+  const faceStyle = document.createElement('style');
+  document.head.appendChild(faceStyle);
+  // The faces' tuned settings (data/faces.json, saved from the library's Fonts tab) laid over
+  // css/fonts.css: per face its leading, its tracking (%) and its size against the tier's at
+  // each length. The same function is in js/app.js: change both.
+  function facesCSS(table) {
+    const num = (v) => typeof v === 'number' && Number.isFinite(v);
+    return Object.entries(table || {}).map(([key, f]) => {
+      const s = f && f.scale;
+      if (!/^[a-z]+$/.test(key) || !s || ![s.l, s.m, s.s, f.leading, f.tracking].every(num)) return '';
+      const at = `[data-font="${key}"]`;
+      return `${at} { --qf-leading: ${f.leading}; --qf-tracking: ${f.tracking / 100}em; }\n`
+        + `${at}[data-tier="l"] { --qf-scale: ${s.l}; }\n${at}[data-tier="m"] { --qf-scale: ${s.m}; }\n`
+        + `${at}[data-tier="s"], ${at}[data-tier="xs"] { --qf-scale: ${s.s}; }`;
+    }).join('\n');
+  }
+  const applyFaces = () => { faceStyle.textContent = facesCSS(faces); };
+  async function loadFaces() {
+    try {
+      if (remote) { const r = await call('/faces'); if (r.ok) faces = (await r.json()).faces || {}; }
+      else {
+        const kept = localStorage.getItem(FACES_KEY);
+        if (kept) faces = JSON.parse(kept) || {};
+        else { const r = await fetch('../../data/faces.json', { cache: 'no-cache' }); if (r.ok) faces = await r.json(); }
+      }
+    } catch (e) { faces = {}; }
+    applyFaces();
+  }
+
+  const TUNE = { scaleL: 'tScaleL', scaleM: 'tScaleM', scaleS: 'tScaleS', leading: 'tLeading', tracking: 'tTracking' }; // what can be tuned → its field
+  const FACE_SAMPLES = [
+    ['l', 'Short', 'You be it. Be about it.'],
+    ['m', 'Medium', 'Anybody can play. The note is only 20 percent. The attitude of the motherfucker who plays it is 80 percent.'],
+    ['s', 'Long', 'The amazing thing is that every atom in your body came from a star that exploded. And, the atoms in your left hand probably came from a different star than your right hand. It really is the most poetic thing I know about physics: You are all stardust.'],
+  ];
+  const TIER_NAME = { l: 'Short', m: 'Medium', s: 'Long' };
+  // A board holds no more than its length allows (the limits of tier(): a CJK character counts as 4).
+  const TIER_MAX = { l: 64, m: 160, s: 260 };
+  const weight = (text) => text.length + (text.match(/[぀-ヿ㐀-鿿가-힯]/g) || []).length * 3;
+  const clip = (text, max) => { let out = ''; for (const ch of text) { if (weight(out + ch) > max) break; out += ch; } return out; };
+  const FACE_LIST = [...FONTS.filter((f) => f.fresh), ...FONTS.filter((f) => !f.fresh)]; // the ones still being tuned first
+  const face = {
+    font: FACE_LIST[0].value,
+    ref: true,                                // the same words in Instrument under each quote
+    texts: FACE_SAMPLES.map((x) => x[2]),     // the boards' words: edited in place, kept from face to face
+    tune: {},                                 // face → the values tried and not saved yet (only those that differ)
+  };
+  const editable = (() => { const d = document.createElement('div'); try { d.contentEditable = 'plaintext-only'; } catch (e) { /* older browsers */ } return d.contentEditable === 'plaintext-only' ? 'plaintext-only' : 'true'; })();
+  const rnd = (n, d) => Math.round(n * 10 ** d) / 10 ** d;
+
+  $('faceList').innerHTML = FACE_LIST.map((f) => `<button type="button" class="combo-item${f.fresh ? ' is-fresh' : ''}" role="option" data-font="${f.value}">${f.label}</button>`).join('');
+  const openFaces = (open) => { $('faceList').hidden = !open; $('facePick').classList.toggle('is-open', open); $('faceBtn').setAttribute('aria-expanded', String(open)); };
+
+  // What a face is set at now (fonts.css + what was saved), read from quotes of each length
+  // that are not shown.
+  function asSetOf(key) {
+    const out = {};
+    [['l', 'scaleL'], ['m', 'scaleM'], ['s', 'scaleS']].forEach(([t, id]) => {
+      const probe = document.createElement('blockquote');
+      probe.className = 'quote'; probe.dataset.tier = t; probe.dataset.font = key; probe.style.cssText = 'position:absolute;visibility:hidden';
+      $('faceBoards').appendChild(probe);
+      const cs = getComputedStyle(probe), px = parseFloat(cs.fontSize);
+      out[id] = rnd(parseFloat(cs.getPropertyValue('--qf-scale')) || 1, 4);
+      if (t === 'm') { out.leading = rnd(parseFloat(cs.lineHeight) / px, 3); out.tracking = cs.letterSpacing === 'normal' ? 0 : rnd(parseFloat(cs.letterSpacing) / px * 100, 2); }
+      probe.remove();
+    });
+    return out;
+  }
+  function showFonts(key) {
+    if (FONTS.some((f) => f.value === key)) face.font = key;
+    admin.dataset.tab = 'fonts';
+    document.querySelectorAll('.tab').forEach((a) => a.classList.toggle('is-active', a.dataset.tab === 'fonts'));
+    $('ctaLive').hidden = $('ctaArchive').hidden = true; $('ctaFonts').hidden = false;
+    switchView('fonts').then(drawFaces);
+    refreshChrome();
+  }
+  function drawFaces() {
+    const f = FONTS.find((x) => x.value === face.font);
+    $('faceBoards').innerHTML = FACE_SAMPLES.map(([t, name], i) => `
+      <section class="face-board" data-i="${i}">
+        <p class="face-cap" data-name="${name}${f.not.includes(t) ? ' · not offered at this length' : ''}"></p>
+        <blockquote class="quote" data-tier="${t}" data-font="${f.value}" contenteditable="${editable}" spellcheck="false">${esc(face.texts[i])}</blockquote>
+        ${face.ref && f.value !== 'instrument' ? `<blockquote class="quote is-ref" data-tier="${t}" data-font="instrument">${esc(face.texts[i])}</blockquote>` : ''}
+      </section>`).join('');
+    // A face has one leading and one tracking, so those apply at every length; a scale applies
+    // to its own. A value put back to what is saved is no longer a change.
+    const asSet = asSetOf(f.value), tune = face.tune[f.value] || {};
+    Object.keys(tune).forEach((id) => { if (tune[id] === asSet[id]) delete tune[id]; });
+    if (!Object.keys(tune).length) delete face.tune[f.value];
+    const now = (id) => (tune[id] != null ? tune[id] : asSet[id]);
+    const was = (id, unit = '') => (now(id) !== asSet[id] ? `was ${asSet[id]}${unit}` : '');
+    $('faceBoards').querySelectorAll('.quote:not(.is-ref)').forEach((q) => {
+      const id = { l: 'scaleL', m: 'scaleM' }[q.dataset.tier] || 'scaleS';
+      if (tune.leading != null) q.style.setProperty('--qf-leading', tune.leading);
+      if (tune.tracking != null) q.style.setProperty('--qf-tracking', `${tune.tracking / 100}em`);
+      if (tune[id] != null) q.style.setProperty('--qf-scale', tune[id]);
+      q.closest('.face-board').dataset.was = [was('leading'), was('tracking', '%'), was(id)].join('|');
+    });
+    Object.entries(TUNE).forEach(([id, el]) => { if (document.activeElement !== $(el)) $(el).value = now(id); });
+    $('facesReset').disabled = !face.tune[f.value];
+    $('facesSave').disabled = !Object.keys(face.tune).length;
+    $('faceBtn').textContent = f.label; $('faceBtn').classList.toggle('is-fresh', !!f.fresh);
+    $('faceList').querySelectorAll('.combo-item').forEach((b) => {
+      const on = b.dataset.font === f.value;
+      b.setAttribute('aria-selected', String(on));
+      b.innerHTML = esc(b.textContent) + (on ? '<span class="icon icon-asterisk"></span>' : '');
+    });
+    $('faceRef').setAttribute('aria-pressed', String(face.ref)); $('faceRef').textContent = face.ref ? 'On' : 'Off';
+    captionFaces();
+  }
+  // Over each board, what the browser really set: size, against Instrument's, leading, tracking, sets.
+  function captionFaces() {
+    $('faceBoards').querySelectorAll('.face-board').forEach((board) => {
+      const q = board.querySelector('.quote'), cs = getComputedStyle(q), size = parseFloat(cs.fontSize);
+      const probe = document.createElement('i'); probe.style.cssText = `position:absolute;visibility:hidden;font-size:${cs.getPropertyValue('--q-size')}`; board.appendChild(probe); // beside the quote, not in it: it may be being typed in
+      const tierPx = parseFloat(getComputedStyle(probe).fontSize); probe.remove();
+      const track = cs.letterSpacing === 'normal' ? 0 : parseFloat(cs.letterSpacing) / size * 100;
+      const [wasL, wasT, wasS] = (board.dataset.was || '||').split('|').map((w) => (w ? ` (${w})` : ''));
+      const len = tier(face.texts[board.dataset.i]) === 'xs' ? 's' : tier(face.texts[board.dataset.i]);
+      board.querySelector('.face-cap').textContent = [
+        `${board.querySelector('.face-cap').dataset.name} · ${weight(face.texts[board.dataset.i])} / ${TIER_MAX[q.dataset.tier]} characters${len !== q.dataset.tier ? ` (so few would be set as ${TIER_NAME[len]})` : ''}`,
+        `${rnd(size, 1)}px (Instrument ${rnd(tierPx, 1)} × ${rnd(size / tierPx, 4)})${wasS}`,
+        `leading ${rnd(parseFloat(cs.lineHeight) / size, 3)}${wasL}`,
+        `tracking ${rnd(track, 2)}%${wasT}`,
+        cs.fontFeatureSettings === 'normal' ? 'no sets' : cs.fontFeatureSettings.replace(/"/g, '').replace(/ 1\b/g, ''),
+      ].join(' · ');
+    });
+  }
+  // Save: every face with values tried out, at once.
+  async function saveFaces() {
+    const next = clone(faces);
+    Object.keys(face.tune).forEach((key) => {
+      const v = { ...asSetOf(key), ...face.tune[key] };
+      next[key] = { scale: { l: v.scaleL, m: v.scaleM, s: v.scaleS }, leading: v.leading, tracking: v.tracking };
+    });
+    $('facesSave').disabled = true;
+    if (remote) {
+      let r;
+      try { r = await call('/faces', 'PUT', { faces: next }); } catch (e) { r = null; }
+      if (r && r.status === 401) { await signIn(); return saveFaces(); }
+      if (!r || !r.ok) { $('facesSave').disabled = false; if (await ask('That could not be saved. Nothing on the site changed.', 'Try again', 'Not yet')) return saveFaces(); return; }
+      faces = (await r.json()).faces;
+    } else { faces = next; localStorage.setItem(FACES_KEY, JSON.stringify(faces)); }
+    face.tune = {};
+    applyFaces();
+    drawFaces();
+    sizeFont();
+    toast('Saved');
+  }
+
+  $('fontsView').addEventListener('click', (e) => {
+    if (!e.target.closest('#facePick')) openFaces(false);
+    const b = e.target.closest('.combo-item, #faceBtn, #faceRef');
+    if (!b) return;
+    if (b.id === 'faceBtn') { openFaces($('faceList').hidden); return; }
+    if (b.dataset.font) { openFaces(false); face.font = b.dataset.font; }
+    else face.ref = !face.ref;
+    drawFaces();
+  });
+  // On the face dropdown: ↑ ↓ step through the faces (open or closed), Escape closes.
+  $('facePick').addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { openFaces(false); return; }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    const i = FACE_LIST.findIndex((f) => f.value === face.font) + (e.key === 'ArrowDown' ? 1 : -1);
+    face.font = FACE_LIST[(i + FACE_LIST.length) % FACE_LIST.length].value;
+    drawFaces();
+    $('faceBtn').focus();
+  });
+  Object.entries(TUNE).forEach(([id, el]) => $(el).addEventListener('input', () => {
+    const v = parseFloat($(el).value), tune = face.tune[face.font] || (face.tune[face.font] = {});
+    if (Number.isFinite(v)) tune[id] = v; else delete tune[id];
+    drawFaces();
+  }));
+  // The words are edited in the board itself; Instrument's copy follows.
+  $('faceBoards').addEventListener('input', (e) => {
+    const q = e.target.closest('.quote[contenteditable]');
+    if (!q) return;
+    const board = q.closest('.face-board'), max = TIER_MAX[q.dataset.tier];
+    let text = q.innerText.replace(/\n$/, '');
+    if (weight(text) > max) { // pasted past the limit: cut to it, the caret at the end
+      text = clip(text, max);
+      q.textContent = text;
+      const end = document.createRange(); end.selectNodeContents(q); end.collapse(false);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(end);
+    }
+    face.texts[board.dataset.i] = text;
+    const ref = board.querySelector('.is-ref');
+    if (ref) ref.textContent = text;
+    captionFaces();
+  });
+  // Typing stops at the board's limit (what is selected makes room).
+  $('faceBoards').addEventListener('beforeinput', (e) => {
+    const q = e.target.closest && e.target.closest('.quote[contenteditable]');
+    if (!q || !e.inputType.startsWith('insert') || e.inputType === 'insertFromPaste' || e.isComposing) return;
+    const sel = getSelection(), picked = sel.rangeCount && q.contains(sel.anchorNode) ? weight(sel.toString()) : 0;
+    if (weight(q.innerText.replace(/\n$/, '')) - picked + weight(e.data || '\n') > TIER_MAX[q.dataset.tier]) e.preventDefault();
+  });
+  $('facesReset').addEventListener('click', () => { delete face.tune[face.font]; if (document.activeElement) document.activeElement.blur(); drawFaces(); });
+  $('facesSave').addEventListener('click', saveFaces);
+  window.addEventListener('resize', () => { if (admin.dataset.view === 'fonts') captionFaces(); });
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', () => { if (admin.dataset.view === 'fonts') captionFaces(); });
+
   /* ---------- Auto cleanup ----------
      House style, the same rules as the converter: sentences capitalised, one space, a space after
      punctuation, curly quotes, … for ..., a closing period, common slips fixed. CJK text is only
@@ -1127,5 +1346,5 @@
 
   /* ---------- Go ---------- */
 
-  load().then(() => { refreshChrome(); route(); });
+  load().then(loadFaces).then(() => { refreshChrome(); route(); });
 })();

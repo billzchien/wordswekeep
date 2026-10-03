@@ -8,6 +8,8 @@
    Round, whose short quotes are set at 1.15 (both are
    relative to the type size); only --qf-scale changes with the tier. Where Figma's short board
    drew another leading, the medium / long one is used (Bill, 2026-09-27).
+   The scale, leading and tracking here are each face's starting values: what is saved in the
+   library's Fonts tab (data/faces.json) is laid over them by js (app.js, admin.js → facesCSS).
    The files are served by the fonts Worker (workers/fonts) to this site's pages only. */
 
 @font-face { font-family: 'Story';   src: url('https://fonts.wordswekeep.org/story.woff2') format('woff2');   font-weight: 400; font-style: normal; font-display: swap; }
@@ -17,6 +19,9 @@
 @font-face { font-family: 'Sketch';  src: url('https://fonts.wordswekeep.org/sketch.woff2') format('woff2');  font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Rose';    src: url('https://fonts.wordswekeep.org/rose.woff2') format('woff2');    font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Author';  src: url('https://fonts.wordswekeep.org/author.woff2') format('woff2');  font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Fig';     src: url('https://fonts.wordswekeep.org/fig.woff2') format('woff2');     font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Stone';   src: url('https://fonts.wordswekeep.org/stone.woff2') format('woff2');   font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Rondeau'; src: url('https://fonts.wordswekeep.org/rondeau.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
 
 :root {
   --native-serif: 'Noto Serif SC', 'Songti SC', serif;
@@ -70,6 +75,25 @@
 
 [data-font="author"]  { --qf-family: 'Author', var(--native-serif);  --qf-style: normal; --qf-leading: 1.3; --qf-tracking: -0.05em; --qf-features: "ss01" 1; }
 [data-font="author"][data-tier="m"]  { --qf-scale: 1.125; }
+
+/* Fig, Stone, Rondeau: Figma Type 404:720 (Instrument on those boards: 64 / 48 / 40). */
+[data-font="fig"]     { --qf-family: 'Fig', var(--native-sans);      --qf-style: normal; --qf-leading: 1.22; --qf-tracking: -0.02em; --qf-features: "ss01" 1; --qf-native: var(--native-sans); } /* ss01 = the alternate a and y */
+[data-font="fig"][data-tier="l"]  { --qf-scale: 0.88; }       /* scales, leading and tracking tuned by Bill, 2026-10-03 (the boards drew 0.9688 / 0.8333 / 0.8, 1.3, -1.5%) */
+[data-font="fig"][data-tier="m"]  { --qf-scale: 0.85; }
+[data-font="fig"][data-tier="s"],
+[data-font="fig"][data-tier="xs"] { --qf-scale: 0.9; }
+
+[data-font="stone"]   { --qf-family: 'Stone', var(--native-serif);   --qf-style: normal; --qf-leading: 1.3; --qf-tracking: -0.015em; --qf-features: "ss07" 1; } /* ss07 = the font's alternate a without its alternate g (workers/fonts/tools/convert.py) */
+[data-font="stone"][data-tier="l"]  { --qf-features: "ss07" 1, "ss02" 1, "ss03" 1; } /* a short quote also takes the swirly r (ss02) and the pen terminals (ss03), as on the short board */
+[data-font="stone"][data-tier="m"]  { --qf-scale: 0.86; }    /* scales, leading and tracking tuned by Bill, 2026-10-03 (the boards drew 0.8333 / 0.8, 1.35, -1%) */
+[data-font="stone"][data-tier="s"],
+[data-font="stone"][data-tier="xs"] { --qf-scale: 0.85; }
+
+[data-font="rondeau"] { --qf-family: 'Rondeau', var(--native-serif); --qf-style: normal; --qf-leading: 1.05; --qf-tracking: 0.0015em; }
+[data-font="rondeau"][data-tier="l"]  { --qf-scale: 1.12; }   /* scales, leading and tracking tuned by Bill, 2026-10-03 (the boards drew 1.125 / 1.0833 / 1.05, 1.15, 0) */
+[data-font="rondeau"][data-tier="m"],
+[data-font="rondeau"][data-tier="s"],
+[data-font="rondeau"][data-tier="xs"] { --qf-scale: 1.05; }
 
 /* The original-language version is set in Noto (serif or sans, by the face's character) at the
    site's own native size: the face's scale does not apply to it. */

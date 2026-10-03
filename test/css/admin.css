@@ -361,3 +361,67 @@
   .font-stage .quote { width: 335px; }
   .font-stage .quote[data-tier="l"] { width: 295px; }
 }
+
+/* ---------- Fonts: tuning the quote faces ----------
+   One row of controls, a caption over each (fields 32 high here: Bill, 2026-10-03), stuck under
+   the top line like the table's head: the face, then three groups — the three scales; leading
+   and tracking; the comparison. A group that wraps starts at the left edge, under the face.
+   Desktop: the face is one column wide, so "Short" starts at column 2, under the Live tab.
+   Under it three boards — a short, a medium and a long quote — each the archive's main
+   screen: the quote starts at column 2 and takes four columns less 40 (a short one 700).
+   The type itself is css/fonts.css + the saved settings. */
+.admin[data-view="fonts"] .guard--top { display: none; }
+.faces-top {
+  --fh: calc(32 * var(--u)); --fpad: calc(8 * var(--u));
+  position: sticky; top: 0; z-index: 10;
+  margin-top: calc(-1 * var(--head-top)); padding-top: var(--head-top); padding-bottom: var(--row-pad);
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: calc(12 * var(--u)) var(--g);
+  border-bottom: var(--hairline) solid var(--rule);
+  background: color-mix(in srgb, var(--paper) 70%, transparent);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.ctls { display: flex; align-items: flex-end; gap: calc(4 * var(--u)); }
+.ctl { display: flex; flex-direction: column; gap: calc(4 * var(--u)); width: calc(76 * var(--u)); color: var(--head); white-space: nowrap; }
+.ctl .field { font-feature-settings: var(--numeral-features); }
+.ctl input[type="number"] { -moz-appearance: textfield; }
+.ctl input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+.ctl button.field { text-align: left; cursor: pointer; font-feature-settings: var(--text-features); } /* Comparison: a field that reads On / Off; a click turns it */
+/* The face dropdown (css/form.css → .combo): faces still being tuned in ink, settled ones in grey. */
+.ctl.ctl--face { width: calc(140 * var(--u)); }
+@media (min-width: 1024px) { .ctl.ctl--face { width: calc(var(--col2) - var(--m) - var(--g)); } }
+/* A phone: the face on its own row, then the six fields in one row, all the same width and the
+   same 4 apart (the groups dissolve), under shortened captions (.h-short). */
+@media (max-width: 599px) {
+  .faces-top { --fpad: calc(6 * var(--u)); display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: calc(12 * var(--u)) calc(4 * var(--u)); }
+  .ctls { display: contents; }
+  .ctl { width: auto; min-width: 0; }
+  .ctl.ctl--face { width: auto; grid-column: 1 / -1; }
+}
+.ctl--face .field { color: var(--head); }
+.ctl--face .combo-btn { pointer-events: none; color: var(--ink); }
+.ctl--face .combo-list { max-height: none; top: calc(100% + 1px); }
+.ctl--face .combo-item { color: var(--head); }
+.ctl--face .combo-item.is-fresh, .ctl--face .field.is-fresh { color: var(--ink); }
+
+.face-board {
+  --colw: calc((100vw - 2 * var(--m) - 5 * var(--g)) / 6);
+  position: relative; min-height: 60vh; display: flex; flex-direction: column; justify-content: center;
+  gap: calc(40 * var(--u)); padding: calc(72 * var(--u)) 0 calc(72 * var(--u)) calc(var(--colw) + var(--g));
+  border-bottom: var(--hairline) solid var(--rule);
+}
+.face-board .quote { width: calc(4 * var(--colw) + 3 * var(--g) - 40 * var(--u)); max-width: 100%; margin: 0; }
+.face-board .quote[data-tier="l"] { width: calc(700 * var(--u)); }
+.face-board .quote.is-ref { opacity: 0.35; }
+.face-board .quote[contenteditable] { outline: none; cursor: text; caret-color: var(--ink); -webkit-user-select: text; user-select: text; } /* the words are edited in place; Instrument follows */
+.face-cap { position: absolute; left: 0; top: var(--row-pad); right: 0; color: var(--head); font-feature-settings: var(--numeral-features); }
+@media (max-width: 599px) {
+  .face-board { padding-left: 0; }
+  .face-board .quote, .face-board .quote[data-tier="l"] { width: 100%; }
+}
+/* A phone's top line holds four tabs and the button: the tabs sit closer, the button is as wide
+   as its word, and the Fonts tab keeps Save only (a reload is its Reset). */
+@media (max-width: 599px) {
+  .tabs { gap: calc(16 * var(--u)); }
+  .chrome-list .cta .btn--w { min-width: 0; }
+  #facesReset { display: none; }
+}
