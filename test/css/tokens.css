@@ -78,7 +78,9 @@
      not the invisible line box — sit on the same line as the mark. */
   --cap-offset: 0.37em;
   --cap-height: 0.575em;   /* Crimson Pro capital height; the mark is centred on the caps */
-  --mark-top: 20px;   /* the mark's top and left: on the page margin (Bill, 2026-10-03) */
+  /* The mark's top so that its centre sits on the centre of the capitals whose line is at 20px;
+     also its left offset, so it is the same distance from both edges. */
+  --mark-top: calc(20px + var(--cap-height) / 2 - var(--mark) / 2);
 
   --hairline: 0.5px;
   --link-gap: 2px;   /* space between a link's text box and its underline */
