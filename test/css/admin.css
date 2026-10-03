@@ -406,7 +406,7 @@
 .face-board {
   --colw: calc((100vw - 2 * var(--m) - 5 * var(--g)) / 6);
   position: relative; min-height: 60vh; display: flex; flex-direction: column; justify-content: center;
-  gap: calc(40 * var(--u)); padding: calc(72 * var(--u)) 0 calc(72 * var(--u)) calc(var(--colw) + var(--g));
+  gap: calc(24 * var(--u)); padding: calc(72 * var(--u)) 0 calc(72 * var(--u)) calc(var(--colw) + var(--g));
   border-bottom: var(--hairline) solid var(--rule);
 }
 .face-board .quote { width: calc(4 * var(--colw) + 3 * var(--g) - 40 * var(--u)); max-width: 100%; margin: 0; }
