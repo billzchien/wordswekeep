@@ -339,7 +339,7 @@
 
   $('catList').innerHTML = CATEGORIES.map((c) => `
     <button type="button" class="cat" role="checkbox" aria-checked="false" data-key="${c.key}">
-      <span class="icon icon-mark" aria-hidden="true"></span>
+      <span class="icon icon-mark" data-sym="${c.key}" aria-hidden="true"></span>
       <span class="cat-title">${c.name}</span>
       <span class="cat-blurb">${noOrphans(c.desc)}</span>
       <span class="cat-box" aria-hidden="true"><span class="icon icon-check"></span></span>
@@ -790,8 +790,13 @@
   // Opened from the archive's "Add words": play the entrance (css .is-arriving).
   if (session.get('wwk-arrive')) {
     session.remove('wwk-arrive');
-    steps[0].querySelectorAll('.content > .group > *, .content > .btn').forEach((el, k) => { el.classList.add('rise'); el.style.setProperty('--k', k); });
+    const blocks = steps[0].querySelectorAll('.content > .group > *, .content > .btn');
+    blocks.forEach((el, k) => { el.classList.add('rise'); el.style.setProperty('--k', k); });
+    // The pager comes in once the last block has landed (css: 300ms each, 50ms apart; then the
+    // pager's three parts, 100ms apart, 300ms each).
+    const blocksDone = 300 + Math.max(0, blocks.length - 1) * 50;
+    form.style.setProperty('--pager-at', `${blocksDone}ms`);
     form.classList.add('is-arriving');
-    setTimeout(() => { form.classList.remove('is-arriving'); document.documentElement.classList.remove('is-arriving'); }, 900);
+    setTimeout(() => { form.classList.remove('is-arriving'); document.documentElement.classList.remove('is-arriving'); }, blocksDone + 600);
   }
 })();

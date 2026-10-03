@@ -525,7 +525,8 @@
     app.dataset.theme = notes.dataset.theme = $('notesBtn').dataset.theme = theme;
 
     $('nCats').innerHTML = cats.map((k) =>
-      `<li><span class="icon icon-mark"></span><span>${esc(CAT_BY_KEY[k].name)}</span></li>`).join('');
+      `<li><svg class="sym" viewBox="0 0 60 60" data-sym="${k}" aria-hidden="true"></svg><span>${esc(CAT_BY_KEY[k].name)}</span></li>`).join('');
+    noteSyms();
 
     const a = q.author;
     const country = a.country ? regionName(a.country) : '';
@@ -1015,6 +1016,9 @@
       notes.querySelector('#nQuoteWrap .quote'),
       notes.querySelector('.n-kept'), ...document.querySelectorAll('#nBody p'),
     ].filter((el) => el && el.offsetParent !== null).map(measure).filter(Boolean);
+
+    // The category symbols draw in as the edge reaches them, one after another.
+    items.filter(({ el }) => el.parentNode === $('nCats')).forEach(({ el, at }, i) => drawNoteSym(el.querySelector('.sym'), at + i * NOTE_SYM_STAGGER_MS));
 
     risers.forEach(({ el, at }) => el.animate(
       [{ transform: `translateY(${RISE_PX}px)` }, { transform: 'translateY(0)' }],
@@ -1622,20 +1626,149 @@
   new MutationObserver(syncChromeColor).observe(menuEl, { attributes: true, attributeFilter: ['hidden'] });
   syncChromeColor();
 
+  /* ---------- Symbols ----------
+     The six category symbols (All + the five categories) are ribbons: assets/symbols holds the
+     drawing code (ribbon-draw.js, used as it came), how each one draws in (symbol-draw-in.json)
+     and how one redraws into another (symbol-transitions.json); the timings live in those
+     files. Two are drawn live: the mark at the top left (the current category's symbol; it
+     draws in with the typing and as the menu closes) and the menu's one large symbol. The
+     symbols elsewhere (notes, the form, the library) are still images: css .icon-mark. */
+  const SYM_DIR = '../assets/symbols/';
+  const SYM = { all: 'All', perspective: 'Perspective', growth: 'Growth', drive: 'Drive', community: 'Community', romance: 'Romance' };
+  const SYM_SMALL = { levels: 2, pieces: 10 }, SYM_SMALL_STRIDE = 3; // the 24px mark: the file's low-cost settings
+  const symJSON = (file) => fetch(SYM_DIR + file).then((r) => { if (!r.ok) throw new Error(`${file}: ${r.status}`); return r.json(); });
+  let markSym = null, menuSym = null; // { lib, model, r } once their files are in
+  // The mark needs the draw-in file only, so it is ready first; the menu's symbol needs both.
+  const markReady = Promise.all([import(new URL(SYM_DIR + 'ribbon-draw.js', document.baseURI).href), symJSON('symbol-draw-in.json')]).then(([lib, data]) => {
+    const model = lib.createModel(data);
+    return (markSym = { lib, model, r: lib.createRenderer($('markSym'), model, SYM_SMALL) });
+  });
+  const menuReady = Promise.all([markReady, symJSON('symbol-transitions.json')]).then(([mark, data]) => {
+    const model = mark.lib.createModel(data);
+    $('menuSym').style.setProperty('--sym-ms', `${model.S.durationMs}ms`); // it glides to the next row for as long as it redraws
+    return (menuSym = { lib: mark.lib, model, r: mark.lib.createRenderer($('menuSym'), model, { drawInModel: mark.model }) });
+  });
+  markReady.catch((err) => { console.error(err); $('menuBtn').classList.add('is-static'); }); // no files: the still logo
+  menuReady.catch(() => {});
+
+  // The mark: the current category's symbol draws itself in (or, `animate` false, is simply there).
+  let markStop = null;
+  function drawMark(animate = true) {
+    const name = SYM[state.filter];
+    markReady.then(({ lib, model, r }) => {
+      if (markStop) markStop();
+      markStop = null;
+      $('menuBtn').classList.remove('is-static');
+      if (!animate) return r.rest(name);
+      r.drawIn(name, 0);
+      markStop = lib.play(model, (t) => r.drawIn(name, t, SYM_SMALL_STRIDE)); // reduced motion: straight to the end
+    }).catch(() => {});
+  }
+  // Notes: each category's symbol beside its name (renderNotes), drawn live so it can draw in
+  // as the notes arrive (scanIn → drawNoteSym). Without the symbols' files: the still images.
+  const NOTE_SYM_STAGGER_MS = 50; // a quote in several categories: each symbol starts this long after the one above
+  function noteSyms() {
+    const svgs = [...$('nCats').querySelectorAll('svg.sym')];
+    const make = () => svgs.forEach((svg) => {
+      if (!svg.isConnected || svg._r) return;
+      svg._r = markSym.lib.createRenderer(svg, markSym.model, SYM_SMALL);
+      svg._r.rest(SYM[svg.dataset.sym]);
+    });
+    if (markSym) return make(); // at once: the scan starts in this same turn
+    markReady.then(make).catch(() => svgs.forEach((svg) => {
+      const still = document.createElement('span');
+      still.className = 'icon icon-mark';
+      still.dataset.sym = svg.dataset.sym;
+      svg.replaceWith(still);
+    }));
+  }
+  function drawNoteSym(svg, delay) {
+    if (!svg || !svg._r) return;
+    const name = SYM[svg.dataset.sym];
+    svg._r.drawIn(name, 0);
+    setTimeout(() => { if (svg.isConnected) markSym.lib.play(markSym.model, (t) => svg._r.drawIn(name, t, SYM_SMALL_STRIDE)); }, delay);
+  }
+
+  // The reverse: the mark undraws itself, thin tip back to thick tip, over `ms`; then `done`.
+  function undrawMark(ms, done) {
+    if (markStop) markStop();
+    markStop = null;
+    if (!markSym) return done(); // not loaded: nothing to play
+    const name = SYM[state.filter], t0 = performance.now(), ease = markSym.model.ease;
+    // The site's curve runs forwards in time (off fast, a long brake), so most of the symbol is
+    // gone early and the end is seen: `at(left)` is the draw-in time at which `left` of it is drawn.
+    const at = (left) => { let lo = 0, hi = 1; for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; if (ease(mid) < left) lo = mid; else hi = mid; } return (lo + hi) / 2; };
+    let raf = 0;
+    const tick = (now) => {
+      const t = Math.min((now - t0) / ms, 1);
+      markSym.r.drawIn(name, t < 1 ? at(1 - ease(t)) : 0, SYM_SMALL_STRIDE);
+      if (t < 1) raf = requestAnimationFrame(tick); else { markStop = null; done(); }
+    };
+    raf = requestAnimationFrame(tick);
+    markStop = () => cancelAnimationFrame(raf);
+  }
+  function clearMark() { // nothing drawn: the state a draw-in starts from
+    if (markStop) markStop();
+    markStop = null;
+    if (markSym) markSym.r.drawIn(SYM[state.filter], 0);
+  }
+
+  // The menu's symbol. One redraw runs at a time, rest to rest: a preview that changes on the
+  // way is picked up as the current one lands (`want`), from the symbol then shown.
+  // With a mouse the redraw waits until the pointer has rested on a row for MENU_SYM_WAIT_MS, so a
+  // sweep over several rows goes straight to the one it stops on, with no stop on the way.
+  const MENU_SYM_WAIT_MS = 120;
+  const menuMark = { shown: null, want: null, busy: false, stop: null, wait: 0 };
+  const menuSymPlace = (key) => $('menuSym').style.setProperty('--at', [ALL, ...CATEGORIES].findIndex((c) => c.key === key)); // the row it is centred on (css; desktop and tablet)
+  function menuSymStop() {
+    if (menuMark.stop) menuMark.stop();
+    menuMark.stop = null; menuMark.busy = false;
+    clearTimeout(menuMark.wait); menuMark.wait = 0;
+  }
+  function menuSymPlay(model, step) {
+    menuMark.busy = true;
+    menuMark.stop = menuSym.lib.play(model, step, () => { menuMark.busy = false; if (!menuMark.wait) menuSymGo(); }); // the pointer still moving: its timer takes over
+    if (!menuMark.busy) menuMark.stop = null; // reduced motion: it was over at once
+  }
+  function menuSymOpen(key) { // the menu opens: the current category's symbol draws in, on its row
+    menuSymStop();
+    menuMark.shown = menuMark.want = key;
+    menuSymPlace(key);
+    if (menuSym) menuSym.r.drawIn(SYM[key], 0);
+    menuReady.then(() => {
+      if (menuEl.hidden || menuMark.busy) return;
+      const now = (menuMark.shown = menuMark.want); // the preview may have moved on while the files loaded
+      menuSymPlace(now);
+      menuSymPlay(markSym.model, (t) => menuSym.r.drawIn(SYM[now], t));
+    }).catch(() => {});
+  }
+  function menuSymTo(key) { // the preview moves: the symbol redraws into that category's, gliding to its row
+    menuMark.want = key;
+    clearTimeout(menuMark.wait); menuMark.wait = 0;
+    if (mqHoverDesktop.matches && !reduceMotion.matches) menuMark.wait = setTimeout(() => { menuMark.wait = 0; menuSymGo(); }, MENU_SYM_WAIT_MS);
+    else menuSymGo(); // touch: a tap is already a decision
+  }
+  function menuSymGo() {
+    const key = menuMark.want;
+    if (menuMark.busy || !menuSym || menuEl.hidden || key === menuMark.shown) return;
+    const from = menuMark.shown;
+    menuMark.shown = key;
+    menuSymPlace(key);
+    menuSymPlay(menuSym.model, (t) => menuSym.r.transition(SYM[from], SYM[key], t));
+  }
+
   /* ---------- Menu ---------- */
 
   const countFor = (key) => (key === 'all' ? state.all.length : state.all.filter((q) => q.categories.includes(key)).length);
 
   function renderMenu() {
-    const big = state.preview;
     // The description may be inside a list row (phone); the list is about to be rebuilt.
     menuEl.insertBefore(document.querySelector('.cat-desc'), $('menuApply'));
     $('catList').innerHTML = [ALL, ...CATEGORIES].map((c) => {
-      const cls = ['cat-row', c.key === big && 'is-big', c.key === state.filter && 'is-selected',
+      const cls = ['cat-row', c.key === state.filter && 'is-selected',
         c.key === state.preview && 'is-preview'].filter(Boolean).join(' ');
       const empty = countFor(c.key) === 0;
       return `<li><button class="${cls}" data-cat="${c.key}"${empty ? ' data-empty' : ''}>
-        <span class="icon icon-mark cat-mark"></span>
         <span class="cat-name">${esc(c.name)}</span><span class="icon cat-ind"></span></button></li>`;
     }).join('');
     updateMenuPreview();
@@ -1646,7 +1779,6 @@
     const cat = key === 'all' ? ALL : CAT_BY_KEY[key];
     document.querySelectorAll('.cat-row').forEach((row) => {
       const k = row.dataset.cat;
-      row.classList.toggle('is-big', k === key);
       row.classList.toggle('is-preview', k === key);
       row.classList.toggle('is-selected', k === state.filter);
     });
@@ -1656,7 +1788,7 @@
       $('catCount').textContent = `${n} quote${n === 1 ? '' : 's'} total`;
       sizeDescLine();
     });
-    sizeRows();
+    menuSymTo(key);
     const apply = $('menuApply');
     apply.textContent = key === 'all' ? 'See all words' : `See ${cat.name.toLowerCase()} words`;
     apply.disabled = n === 0;
@@ -1680,50 +1812,12 @@
   }
   const DESC_LINE_MS = 150; // the hairline's stretch from its centre
 
-  // Phone: the list spans MENU_SPAN of the window's height, centred (app.css). The grown mark is
-  // MARK_MAX when there is room — room being what is left with plain rows of MENU_ROW and the
-  // longest description open — and gives way down to MARK_MIN on a short window; one size for
-  // every category. The plain rows then share what the grown row and the current description
-  // leave (css transition on their height, in step with the accordion, so the list's height
-  // never changes on the way).
-  const MENU_SPAN = 0.75;            // the list's height, as a share of the window's
-  const MENU_ROW = 64;               // a plain row when the mark is sized (Figma 305:2859)
-  const MENU_ROW_MIN = 44;           // a plain row is never shorter (the list then outgrows the span)
-  const MARK = 20, MARK_MAX = 80, MARK_MIN = 40; // the plain mark; the grown mark's range
-  const DESC_GAP = 24;               // above and below the description (app.css: .cat-desc margin)
-  let tallest = { width: 0, height: 0 };
-  function tallestDesc() {           // the longest description's height at this width
-    const p = $('catDescText'), width = p.offsetWidth;
-    if (tallest.width === width) return tallest.height;
-    const probe = p.cloneNode(false);
-    probe.removeAttribute('id');
-    probe.style.cssText = `position:absolute;visibility:hidden;width:${width}px`;
-    p.after(probe);
-    const height = Math.max(...[ALL, ...CATEGORIES].map((c) => { probe.textContent = noOrphans(c.desc); return probe.offsetHeight; }));
-    probe.remove();
-    return (tallest = { width, height }).height;
-  }
-  function sizeRows() {
-    const plain = document.querySelectorAll('.cat-row').length - 1;
-    if (!mqMobile.matches || plain < 1 || !menuEl.clientHeight) {
-      menuEl.style.removeProperty('--row');
-      return menuEl.style.removeProperty('--mark-large');
-    }
-    const span = menuEl.clientHeight * MENU_SPAN - 2 * DESC_GAP;
-    const mark = Math.min(MARK_MAX, Math.max(MARK_MIN, span - tallestDesc() - plain * MENU_ROW - (MENU_ROW - MARK) / 2));
-    // span = (row - MARK) / 2 + mark + description + plain × row
-    const row = (span - mark - $('catDescText').offsetHeight + MARK / 2) / (plain + 0.5);
-    menuEl.style.setProperty('--mark-large', `${mark}px`);
-    menuEl.style.setProperty('--row', `${Math.max(MENU_ROW_MIN, row)}px`);
-  }
-
   /* Phone: the description lives in the list, under the previewed row, and moves with the
-     preview like an accordion, in step with the mark growing and the row changing height (the
-     0.45s row transition in app.css): under the old row a copy of the text simply fades out, fast
+     preview like an accordion: under the old row a copy of the text simply fades out, fast
      (DESC_OUT_MS), while its space closes up; under the new row the space opens and the text's
      lines fade in top to bottom, each as the space reaches it. The text is never
      clipped. Tablet/desktop: it stays in the menu's own column. */
-  const DESC_MS = 450; // matches the row's height/mark transition
+  const DESC_MS = 450; // the space under a row opening or closing
   const DESC_OUT_MS = 100; // the old description is gone almost at once
   const LINE_MS = 250, LINE_STAGGER_MS = 50;
   // Wrap each rendered line of the description in a plain inline span (no layout effect).
@@ -1748,8 +1842,9 @@
     const home = mqMobile.matches ? document.querySelector(`.cat-row[data-cat="${key}"]`)?.closest('li') : menuEl;
     const moving = home && desc.parentNode !== home;
     const animate = moving && mqMobile.matches && !reduceMotion.matches && !$('menu').hidden;
-    const shut = { height: '0px', marginTop: '0px', marginBottom: '0px' };
-    const open = (el) => ({ height: `${el.offsetHeight}px`, marginTop: `${DESC_GAP}px`, marginBottom: `${DESC_GAP}px` });
+    const shut = { height: '0px', marginBottom: '0px' };
+    const gapOf = (el) => parseFloat(getComputedStyle(el).marginBottom) || 0; // under the description (app.css); above it is the row's own
+    const open = (el) => ({ height: `${el.offsetHeight}px`, marginBottom: `${gapOf(el)}px` });
     const fold = (el, show) => {
       const easing = easeCurve();
       const from = open(el);                                     // measured at full height, before folding
@@ -1763,14 +1858,14 @@
       // has opened down to its bottom edge, so no line ever shows over the row below (nothing
       // is cropped), and never sooner than LINE_STAGGER_MS after the line above.
       const lines = wrapLines(el.querySelector('p'));
-      const height = el.offsetHeight, room = height + 2 * DESC_GAP;
+      const height = el.offsetHeight, room = height + gapOf(el);
       el.animate([shut, from], { duration: DESC_MS, easing, fill: 'both' });
       // The fade is the text's colour (transparent → ink), not `opacity`: iOS Safari does not
       // animate opacity on a plain inline span — each line jumped in at the end of its delay.
       const ink = getComputedStyle(el).color;
       let last = 0;
       lines.forEach((span, i) => {
-        const reached = easeTimeFor((DESC_GAP + height * (i + 1) / lines.length) / room, easing) * DESC_MS;
+        const reached = easeTimeFor((height * (i + 1) / lines.length) / room, easing) * DESC_MS;
         last = i ? Math.max(reached, last + LINE_STAGGER_MS) : reached;
         span.animate([{ color: 'transparent' }, { color: ink }], { duration: LINE_MS, delay: last, easing, fill: 'both' });
       });
@@ -1798,10 +1893,10 @@
     }
   }
 
-  /* Menu motion: the menu icon shrinks to nothing, then the list arrives — each row fades in
-     MENU_STAGGER_MS after the one above while its mark scales up from nothing. The descriptor
-     (and Back / the apply button) fade in together with the first row. */
-  const MENU_ICON_MS = 200, MENU_ITEM_MS = 400, MENU_STAGGER_MS = 50;
+  /* Menu motion: the mark undraws itself (its draw-in played backwards), then the list arrives —
+     each row fades in MENU_STAGGER_MS after the one above, while the menu's symbol draws in.
+     The descriptor (and Back / the apply button) fade in together with the first row. */
+  const MENU_ICON_MS = 300, MENU_ITEM_MS = 400, MENU_STAGGER_MS = 50;
   const MENU_OUT_MS = 250, MENU_BG_MS = 250; // leaving: each row's fade, then the background's
   const MENU_RETURN_MS = 400;              // closing with nothing changed: the quote fades back in (Notes + arrows: css, 400ms)
   let menuBusy = false;
@@ -1813,7 +1908,7 @@
       state.preview = state.filter;
       renderMenu();
       $('menu').hidden = false;
-      sizeRows();
+      menuSymOpen(state.filter);
       sizeDescLine(true); // the hairline is at full length as the menu appears; it glides only between items
       if (state.mode === 'main') app.classList.add('is-typing'); // Notes and the arrows go under the menu already hidden: they type back in with the quote on close
       menuBusy = false;
@@ -1823,28 +1918,29 @@
       const fadeIn = (el, delay) => el.animate([{ opacity: 0 }, { opacity: getComputedStyle(el).opacity }], { duration: MENU_ITEM_MS, delay, easing, fill: 'backwards' });
       document.querySelectorAll('#catList .cat-row').forEach((row, i) => {
         fadeIn(row, i * MENU_STAGGER_MS);
-        row.querySelector('.cat-mark').animate([{ scale: 0 }, { scale: 1 }], { duration: MENU_ITEM_MS, delay: i * MENU_STAGGER_MS, easing, fill: 'backwards' });
       });
-      [document.querySelector('.cat-desc'), $('menuBack'), $('menuApply')].forEach((el) => fadeIn(el, 0));
+      [document.querySelector('.cat-desc'), $('menuBack'), $('menuApply')].forEach((el) => fadeIn(el, 0)); // the symbol is not faded: it draws in
     };
     if (reduceMotion.matches) return reveal();
     menuBusy = true;
-    $('menuBtn').querySelector('.icon').animate([{ scale: 1 }, { scale: 0 }], { duration: MENU_ICON_MS, easing: easeCurve(), fill: 'forwards' });
-    setTimeout(reveal, MENU_ICON_MS);
+    undrawMark(MENU_ICON_MS, reveal);
   }
 
-  // Leaving mirrors arriving: rows fade out one after another (marks shrink to nothing, the
-  // descriptor goes with the first row), the grey background fades last, and the icon grows back.
-  // `changed`: a new category was applied — the (new) quote types itself in. Otherwise the page
-  // comes back as it was: the quote, Notes and the arrows simply fade in with the background.
+  // Leaving mirrors arriving: rows fade out one after another (the symbol and the descriptor go
+  // with the first row), the grey background fades last, and at the top left the chosen
+  // category's symbol draws in — on Back too. `changed`: a new category was applied — the (new)
+  // quote types itself in, the symbol with it. Otherwise the page comes back as it was: the
+  // quote, Notes and the arrows simply fade in with the background.
   function closeMenu(changed = false) {
     const menu = $('menu');
     if (menu.hidden || menuBusy) return;
-    const icon = $('menuBtn').querySelector('.icon');
+    const icon = $('markSym');
     const finish = () => {
       menu.hidden = true;
       menu.getAnimations({ subtree: true }).forEach((a) => a.cancel());
+      menuSymStop();
       icon.getAnimations().forEach((a) => a.cancel());
+      if (reduceMotion.matches) drawMark(false);
       menuBusy = false;
       if (!state.animating) app.classList.remove('is-typing'); // no arrival ran (reduced motion / notes): show them at once
     };
@@ -1856,23 +1952,24 @@
     const rows = [...document.querySelectorAll('#catList .cat-row')];
     rows.forEach((row, i) => {
       fadeOut(row, i * MENU_STAGGER_MS);
-      row.querySelector('.cat-mark').animate([{ scale: 1 }, { scale: 0 }], { duration: MENU_OUT_MS, delay: i * MENU_STAGGER_MS, easing, fill: 'forwards' });
     });
-    [document.querySelector('.cat-desc'), $('menuBack'), $('menuApply')].forEach((el) => fadeOut(el, 0));
+    [document.querySelector('.cat-desc'), $('menuSym'), $('menuBack'), $('menuApply')].forEach((el) => fadeOut(el, 0));
 
     const itemsGone = MENU_OUT_MS + Math.max(0, rows.length - 1) * MENU_STAGGER_MS;
     const wrap = currentWrap();
     if (wrap && state.mode === 'main' && changed) wrap.style.visibility = 'hidden'; // the new quote types in (arrive) as the background goes
     setTimeout(() => {
+      clearMark(); // the mark undrew itself as the menu opened: it draws in again
+      icon.getAnimations().forEach((a) => a.cancel());
       if (state.mode === 'main') {
-        if (changed) arrive();
+        if (changed) arrive(); // the symbol draws in as the typing starts
         else { // nothing changed: the quote fades back in with Notes and the arrows
+          drawMark();
           if (wrap) wrap.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MENU_RETURN_MS, easing, fill: 'backwards' });
           app.classList.remove('is-typing');
         }
       }
-      fadeOut(menu, 0).effect.updateTiming({ duration: MENU_BG_MS });                     // background last…
-      icon.animate([{ scale: 0 }, { scale: 1 }], { duration: MENU_BG_MS, easing });        // …as the icon returns
+      fadeOut(menu, 0).effect.updateTiming({ duration: MENU_BG_MS }); // background last, over the symbol drawing in
       setTimeout(finish, MENU_BG_MS);
     }, itemsGone);
   }
@@ -1899,7 +1996,7 @@
     const row = e.target.closest('[data-cat]');
     if (!row) return;
     if (mqHoverDesktop.matches) return applyFilter(row.dataset.cat);
-    // Touch: the first tap previews (the row grows, its name is underlined, the description
+    // Touch: the first tap previews (the symbol redraws, the name is underlined, the description
     // shows); a tap on the underlined row applies.
     if (state.preview === row.dataset.cat) return applyFilter(row.dataset.cat);
     state.preview = row.dataset.cat;
@@ -2009,6 +2106,7 @@
     })
     .catch((err) => {
       console.error(err);
+      drawMark(false);
       app.classList.remove('is-typing');
       track.innerHTML = '<div class="slide" data-pos="0"><div class="q-wrap"><blockquote class="quote" data-tier="m">The words couldn’t be loaded. Please refresh.</blockquote></div></div>';
     });
@@ -2068,10 +2166,13 @@
     });
     return letters;
   }
+  let markStill = false;
   const ARRIVE_FONT_WAIT_MS = 3000; // the longest the typing waits for the quote's font
   function arrive() {
     const wrap = currentWrap();
-    if (!wrap || reduceMotion.matches) { app.classList.remove('is-typing'); return; }
+    const still = markStill; // back from the form the logo never left: it is not drawn again
+    markStill = false;
+    if (!wrap || reduceMotion.matches) { app.classList.remove('is-typing'); drawMark(false); return; }
     wrap.style.visibility = 'hidden';
     state.animating = true;
     app.classList.add('is-typing'); // Notes and the arrows wait for the last letter, then fade in
@@ -2091,7 +2192,8 @@
       new Promise((r) => setTimeout(r, ARRIVE_FONT_WAIT_MS)),
     ]);
     ready.then(() => requestAnimationFrame(() => {
-      if (currentWrap() !== wrap) { done(); return; } // the deck was rebuilt meanwhile
+      if (currentWrap() !== wrap) { done(); drawMark(false); return; } // the deck was rebuilt meanwhile
+      drawMark(!still); // the symbol draws in from the first letter
       fitDeck(); // the face is in now: a short quote that takes three lines goes down a size before it is typed
       const letters = measureLetters(quoteEl);
       const cs = getComputedStyle(quoteEl);
@@ -2134,6 +2236,8 @@
   };
   if (session.get('wwk-home')) { // back from the form: the chrome fades in around the logo
     session.remove('wwk-home');
+    markStill = true;
+    $('menuBtn').classList.add('is-static'); // the still logo holds the place until the drawn one is ready
     app.classList.add('is-arriving');
     setTimeout(() => app.classList.remove('is-arriving'), 600);
   }

@@ -47,7 +47,7 @@
     <div class="n-topfade" aria-hidden="true"></div>
 
     <!-- Chrome -->
-    <button class="chrome menu-btn" id="menuBtn" aria-label="Menu"><span class="icon icon-mark"></span></button>
+    <button class="chrome menu-btn" id="menuBtn" aria-label="Menu"><svg class="sym" id="markSym" viewBox="0 0 60 60" aria-hidden="true"></svg></button> <!-- the current category's symbol, drawn by js/app.js (Symbols) -->
     <p class="chrome number" id="number"></p>
     <button class="chrome link notes-btn" id="notesBtn">Notes</button>
     <a class="chrome link add-btn" id="addBtn" href="add.html">Add words</a>
@@ -74,6 +74,7 @@
     <!-- Menu -->
     <nav class="menu" id="menu" aria-label="Categories" hidden>
       <button class="link menu-back" id="menuBack">Back</button>
+      <svg class="sym menu-sym" id="menuSym" viewBox="0 0 60 60" aria-hidden="true"></svg> <!-- one symbol for the whole menu: it redraws into the previewed category's -->
       <ul class="cat-list" id="catList"></ul>
       <aside class="cat-desc">
         <p id="catDescText"></p>
