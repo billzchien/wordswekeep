@@ -42,25 +42,26 @@
   const REGIONS = REGION_CODES.map((c) => ({ value: c, label: regionName(c) })).sort((a, b) => a.label.localeCompare(b.label));
   const NON_LATIN = new Set(('CN TW HK MO JP KR KP MN RU UA BY KZ KG TJ BG MK RS ME BA GE AM GR CY IL IR IQ SA AE KW QA BH OM YE JO SY LB EG LY TN DZ MA MR SD PS AF PK IN BD NP LK BT MM TH LA KH ET ER').split(' '));
   // The quote faces (css/fonts.css), copied from js/app.js: `not` = the length tiers a face is
-  // not drawn for. A quote with no face of its own is Instrument, or Goudy when it is long.
+  // not offered for (none now: every face at every length, Bill 2026-10-03). A quote with no
+  // face of its own is Instrument, or Goudy when it is long.
   const FONTS = [
-    { value: 'instrument', label: 'Instrument', not: ['s', 'xs'],
+    { value: 'instrument', label: 'Instrument', not: [],
       latin: 'A1-A3 A5 A7-AB AE-B0 B4 B6-B8 BA-BB BF-107 10A-113 116-11B 11E-123 126-127 12A-12B 12E-133 136-137 139-13E 141-148 14A-14D 150-15B 15E-161 164-165 16A-17E 1CD-1CE 218-21B 237 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2022 2026 2039-203A 20AC' },
-    { value: 'story',      label: 'Story',      not: ['s', 'xs'],
+    { value: 'story',      label: 'Story',      not: [],
       latin: 'A1-AC AE-B4 B6-13E 141-148 14A-17E 181 186 18A 18E-190 192 197-199 19D 1A0-1A1 1AF-1B0 1B3-1B4 1CD-1DD 1E2-1E3 1E6-1E7 218-21B 232-233 237 245 1E04-1E05 1E0C-1E0F 1E20-1E21 1E24-1E2B 1E32-1E3B 1E40-1E49 1E56-1E5F 1E62-1E63 1E6C-1E6F 1E80-1E85 1E88-1E89 1E8C-1E8F 1E92-1E96 1E9E 1EA0-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2039-203A 2044 2070 2074-2079 2080-2089 20A1 20A6 20A9-20AC' },
     { value: 'print',      label: 'Print',      not: [],
       latin: 'A1-AC AE-B4 B6-131 134-137 139-13E 141-148 14A-165 168-17E 181 186 18A 18E-190 197-199 19D 1A0-1A1 1AF-1B0 1B3-1B4 1CD-1DD 1E2-1E3 1E6-1E7 218-21B 232-233 237 245 1E04-1E05 1E0C-1E0F 1E20-1E21 1E24-1E2B 1E32-1E3B 1E40-1E49 1E56-1E5F 1E62-1E63 1E6C-1E6F 1E80-1E85 1E88-1E89 1E8C-1E8F 1E92-1E96 1E9E 1EA0-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2039-203A 2044 2070 2074-2079 2080-2089 20A1 20A6 20A9 20AB-20AC' },
     { value: 'grotesk',    label: 'Grotesk',    not: [],
       latin: 'A1-A3 A5-B4 B6-137 139-148 14A-17E 192 1FC-1FF 218-21B 237 1E80-1E85 1EBC-1EBD 1EF2-1EF3 1EF8-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 2044 20AC' },
-    { value: 'round',      label: 'Round',      not: ['s', 'xs'],
+    { value: 'round',      label: 'Round',      not: [],
       latin: 'A1-AC AE-B1 B4-B8 BA-113 116-12B 12E-13E 141-148 14A-14D 150-165 168-17E 18F 192 1A0-1A1 1AF-1B0 1E2-1E3 218-21B 237 1E0C-1E0D 1E20-1E21 1E24-1E25 1E2A-1E2B 1E34-1E3B 1E40-1E49 1E5C-1E5F 1E62-1E63 1E6C-1E6F 1E80-1E85 1E8E-1E8F 1E92-1E96 1E9E 1EA0-1EF9 2013-2014 2018-201A 201C-201E 2020 2022 2026 2032-2033 2039-203A 2044 20AC' },
-    { value: 'poet',       label: 'Poet',       not: ['l'],
+    { value: 'poet',       label: 'Poet',       not: [],
       latin: 'A1-A3 A5 A7 A9-AB AD-AE B0 B2-B3 B9-BB BF-F6 F8-10F 112-121 124-125 128-131 134-137 139-13E 141-148 14C-14F 152-155 158-165 168-16F 172-17E 218-21B 237 1E9E 2013-2014 2018-201A 201C-201E 2022 2039-203A 20AC' },
     { value: 'goudy',      label: 'Goudy',      not: [],
       latin: 'A1-137 139-149 14C-17F 192 218-21B 237 2013-2014 2018-201A 201C-201E 2020 2022 2026 2039-203A 2044 20AC' },
     { value: 'sketch',     label: 'Sketch',     not: [],
       latin: 'A1-B4 B6-12B 12E-149 14C-17E 192 218-21B 237 1E80-1E85 1E9E 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 2044 20A3-20A4 20AC' },
-    { value: 'rose',       label: 'Rose',       not: ['l'],
+    { value: 'rose',       label: 'Rose',       not: [],
       latin: 'A1-A9 AB-AC AE-B1 B4 B6-B8 BB BF-DD DF-FD FF-107 10C-10F 112-113 116-11B 122-123 12A-12B 12E-12F 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-17E 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
     { value: 'author',     label: 'Author',     not: [],
       latin: 'A1-A9 AB AE-B1 B4 B6-B8 BB BF-107 10C-113 116-11B 122-123 12A-12B 12E-12F 131-133 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-17E 237 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
@@ -95,7 +96,7 @@
     return weight <= 64 ? 'l' : weight <= 160 ? 'm' : weight <= 260 ? 's' : 'xs';
   }
   const fontFits = (key, t) => { const f = FONTS.find((x) => x.value === key); return !!f && !f.not.includes(t); };
-  const fontFor = (key, t) => (fontFits(key, t) ? key : (fontFits('instrument', t) ? 'instrument' : 'goudy'));
+  const fontFor = (key, t) => (fontFits(key, t) ? key : (t === 's' || t === 'xs' ? 'goudy' : 'instrument'));
   // Languages an original can be in: the code is what the archive's language button shows
   // (中 日 한 for those three, the two letters in capitals for the rest).
   const LANGUAGES = [['zh', 'Chinese'], ['ja', 'Japanese'], ['ko', 'Korean'], ['es', 'Spanish'], ['fr', 'French'], ['de', 'German'], ['it', 'Italian'], ['pt', 'Portuguese'],
