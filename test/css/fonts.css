@@ -89,7 +89,7 @@
 [data-font="stone"][data-tier="s"],
 [data-font="stone"][data-tier="xs"] { --qf-scale: 0.85; }
 
-[data-font="rondeau"] { --qf-family: 'Rondeau', var(--native-serif); --qf-style: normal; --qf-leading: 1.05; --qf-tracking: 0.0015em; }
+[data-font="rondeau"] { --qf-family: 'Rondeau', var(--native-serif); --qf-style: normal; --qf-leading: 1.05; --qf-tracking: 0.0015em; --qf-features: "liga" 1; } /* liga asked for by name: a browser drops ligatures (fi, ff, ffi) as soon as there is any tracking, and the f's ball then runs into the i's dot */
 [data-font="rondeau"][data-tier="l"]  { --qf-scale: 1.12; }   /* scales, leading and tracking tuned by Bill, 2026-10-03 (the boards drew 1.125 / 1.0833 / 1.05, 1.15, 0) */
 [data-font="rondeau"][data-tier="m"],
 [data-font="rondeau"][data-tier="s"],
