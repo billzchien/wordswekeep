@@ -977,7 +977,6 @@
     ['m', 'Medium', 'Anybody can play. The note is only 20 percent. The attitude of the motherfucker who plays it is 80 percent.'],
     ['s', 'Long', 'The amazing thing is that every atom in your body came from a star that exploded. And, the atoms in your left hand probably came from a different star than your right hand. It really is the most poetic thing I know about physics: You are all stardust.'],
   ];
-  const TIER_NAME = { l: 'Short', m: 'Medium', s: 'Long' };
   // A board holds no more than its length allows (the limits of tier(): a CJK character counts as 4).
   const TIER_MAX = { l: 64, m: 160, s: 260 };
   const weight = (text) => text.length + (text.match(/[぀-ヿ㐀-鿿가-힯]/g) || []).length * 3;
@@ -985,7 +984,7 @@
   const FACE_LIST = [...FONTS.filter((f) => f.fresh), ...FONTS.filter((f) => !f.fresh)]; // the ones still being tuned first
   const face = {
     font: FACE_LIST[0].value,
-    ref: true,                                // the same words in Instrument under each quote
+    ref: false,                               // Comparison: the same words in Instrument under each quote (off until asked for)
     texts: FACE_SAMPLES.map((x) => x[2]),     // the boards' words: edited in place, kept from face to face
     tune: {},                                 // face → the values tried and not saved yet (only those that differ)
   };
@@ -1022,7 +1021,7 @@
     const f = FONTS.find((x) => x.value === face.font);
     $('faceBoards').innerHTML = FACE_SAMPLES.map(([t, name], i) => `
       <section class="face-board" data-i="${i}">
-        <p class="face-cap" data-name="${name}${f.not.includes(t) ? ' · not offered at this length' : ''}"></p>
+        <p class="face-cap" data-name="${name}${f.not.includes(t) ? ' (not offered at this length)' : ''}"></p>
         <blockquote class="quote" data-tier="${t}" data-font="${f.value}" contenteditable="${editable}" spellcheck="false">${esc(face.texts[i])}</blockquote>
         ${face.ref && f.value !== 'instrument' ? `<blockquote class="quote is-ref" data-tier="${t}" data-font="instrument">${esc(face.texts[i])}</blockquote>` : ''}
       </section>`).join('');
@@ -1052,22 +1051,19 @@
     $('faceRef').setAttribute('aria-pressed', String(face.ref)); $('faceRef').textContent = face.ref ? 'On' : 'Off';
     captionFaces();
   }
-  // Over each board, what the browser really set: size, against Instrument's, leading, tracking, sets.
+  // Over each board, what the browser really set: size, leading, tracking, sets.
   function captionFaces() {
     $('faceBoards').querySelectorAll('.face-board').forEach((board) => {
       const q = board.querySelector('.quote'), cs = getComputedStyle(q), size = parseFloat(cs.fontSize);
-      const probe = document.createElement('i'); probe.style.cssText = `position:absolute;visibility:hidden;font-size:${cs.getPropertyValue('--q-size')}`; board.appendChild(probe); // beside the quote, not in it: it may be being typed in
-      const tierPx = parseFloat(getComputedStyle(probe).fontSize); probe.remove();
       const track = cs.letterSpacing === 'normal' ? 0 : parseFloat(cs.letterSpacing) / size * 100;
       const [wasL, wasT, wasS] = (board.dataset.was || '||').split('|').map((w) => (w ? ` (${w})` : ''));
-      const len = tier(face.texts[board.dataset.i]) === 'xs' ? 's' : tier(face.texts[board.dataset.i]);
       board.querySelector('.face-cap').textContent = [
-        `${board.querySelector('.face-cap').dataset.name} · ${weight(face.texts[board.dataset.i])} / ${TIER_MAX[q.dataset.tier]} characters${len !== q.dataset.tier ? ` (so few would be set as ${TIER_NAME[len]})` : ''}`,
-        `${rnd(size, 1)}px (Instrument ${rnd(tierPx, 1)} × ${rnd(size / tierPx, 4)})${wasS}`,
-        `leading ${rnd(parseFloat(cs.lineHeight) / size, 3)}${wasL}`,
-        `tracking ${rnd(track, 2)}%${wasT}`,
-        cs.fontFeatureSettings === 'normal' ? 'no sets' : cs.fontFeatureSettings.replace(/"/g, '').replace(/ 1\b/g, ''),
-      ].join(' · ');
+        board.querySelector('.face-cap').dataset.name,
+        `${rnd(size, 1)}px${wasS}`,
+        `Leading ${rnd(parseFloat(cs.lineHeight) / size, 3)}${wasL}`,
+        `Tracking ${rnd(track, 2)}%${wasT}`,
+        cs.fontFeatureSettings === 'normal' ? 'No sets' : cs.fontFeatureSettings.replace(/"/g, '').replace(/ 1\b/g, ''),
+      ].join('. ');
     });
   }
   // Save: every face with values tried out, at once.
