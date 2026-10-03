@@ -121,6 +121,33 @@
           </div>
         </div>
       </section>
+
+      <!-- Fonts: tune a quote face (its size at each length, leading, tracking) on a short, a
+           medium and a long quote set as the archive sets them; Save puts it on the site. -->
+      <section class="page faces" id="fontsView" aria-label="Quote faces" hidden>
+        <div class="faces-top">
+          <div class="ctl ctl--face">Face
+            <div class="combo" id="facePick">
+              <button type="button" class="field" id="faceBtn" aria-haspopup="listbox" aria-expanded="false"></button>
+              <span class="combo-btn"><span class="icon icon-chevron"></span></span>
+              <div class="combo-list" id="faceList" role="listbox" hidden></div>
+            </div>
+          </div>
+          <div class="ctls">
+            <label class="ctl">Short<input class="field" id="tScaleL" type="number" step="0.01" min="0.3" max="3" inputmode="decimal" aria-label="Scale, short quotes"></label>
+            <label class="ctl"><span class="h-long">Medium</span><span class="h-short">Med.</span><input class="field" id="tScaleM" type="number" step="0.01" min="0.3" max="3" inputmode="decimal" aria-label="Scale, medium quotes"></label>
+            <label class="ctl">Long<input class="field" id="tScaleS" type="number" step="0.01" min="0.3" max="3" inputmode="decimal" aria-label="Scale, long quotes"></label>
+          </div>
+          <div class="ctls">
+            <label class="ctl"><span class="h-long">Leading</span><span class="h-short">Lead.</span><input class="field" id="tLeading" type="number" step="0.01" min="0.8" max="2" inputmode="decimal"></label>
+            <label class="ctl"><span class="h-long">Tracking %</span><span class="h-short">Track.</span><input class="field" id="tTracking" type="number" step="0.1" min="-10" max="20" inputmode="decimal" aria-label="Tracking, percent"></label>
+          </div>
+          <div class="ctls">
+            <div class="ctl"><span class="h-long">Comparison</span><span class="h-short">Comp.</span><button type="button" class="field" id="faceRef" aria-pressed="true" aria-label="Compare with Instrument"></button></div>
+          </div>
+        </div>
+        <div id="faceBoards"></div>
+      </section>
     </div>
 
     <!-- Guards: the paper fading in over a progressive blur, so rows dissolve under the chrome (css/form.css). -->
@@ -134,10 +161,15 @@
         <a class="tab" href="#live" data-tab="live">Live</a>
         <a class="tab" href="#pending" data-tab="pending">Pending<span class="icon tab-dot" id="pendingDot" aria-label="New" hidden></span></a>
         <a class="tab" href="#archive" data-tab="archive">Archive</a>
+        <a class="tab" href="#fonts" data-tab="fonts">Fonts</a>
       </nav>
       <div class="chrome cta" id="ctaLive">
         <p class="cta-meta" id="lastPublished"></p>
         <button type="button" class="btn btn--primary btn--sm btn--w" id="publishBtn" disabled>Publish</button>
+      </div>
+      <div class="chrome cta" id="ctaFonts" hidden>
+        <button type="button" class="btn btn--sm" id="facesReset" disabled>Reset</button>
+        <button type="button" class="btn btn--primary btn--sm btn--w" id="facesSave" disabled>Save</button>
       </div>
       <div class="chrome cta" id="ctaArchive" hidden>
         <button type="button" class="btn btn--primary btn--sm btn--w" id="removeAllBtn">Remove all</button>

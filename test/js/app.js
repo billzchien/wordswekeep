@@ -1,6 +1,7 @@
 /* Words We Keep — main experience. Plain JS, renders from data/quotes.json. */
 (() => {
   const DATA_URL = '../data/quotes.json';
+  const FACES_URL = '../data/faces.json'; // the quote faces' tuned settings (the library's Fonts tab)
 
   const CATEGORIES = [
     { key: 'perspective', name: 'Perspective', desc: 'The lens we bring to life. Outlooks, values, and the search for meaning.' },
@@ -45,6 +46,12 @@
       latin: 'A1-A9 AB-AC AE-B1 B4 B6-B8 BB BF-DD DF-FD FF-107 10C-10F 112-113 116-11B 122-123 12A-12B 12E-12F 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-17E 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
     { key: 'author',     name: 'Author',     not: [],
       latin: 'A1-A9 AB AE-B1 B4 B6-B8 BB BF-107 10C-113 116-11B 122-123 12A-12B 12E-12F 131-133 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-17E 237 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
+    { key: 'fig',        name: 'Fig',        not: [],
+      latin: 'A1-AC AE-B4 B6-127 12A-137 139-148 14A-167 16A-17E 18F 192 1FC-1FF 218-21B 237 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 2044 20A9 20AC' },
+    { key: 'stone',      name: 'Stone',      not: [],
+      latin: 'A1-A9 AB AE-B1 B4 B6-B8 BB BF-EF F1-107 10A-113 116-11B 11E-123 126-127 12A-12B 12E-131 136-137 139-13E 141-148 14A-14D 150-15B 15E-167 16A-16B 16E-17E 218-21B 1E80-1E85 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
+    { key: 'rondeau',    name: 'Rondeau',    not: [],
+      latin: 'A1-AB AE-B4 B6-148 14A-17E 1E6-1E7 1FC-1FF 218-21B 232-233 237 1E80-1E85 1E9E 1EBC-1EBD 1EF2-1EF3 1EF8-1EF9 2010 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2032-2033 2039-203A 2044 2070 2074-2079 2080-2089 20AC' },
   ];
   const FONT_BY_KEY = Object.fromEntries(FONTS.map((f) => [f.key, f]));
   // An original-language quote written in Latin letters (Spanish, French, Vietnamese, pinyin…)
@@ -65,7 +72,7 @@
     return [...text].every((ch) => { const c = ch.codePointAt(0); return /\s/.test(ch) || (c >= 0x20 && c <= 0x7e) || has.has(c) || (ch === '…' && key === 'poet'); });
   }
   const DEFAULT_FONT = 'instrument', LONG_FONT = 'goudy'; // a quote with no face of its own; Instrument is not drawn for long quotes
-  const FONT_FILES = ['story', 'print', 'grotesk', 'poet', 'sketch', 'rose', 'author']; // served by the fonts Worker; the rest come from Google
+  const FONT_FILES = ['story', 'print', 'grotesk', 'poet', 'sketch', 'rose', 'author', 'fig', 'stone', 'rondeau']; // served by the fonts Worker; the rest come from Google
 
   // A shuffled copy (Fisher–Yates). The deck is dealt once per visit / per category, so ↑ and ↓
   // stay consistent within it, but the order is never the archive's numbering.
@@ -1965,8 +1972,32 @@
 
   /* ---------- Boot ---------- */
 
-  fetch(DATA_URL)
-    .then((r) => { if (!r.ok) throw new Error(`quotes.json: ${r.status}`); return r.json(); })
+  // The faces' tuned settings (data/faces.json, saved from the library's Fonts tab) laid over
+  // css/fonts.css: per face its leading, its tracking (%) and its size against the tier's at
+  // each length. The same function is in js/admin.js: change both.
+  function facesCSS(table) {
+    const num = (v) => typeof v === 'number' && Number.isFinite(v);
+    return Object.entries(table || {}).map(([key, f]) => {
+      const s = f && f.scale;
+      if (!/^[a-z]+$/.test(key) || !s || ![s.l, s.m, s.s, f.leading, f.tracking].every(num)) return '';
+      const at = `[data-font="${key}"]`;
+      return `${at} { --qf-leading: ${f.leading}; --qf-tracking: ${f.tracking / 100}em; }\n`
+        + `${at}[data-tier="l"] { --qf-scale: ${s.l}; }\n${at}[data-tier="m"] { --qf-scale: ${s.m}; }\n`
+        + `${at}[data-tier="s"], ${at}[data-tier="xs"] { --qf-scale: ${s.s}; }`;
+    }).join('\n');
+  }
+  // Read before the first quote is drawn (a short quote's size depends on its lines). A
+  // missing or broken file changes nothing: fonts.css stands.
+  const facesReady = fetch(FACES_URL, { cache: 'no-cache' }) /* always checked against the server: a save in the library shows on the next load */.then((r) => (r.ok ? r.json() : {})).catch(() => ({})).then((table) => {
+    const css = facesCSS(table);
+    if (!css) return;
+    const style = document.createElement('style');
+    style.textContent = css;
+    document.head.appendChild(style);
+  });
+
+  Promise.all([fetch(DATA_URL), facesReady])
+    .then(([r]) => { if (!r.ok) throw new Error(`quotes.json: ${r.status}`); return r.json(); })
     .then((quotes) => {
       state.all = quotes.filter((q) => q.status === 'live').sort((a, b) => a.id - b.id);
       state.list = shuffle(state.all); // the deck is dealt at random: no. 1 is not first, and the next is not no. 2
