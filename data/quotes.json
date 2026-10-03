@@ -79,7 +79,7 @@
     "keptBy": null,
     "submittedAt": "2026-06-19T18:36:09",
     "approvedAt": "2026-06-19T18:36:09",
-    "font": "story"
+    "font": "rondeau"
   },
   {
     "id": 4,
@@ -183,7 +183,7 @@
     "keptBy": "Harbor",
     "submittedAt": "2026-06-27T11:14:12",
     "approvedAt": "2026-06-27T11:14:12",
-    "font": "rose"
+    "font": "stone"
   },
   {
     "id": 8,
@@ -258,7 +258,7 @@
     "keptBy": null,
     "submittedAt": "2026-07-07T13:30:05",
     "approvedAt": "2026-07-07T13:30:05",
-    "font": "author"
+    "font": "stone"
   },
   {
     "id": 10,
@@ -285,7 +285,7 @@
     "keptBy": "Bill",
     "submittedAt": "2026-07-07T14:05:57",
     "approvedAt": "2026-07-07T14:05:57",
-    "font": "story"
+    "font": "fig"
   },
   {
     "id": 11,
@@ -335,7 +335,7 @@
     "keptBy": "Katie",
     "submittedAt": "2026-07-10T18:45:08",
     "approvedAt": "2026-07-10T18:45:08",
-    "font": "round"
+    "font": "fig"
   },
   {
     "id": 13,
@@ -358,7 +358,7 @@
     "keptBy": "Katie",
     "submittedAt": "2026-07-10T18:54:07",
     "approvedAt": "2026-07-10T18:54:07",
-    "font": "goudy"
+    "font": "rondeau"
   },
   {
     "id": 14,
@@ -387,7 +387,8 @@
     "reflection": "Its boundless vision of the world reveals a remarkably expansive spirit. Whenever life feels heavy, I take on a trip and these words would lift my perspective, reminding me to embrace freedom of mind, a broader view, and the grace to let go.",
     "keptBy": "Ruolin",
     "submittedAt": "2026-07-12T08:13:52",
-    "approvedAt": "2026-07-12T08:13:52"
+    "approvedAt": "2026-07-12T08:13:52",
+    "font": "rondeau"
   },
   {
     "id": 15,
@@ -417,7 +418,7 @@
     "keptBy": "Lynn Tian",
     "submittedAt": "2026-07-18T12:15:38",
     "approvedAt": "2026-07-18T12:15:38",
-    "font": "story"
+    "font": "stone"
   },
   {
     "id": 16,
@@ -523,7 +524,7 @@
     "keptBy": "David",
     "submittedAt": "2026-07-24T21:00:22",
     "approvedAt": "2026-07-24T21:00:22",
-    "font": "goudy"
+    "font": "rondeau"
   },
   {
     "id": 20,
@@ -550,7 +551,7 @@
     "keptBy": null,
     "submittedAt": "2026-07-25T14:07:26",
     "approvedAt": "2026-07-25T14:07:26",
-    "font": "round"
+    "font": "stone"
   },
   {
     "id": 21,
@@ -573,7 +574,7 @@
     "keptBy": "Petra Quilitz",
     "submittedAt": "2026-07-27T17:53:06",
     "approvedAt": "2026-07-27T17:53:06",
-    "font": "author"
+    "font": "fig"
   },
   {
     "id": 22,
@@ -595,6 +596,6 @@
     "keptBy": "RR",
     "submittedAt": "2026-08-02T15:44:54",
     "approvedAt": "2026-08-02T15:44:54",
-    "font": "instrument"
+    "font": "author"
   }
 ]
