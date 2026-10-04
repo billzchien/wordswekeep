@@ -171,18 +171,27 @@
      YouTube's thumbnail has a fixed address; Instagram gives none. With no thumbnail (or none
      that loads) the spot shows the platform's logo instead (Figma 421:1179). A link to any other
      site is not a video here: the source's title is underlined and links to it. */
+  // Where a shared link says to start, in seconds: YouTube's "start at" (?t=90, &t=1m30s,
+  // &start=90) and Vimeo's (#t=1m30s). 0 when it says nothing.
+  function startOf(link) {
+    const m = link.match(/[?&#](?:t|start|time_continue)=([\dhms]+)/);
+    if (!m) return 0;
+    if (/^\d+$/.test(m[1])) return Number(m[1]);
+    const part = (u) => Number((m[1].match(new RegExp(`(\\d+)${u}`)) || [0, 0])[1]);
+    return part('h') * 3600 + part('m') * 60 + part('s');
+  }
   const VIDEO = {
     youtube: {
       match: (l) => (l.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/) || [])[1],
       lookup: (l) => `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(l)}`,
-      player: (v) => `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&playsinline=1&rel=0`,
+      player: (v) => `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&playsinline=1&rel=0${startOf(v.link) ? `&start=${startOf(v.link)}` : ''}`, // the link's own starting time is kept
       thumb: (v) => `https://i.ytimg.com/vi/${v.id}/hq720.jpg`,
       vertical: (l) => /\/shorts\//.test(l),
     },
     vimeo: {
       match: (l) => (l.match(/vimeo\.com\/(?:video\/|channels\/[^/]+\/|groups\/[^/]+\/videos\/)?(\d+)/) || [])[1],
       lookup: (l) => `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(l)}`,
-      player: (v) => `https://player.vimeo.com/video/${v.id}?autoplay=1&playsinline=1`,
+      player: (v) => `https://player.vimeo.com/video/${v.id}?autoplay=1&playsinline=1${startOf(v.link) ? `#t=${startOf(v.link)}s` : ''}`,
     },
     tiktok: {
       match: (l) => (/tiktok\.com\//.test(l) ? ((l.match(/\/video\/(\d+)/) || [])[1] || 'short') : null), // a short link (vm.tiktok.com/…) has no id: the lookup gives it
