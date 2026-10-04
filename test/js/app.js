@@ -164,17 +164,74 @@
       .map((p) => `<p>${nativeRuns(esc(noOrphans(p))).replace(/\n/g, '<br>')}</p>`).join('');
   }
 
-  function youtubeId(link) {
-    if (!link) return null;
-    const m = link.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/);
-    return m ? m[1] : null;
-  }
-
+  /* ---------- Video: a source link to YouTube, Vimeo, TikTok or Instagram ----------
+     Such a link gets the video spot in notes: a thumbnail that opens the platform's own player.
+     Nothing is stored. Each platform has a public lookup (oEmbed) the page asks when the quote
+     comes up: it says whether the video is there, and — Vimeo, TikTok — gives a thumbnail.
+     YouTube's thumbnail has a fixed address; Instagram gives none. With no thumbnail (or none
+     that loads) the spot shows the platform's logo instead (Figma 421:1179). A link to any other
+     site is not a video here: the source's title is underlined and links to it. */
+  const VIDEO = {
+    youtube: {
+      match: (l) => (l.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/) || [])[1],
+      lookup: (l) => `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(l)}`,
+      player: (v) => `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&playsinline=1&rel=0`,
+      thumb: (v) => `https://i.ytimg.com/vi/${v.id}/hq720.jpg`,
+      vertical: (l) => /\/shorts\//.test(l),
+    },
+    vimeo: {
+      match: (l) => (l.match(/vimeo\.com\/(?:video\/|channels\/[^/]+\/|groups\/[^/]+\/videos\/)?(\d+)/) || [])[1],
+      lookup: (l) => `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(l)}`,
+      player: (v) => `https://player.vimeo.com/video/${v.id}?autoplay=1&playsinline=1`,
+    },
+    tiktok: {
+      match: (l) => (/tiktok\.com\//.test(l) ? ((l.match(/\/video\/(\d+)/) || [])[1] || 'short') : null), // a short link (vm.tiktok.com/…) has no id: the lookup gives it
+      lookup: (l) => `https://www.tiktok.com/oembed?url=${encodeURIComponent(l)}`,
+      player: (v) => `https://www.tiktok.com/player/v1/${v.id}?autoplay=1&rel=0`,
+      vertical: () => true,
+    },
+    instagram: {
+      match: (l) => { const m = l.match(/instagram\.com\/(?:[^/]+\/)?(p|reels?|tv)\/([\w-]+)/); return m ? `${m[1] === 'reels' ? 'reel' : m[1]}/${m[2]}` : null; },
+      lookup: (l) => `https://graph.facebook.com/v25.0/instagram_oembed?url=${encodeURIComponent(l)}`,
+      player: (v) => `https://www.instagram.com/${v.id}/embed/`,
+      vertical: () => true,
+    },
+  };
+  const videoLink = (q) => (q.source && q.source.link) || '';
   function videoOf(q) {
-    const id = youtubeId(q.source && q.source.link);
-    if (!id) return null;
-    const vertical = q.source.orientation === 'vertical' || /\/shorts\//.test(q.source.link);
-    return { id, orientation: vertical ? 'vertical' : 'horizontal' };
+    const link = videoLink(q);
+    for (const [platform, p] of Object.entries(VIDEO)) {
+      const id = p.match(link);
+      if (!id) continue;
+      const vertical = (q.source && q.source.orientation === 'vertical') || !!(p.vertical && p.vertical(link));
+      return { platform, id, link, orientation: vertical ? 'vertical' : 'horizontal' };
+    }
+    return null;
+  }
+  // What the platform says about a video, asked once per link: state 'ok' | 'broken' (the
+  // platform answered: no such video) | 'offline' (no answer in VIDEO_WAIT_MS: blocked, or no
+  // connection), and what the lookup added (a thumbnail, the id of a short link, its shape).
+  const VIDEO_WAIT_MS = 4000;
+  const videoInfo = new Map(); // link → { state, thumb, id, vertical, done: Promise }
+  function lookupVideo(video) {
+    if (!video) return null;
+    if (videoInfo.has(video.link)) return videoInfo.get(video.link);
+    const info = { state: 'pending', thumb: VIDEO[video.platform].thumb ? VIDEO[video.platform].thumb(video) : null };
+    const stop = new AbortController(), timer = setTimeout(() => stop.abort(), VIDEO_WAIT_MS);
+    info.done = fetch(VIDEO[video.platform].lookup(video.link), { signal: stop.signal })
+      .then((r) => { if (!r.ok) { info.state = 'broken'; return null; } return r.json(); })
+      .then((d) => {
+        if (!d) return;
+        info.state = 'ok';
+        if (d.thumbnail_url && !info.thumb) info.thumb = d.thumbnail_url;
+        if (d.embed_product_id) info.id = String(d.embed_product_id);
+        if (Number(d.height) > Number(d.width)) info.vertical = true;
+        if (info.thumb) { const warm = new Image(); warm.src = info.thumb; } // so the notes thumbnail never pops in
+      })
+      .catch(() => { info.state = 'offline'; })
+      .then(() => { clearTimeout(timer); return info; });
+    videoInfo.set(video.link, info);
+    return info;
   }
 
   /* ---------- Quote rendering ---------- */
@@ -504,7 +561,7 @@
     const q = current();
     setNumber(q.id);
     const video = videoOf(q);
-    if (video) { const warm = new Image(); warm.src = `https://i.ytimg.com/vi/${video.id}/hq720.jpg`; } // so the notes thumbnail never pops in
+    if (video) { const info = lookupVideo(video); if (info.thumb) { const warm = new Image(); warm.src = info.thumb; } } // asked now, so the notes know what to show (and the thumbnail never pops in)
     history.replaceState(null, '', `#${q.id}`);
   }
 
@@ -716,12 +773,31 @@
 
   /* ---------- Notes mode ---------- */
 
+  // The video spot: the video's own thumbnail when there is one, else the platform's logo on
+  // black (a square-ish card, a smaller play mark in the palette's colour; YouTube's logo is a
+  // play mark already and gets none). A thumbnail that fails to load turns into the logo card.
+  const logoThumbHTML = (video) => `<button class="thumb thumb--logo" data-video data-platform="${video.platform}" aria-label="Play video">
+      <img class="thumb-logo" src="../assets/icons/video-${video.platform}.svg" alt="">
+      ${video.platform === 'youtube' ? '' : '<span class="thumb-play thumb-play--sm"><span class="icon"></span></span>'}
+    </button>`;
   function thumbHTML(video) {
-    return `<button class="thumb" data-video data-orientation="${video.orientation}" aria-label="Play video">
-      <img src="https://i.ytimg.com/vi/${video.id}/hq720.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${video.id}/mqdefault.jpg'" alt="" decoding="sync">
+    const info = lookupVideo(video);
+    if (!info.thumb || info.state === 'offline' || info.state === 'broken') return logoThumbHTML(video);
+    const second = video.platform === 'youtube' ? ` data-second="https://i.ytimg.com/vi/${video.id}/mqdefault.jpg"` : '';
+    return `<button class="thumb" data-video data-platform="${video.platform}" data-orientation="${video.orientation}" aria-label="Play video">
+      <img src="${esc(info.thumb)}"${second} alt="" decoding="sync">
       <span class="thumb-play"><img src="../assets/icons/play.svg" alt=""></span>
     </button>`;
   }
+  // (error does not bubble: caught on the way down.) A YouTube thumbnail has a smaller second
+  // address to try; after that, or for any other, the logo card takes the thumbnail's place.
+  document.addEventListener('error', (e) => {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement) || !img.parentNode || !img.parentNode.matches || !img.parentNode.matches('.thumb:not(.thumb--logo)')) return;
+    if (img.dataset.second) { img.src = img.dataset.second; delete img.dataset.second; return; }
+    const video = videoOf(current());
+    if (video) img.parentNode.outerHTML = logoThumbHTML(video);
+  }, true);
 
   const lastTheme = new Map(); // quote id → the palette notes last opened with
   function renderNotes() {
@@ -746,12 +822,18 @@
     // Row 1 author · row 2 country · row 3 source ("Title, Year")
     let from = `${esc(a.name)}${native}`;
     if (country) from += `<br>${esc(country)}`;
-    const src = q.source || {};
+    const src = q.source || {}, link = videoLink(q);
     if (src.title) {
       let label = ITALIC_KINDS.has(src.kind) ? `<i>${esc(src.title)}</i>` : esc(src.title);
       if (src.year) label += `, ${esc(src.year)}`;
-      const linked = src.link && !youtubeId(src.link);
-      from += `<span class="n-source">${linked ? `<span role="link" tabindex="0" data-href="${esc(src.link)}" data-out>${label}</span>` : label}</span>`; // (a block: its own row)
+      const linked = link && !videoOf(q); // a video plays in the video spot; any other link is the title's
+      from += `<span class="n-source">${linked ? `<span role="link" tabindex="0" data-href="${esc(link)}" data-out>${label}</span>` : label}</span>`; // (a block: its own row)
+    } else if (link && !videoOf(q)) {
+      // A link with no name to show (and not a video, which has the video spot): the row reads
+      // "Source link", with the year when there is one, underlined like a titled link.
+      from += `<span class="n-source"><span role="link" tabindex="0" data-href="${esc(link)}" data-out>Source link${src.year ? `, ${esc(src.year)}` : ''}</span></span>`;
+    } else if (src.year) {
+      from += `<span class="n-source">${esc(src.year)}</span>`; // no name, no link of its own: the year alone
     }
     $('nFrom').innerHTML = from;
 
@@ -1825,7 +1907,7 @@
   function morph(poster, from, to, done) {
     const el = document.createElement('div');
     el.className = 'video-morph';
-    el.innerHTML = `<img src="${esc(poster)}" alt="">`;
+    if (poster) el.innerHTML = `<img src="${esc(poster)}" alt="">`; // (a logo card has none: the morph is a black box)
     setRect(el, from);
     app.appendChild(el);
     el.getBoundingClientRect(); // commit the start rect before transitioning
@@ -1837,23 +1919,47 @@
     setTimeout(finish, MORPH_MS + 80);
   }
 
-  function openVideo(thumb) {
+  // The library's toast (js/admin.js): fades up, stays, fades down; a new one replaces the one showing.
+  const TOAST_STAY_MS = 2000;
+  let toastTimer = 0;
+  function toast(text) {
+    const el = $('toast');
+    clearTimeout(toastTimer);
+    el.textContent = text;
+    el.hidden = false;
+    void el.offsetHeight;
+    el.classList.add('is-in');
+    toastTimer = setTimeout(() => {
+      el.classList.remove('is-in');
+      toastTimer = setTimeout(() => { el.hidden = true; }, 300);
+    }, 300 + TOAST_STAY_MS);
+  }
+  // A thumbnail's picture, to morph into the player; a logo card has none.
+  const posterOf = (thumb) => { const img = thumb && !thumb.classList.contains('thumb--logo') && thumb.querySelector('img'); return img ? (img.currentSrc || img.src) : ''; };
+  async function openVideo(thumb) {
     const video = videoOf(current());
     if (!video || videoBusy) return;
     videoBusy = true;
+    // Only a video the platform has just vouched for is opened: a broken link, or a platform
+    // that cannot be reached from here, gets a word instead of a dead player.
+    const info = await lookupVideo(video).done;
+    if (info.state !== 'ok' || !thumb.isConnected) { videoBusy = false; if (thumb.isConnected) toast('Video not available.'); return; }
+    if (info.id) video.id = info.id;
+    if (info.vertical) video.orientation = 'vertical';
     videoThumb = thumb;
-    const poster = thumb.querySelector('img').currentSrc || thumb.querySelector('img').src;
+    const poster = posterOf(thumb);
     const box = $('videoBox'), frame = $('videoFrame');
     box.dataset.orientation = video.orientation;
+    box.dataset.platform = video.platform;
     box.classList.remove('is-ready');
     frame.innerHTML = '';
-    frame.style.backgroundImage = `url("${poster}")`;
+    frame.style.backgroundImage = poster ? `url("${poster}")` : '';
     $('videoOverlay').hidden = false;
     const from = thumb.getBoundingClientRect(), to = box.getBoundingClientRect();
     thumb.style.visibility = 'hidden';
     dim(true);
     morph(poster, from, to, (el) => {
-      frame.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${video.id}?autoplay=1&playsinline=1&rel=0" title="Video" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+      frame.innerHTML = `<iframe src="${esc(VIDEO[video.platform].player(video))}" title="Video" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
       box.classList.add('is-ready');
       setTimeout(() => el.remove(), 250); // the poster stays underneath while the player loads
       videoBusy = false;
@@ -1863,7 +1969,7 @@
   function closeVideo() {
     if ($('videoOverlay').hidden || videoBusy) return;
     const thumb = videoThumb, box = $('videoBox'), frame = $('videoFrame');
-    const poster = thumb && (thumb.querySelector('img').currentSrc || thumb.querySelector('img').src);
+    const poster = posterOf(thumb);
     const reset = () => {
       frame.innerHTML = '';
       box.classList.remove('is-ready');

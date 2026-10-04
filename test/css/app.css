@@ -484,6 +484,33 @@ ul { list-style: none; }
 }
 .thumb-play img { position: static; width: 6px; height: 6.9282px; }
 
+/* A video with no thumbnail of its own (Figma 421:1179): the platform's logo on black, a hairline
+   frame in the palette's colour, square (160; the frames draw 160 × 174, Bill made it square 2026-10-04), and a smaller play mark in that colour with no frame
+   (YouTube's logo is a play mark: it gets none). Sizes are shares of the card, so the 120-wide
+   card on tablet and phone keeps the proportions. */
+.thumb--logo { aspect-ratio: 1; background: #000; border: var(--hairline) solid var(--fg); }
+.thumb--logo::after { content: none; } /* no shade over it */
+.thumb--logo .thumb-logo { inset: auto; left: 50%; top: 50%; translate: -50% -50%; width: var(--logo-w); height: auto; object-fit: contain; }
+.thumb--logo[data-platform="tiktok"]    { --logo-w: 38.05%; }  /* 60.9 of 160 */
+.thumb--logo[data-platform="youtube"]   { --logo-w: 28.55%; }  /* 45.7 */
+.thumb--logo[data-platform="vimeo"]     { --logo-w: 25.31%; }  /* 40.5 */
+.thumb--logo[data-platform="instagram"] { --logo-w: 22.5%; }   /* 36 */
+.thumb-play--sm { left: 7.5px; bottom: 7.5px; border: 0; }
+.thumb-play--sm .icon { --src: url(../../assets/icons/video-play.svg); width: 10.34px; height: 11.94px; color: var(--fg); }
+
+/* A word from the page at the foot of the window (the library's toast: css/admin.css). Here it
+   says a video cannot be played; in notes it is black with white text. */
+.app > .toast {
+  position: absolute; z-index: 50; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  max-width: calc(100% - 2 * var(--m)); padding: calc(8 * var(--u)) calc(20 * var(--u));
+  background: var(--white); color: var(--ink); box-shadow: 0 0 20px rgba(0, 0, 0, 0.10);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none;
+  opacity: 0; transform: translate(-50%, 8px);
+  transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+}
+.app > .toast.is-in { opacity: 1; transform: translate(-50%, 0); }
+.app[data-mode="notes"] > .toast { background: #000; color: #fff; }
+
 #nVideoPin .thumb { position: absolute; top: var(--notes-quote-top); left: var(--col6); }
 #nVideoCol { display: none; }
 
