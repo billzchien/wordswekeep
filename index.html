@@ -8,6 +8,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=Crimson+Pro:ital@0;1&family=Instrument+Serif:ital@0;1&family=Noto+Sans:wght@400;500&family=Noto+Sans+JP:wght@400;500&family=Noto+Sans+KR:wght@400;500&family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@500&family=Sorts+Mill+Goudy&display=swap" rel="stylesheet">
+  <!-- Search and link previews (the share image: 1200 × 630; the iPhone home-screen icon: 180 × 180) -->
+  <meta name="description" content="A collection of words from every culture, time, and corner of life, shared by the people who hold them close. Discover them, or share the ones you keep.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Words We Keep">
+  <meta property="og:title" content="Words We Keep">
+  <meta property="og:description" content="A collection of words from every culture, time, and corner of life, shared by the people who hold them close. Discover them, or share the ones you keep.">
+  <meta property="og:url" content="https://wordswekeep.org/">
+  <meta property="og:image" content="https://wordswekeep.org/assets/share.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Words We Keep">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/app.css">
@@ -48,7 +61,7 @@
     <button class="chrome menu-btn" id="menuBtn" aria-label="Menu"><svg class="sym" id="markSym" viewBox="0 0 60 60" aria-hidden="true"></svg></button> <!-- the current category's symbol, drawn by js/app.js (Symbols) -->
     <p class="chrome number" id="number"></p>
     <button class="chrome link notes-btn" id="notesBtn">Notes</button>
-    <button class="chrome link add-btn" id="addBtn" role="link" data-href="add.html">Add words</button> <!-- a button, not <a href>: no address strip on hover (js/app.js → follow) -->
+    <button class="chrome link add-btn" id="addBtn" role="link" data-href="add">Add words</button> <!-- a button, not <a href>: no address strip on hover (js/app.js → follow) -->
     <div class="chrome arrows">
       <button id="prevBtn" aria-label="Previous quote"><span class="arrow-crop"><span class="icon icon-arrow"></span></span></button> <!-- .arrow-crop: the box a pressed arrow rolls in (js/app.js → press) -->
       <button id="nextBtn" aria-label="Next quote"><span class="arrow-crop"><span class="icon icon-arrow icon-arrow--down"></span></span></button>
