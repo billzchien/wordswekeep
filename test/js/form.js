@@ -886,11 +886,26 @@
   steps.forEach((s, i) => s.style.setProperty('--i', i));
   refresh();
 
+  // Links are buttons with a data-href, not <a href>: a browser shows an <a>'s address in a
+  // strip at the foot of the window whenever the pointer is over it. This is what a click on
+  // one does (unless its own handler has dealt with it): go there; in a new tab with ⌘ / Ctrl,
+  // a middle click, or for a link out of the site (data-out).
+  const follow = (el, e) => {
+    const href = el.dataset.href;
+    if (el.hasAttribute('data-out') || e.metaKey || e.ctrlKey || e.button === 1) window.open(href, '_blank', 'noopener');
+    else location.href = href;
+  };
+  document.addEventListener('click', (e) => { const el = e.target.closest('[data-href]'); if (el && !e.defaultPrevented) follow(el, e); });
+  document.addEventListener('auxclick', (e) => { const el = e.target.closest('[data-href]'); if (el && e.button === 1) follow(el, e); });
+  document.addEventListener('keydown', (e) => { // a span with role="link" (the notes' source) answers Enter like a link
+    if (e.key === 'Enter' && e.target.matches && e.target.matches('span[data-href]')) follow(e.target, e);
+  });
+
   // The logo goes home: the form fades out around it first (css .is-leaving).
   document.querySelector('.home').addEventListener('click', (e) => {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // a new tab: `follow` opens it
     e.preventDefault();
-    const href = e.currentTarget.href;
+    const href = e.currentTarget.dataset.href;
     session.set('wwk-home', '1');
     form.classList.add('is-leaving');
     setTimeout(() => { location.href = href; }, reduceMotion.matches ? 0 : 100);

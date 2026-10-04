@@ -218,6 +218,15 @@
     else showList(view in TABS ? view : 'live');
   }
   window.addEventListener('hashchange', route);
+  // Links are buttons with a data-href, not <a href> (no address strip at the foot of the window
+  // on hover; the archive and the form do the same). A click goes there, unless the button's
+  // own handler has dealt with it; ⌘ / Ctrl or a middle click opens a new tab.
+  const follow = (el, e) => {
+    const href = el.dataset.href;
+    if (e.metaKey || e.ctrlKey || e.button === 1) window.open(href, '_blank', 'noopener'); else location.href = href;
+  };
+  document.addEventListener('click', (e) => { const el = e.target.closest('[data-href]'); if (el && !e.defaultPrevented) follow(el, e); });
+  document.addEventListener('auxclick', (e) => { const el = e.target.closest('[data-href]'); if (el && e.button === 1) follow(el, e); });
 
   // The list and the edit view cross-fade (--view-ms) and the page scrolls back to the top.
   const VIEWS = { list: 'listView', edit: 'editView', fonts: 'fontsView' };
@@ -636,7 +645,7 @@
     edit.orig = clone(edit.draft);
     admin.dataset.kind = f.tab;
     tab = f.tab;
-    $('backBtn').href = `#${f.tab}`;
+    $('backBtn').dataset.href = `#${f.tab}`;
     $('editNo').textContent = `No. ${numberOf(f.q)}`;
     $('editDate').textContent = f.tab === 'live' ? (f.q.dirty || !f.q.approvedAt ? unpublished(f.q) || 'Not published' : `Published: ${fmtDate(f.q.approvedAt)}`) : `Submitted: ${fmtDate(f.q.submittedAt)}`;
     fill(edit.draft);
@@ -660,7 +669,7 @@
     edit = null;
     location.hash = hash;
   }
-  $('backBtn').addEventListener('click', (e) => { e.preventDefault(); leaveTo($('backBtn').getAttribute('href')); });
+  $('backBtn').addEventListener('click', (e) => { e.preventDefault(); leaveTo($('backBtn').dataset.href); });
   $('prevBtn').addEventListener('click', () => { if ($('prevBtn').dataset.key) { stepDir = -1; leaveTo(`#edit/${$('prevBtn').dataset.key}`); } });
   $('nextBtn').addEventListener('click', () => { if ($('nextBtn').dataset.key) { stepDir = 1; leaveTo(`#edit/${$('nextBtn').dataset.key}`); } });
   document.addEventListener('keydown', (e) => {
