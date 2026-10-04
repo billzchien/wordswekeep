@@ -7,8 +7,8 @@
   <title>Video Test · Words We Keep</title>
   <style>
     /* A page of links for trying the video spot (js/app.js → VIDEO) without publishing anything:
-       each opens the archive with ?video=<link>, which gives every quote that source link.
-       Open the quote's notes to see the thumbnail or logo card, tap it for the player. */
+       each opens the archive with ?video=<link>, which gives every quote that source link, and
+       &notes, which opens it straight in the quote's notes. Tap the thumbnail or logo card for the player. */
     * { box-sizing: border-box; margin: 0; }
     body { background: #E6E6E6; color: #000; font: 16px/1.4 ui-sans-serif, system-ui, sans-serif; padding: 20px; max-width: 560px; }
     h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
@@ -24,7 +24,7 @@
 </head>
 <body>
   <h1>Video test</h1>
-  <p>Tap a case. The archive opens on one quote with that video as its source: tap <b>Notes</b>, look at the thumbnail, tap it to play. Nothing is saved or published.</p>
+  <p>Tap a case. The archive opens straight in the notes of one quote, with that video as its source: look at the thumbnail, tap it to play. Nothing is saved or published.</p>
 
   <div id="cases"></div>
 
@@ -37,7 +37,7 @@
 
   <script>
     const QUOTE = 19; // the quote the archive opens on
-    const open = (link, fail) => `index.html?video=${encodeURIComponent(link)}${fail ? '&videofail' : ''}#${QUOTE}`;
+    const open = (link, fail) => `index.html?video=${encodeURIComponent(link)}${fail ? '&videofail' : ''}&notes#${QUOTE}`; // &notes: straight into the quote's notes
     const CASES = [
       ['Should show a thumbnail and play', [
         ['YouTube', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'],
