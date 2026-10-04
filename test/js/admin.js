@@ -707,7 +707,15 @@
     $('editDate').textContent = unpublished(f.q);
     toast('Saved');
   }
-  $('saveBtn').addEventListener('click', saveEdit);
+  // The Save button saves and goes back to the list the quote was opened from (as Approve and
+  // Archive do); ⌘S saves and stays, for carrying on with the same quote.
+  $('saveBtn').addEventListener('click', () => {
+    if (!edit) return;
+    const back = `#${edit.tab}`;
+    saveEdit();
+    edit = null;
+    location.hash = back;
+  });
   $('approveBtn').addEventListener('click', () => {
     const f = findItem(edit.key); if (!f) return;
     fromDraft(edit.draft, f.q);
