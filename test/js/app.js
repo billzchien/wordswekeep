@@ -490,10 +490,10 @@
       else if (b === GROUPS) {                                                   // swap
         advance(dir);
         c.arriving = buildScraps(currentWrap(), true);
-        currentWrap().style.visibility = 'hidden';
+        if (!c.arriving.real) currentWrap().style.visibility = 'hidden'; // (real: the quote itself is there, its words unseen until they land)
         c.leaving.dissolve();
-      } else c.arriving.pose(b - GROUPS - 1, false);                             // home
-      if (c.n === beats()) setTimeout(end, SCRAP_FADE_MS + 60); // slack: Safari runs the last fade a frame or two late
+      } else c.arriving.pose(b - GROUPS - 1, false, true);                       // home: the new quote's words fade into place
+      if (c.n === beats()) setTimeout(end, c.arriving.homeMax + 60); // after the slowest word; slack: Safari runs the last fade a frame or two late
     };
     c.back = () => {
       if (c.n === 0 || c.n > GROUPS) return; // nothing to undo, or past the swap
@@ -727,6 +727,11 @@
     return Math.round(CUT_MS * f);
   }
   const SCRAP_FADE_MS = 150;    // softness of each jump: a cross-dissolve that overlaps the next beat
+  // The new quote's words, landing in their places, fade in slowly and not all alike: from
+  // HOME_FADE_MIN_MS at the start of the quote to HOME_FADE_MAX_MS at its last words, each
+  // moved off that line at random by up to HOME_FADE_JITTER of the range (the scattered copy
+  // still leaves at the jump's pace).
+  const HOME_FADE_MIN_MS = 400, HOME_FADE_MAX_MS = 800, HOME_FADE_JITTER = 0.25;
   const SCRAP_GAP = 14;         // breathing room kept between scraps (px)
   const SCRAP_ROOM = 1;         // em of box around a scattered scrap's letters, so Safari's layer never crops them, whatever the face
   // Lens depth: each scattered scrap has its own distance. The closer it is, the larger, the more
@@ -792,7 +797,7 @@
         group.push(words[i + group.length]);
       }
       i += group.length;
-      scraps.push({ text: group.map((w) => w.text).join(first.cjk ? '' : ' '), left: first.left, top: first.top, node: first.node, start: first.start });
+      scraps.push({ text: group.map((w) => w.text).join(first.cjk ? '' : ' '), left: first.left, top: first.top, node: first.node, start: first.start, endNode: group[group.length - 1].node, end: group[group.length - 1].end });
     }
     return scraps;
   }
@@ -813,6 +818,8 @@
     app.appendChild(layer);
 
     const vw = window.innerWidth, vh = window.innerHeight, range = document.createRange();
+    const rgb = (cs.color.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).join(', ');
+    const inkAt = (alpha) => `rgba(${rgb}, ${alpha.toFixed(3)})`; // the quote's colour, fainter
     // A scrap's distance (0 = farthest, 1 = closest) sets its size, blur and opacity.
     const setDepth = (p, near) => {
       p.near = near;
@@ -831,12 +838,15 @@
       p.spread = Math.ceil(near * DEPTH_BLUR_MAX * 3);
       if (p.w > 1.2 * vw && near > 0.02) return setDepth(p, near * 0.8);
       p.el.style.zIndex = Math.round(near * 1000); // the closer scrap is always in front of the farther
-      // The opacity rides in the filter too, so it stays clear of the jump's own fade.
-      // Whole pixels: with a fractional radius Safari (iOS) leaves a row of the layer unpainted,
-      // which shows as a pink hairline along the scrap's top edge.
+      // The blur is a text-shadow under transparent letters, not a `filter` (as in the language
+      // sweep): iOS Safari draws a filtered scrap on a layer of its own and now and then leaves a
+      // row of it unpainted — a pink hairline along the scrap's edge. Whole pixels and a clip
+      // did not cure it; with no filter there is no such layer. The shadow's radius is twice
+      // the blur's (a blur's radius is its standard deviation, a shadow's is two of them); the
+      // scrap's faintness is the shadow's own alpha, clear of the jump's fade.
       p.blurPx = Math.round(near * DEPTH_BLUR_MAX);
       p.blur = p.blurPx >= 1
-        ? `blur(${p.blurPx}px) opacity(${(1 - (1 - DEPTH_ALPHA_MIN) * near).toFixed(3)})` : '';
+        ? `0 0 ${2 * p.blurPx}px ${inkAt(1 - (1 - DEPTH_ALPHA_MIN) * near)}` : '';
     };
     const pieces = scraps.map((scrap) => {
       const el = document.createElement('span');
@@ -890,6 +900,11 @@
     });
 
     // Deal the scraps into groups at random (as evenly as possible).
+    pieces.forEach((p, i) => { // in reading order
+      const along = pieces.length > 1 ? i / (pieces.length - 1) : 1;
+      const k = Math.min(1, Math.max(0, along + (Math.random() - 0.5) * 2 * HOME_FADE_JITTER));
+      p.homeMs = Math.round(HOME_FADE_MIN_MS + (HOME_FADE_MAX_MS - HOME_FADE_MIN_MS) * (i === pieces.length - 1 ? 1 : k)); // the last words are always the slowest
+    });
     const order = pieces.map((_, i) => i).sort(() => Math.random() - 0.5);
     order.forEach((pieceIndex, n) => { pieces[pieceIndex].group = n % GROUPS; });
 
@@ -906,8 +921,8 @@
     // One settle per scrap, the latest: an earlier one would cut a later fade short (a blink).
     const settling = new Map();
     const unsettle = (el) => { clearTimeout(settling.get(el)); settling.delete(el); };
-    const settle = (el) => { unsettle(el); settling.set(el, setTimeout(() => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = ''; }, SCRAP_FADE_MS + 30)); };
-    const fadeIn = (el) => { fade(el, 0, 1); settle(el); };
+    const settle = (el, ms) => { unsettle(el); settling.set(el, setTimeout(() => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = ''; }, ms + 30)); };
+    const fadeIn = (el, ms = SCRAP_FADE_MS) => { fade(el, 0, 1, ms); settle(el, ms); };
     // Where a scrap's fade has got to: what leaves starts from there, not from full strength.
     const shown = (el) => { const o = parseFloat(getComputedStyle(el).opacity); return Number.isFinite(o) ? o : 1; };
     // Safari draws a filtered scrap on a layer the size of its box and crops what falls outside:
@@ -919,15 +934,51 @@
       // in places, and each new face reaches differently), plus the blur's spread.
       p.el.style.padding = out ? `calc(${SCRAP_ROOM}em + ${spread}px)` : '';
       p.el.style.margin = out ? `calc(-${SCRAP_ROOM}em - ${spread}px)` : '';
-      // The outermost pixels of a filtered layer are where Safari's pink hairline is drawn:
-      // they are cut away (nothing of the scrap reaches that far).
-      p.el.style.clipPath = out && p.blur ? 'inset(2px)' : '';
     };
-    const pose = (group, out) => pieces.forEach((p) => {
+    // Far or home: the scrap's blur and faintness (see setDepth).
+    const depth = (p, out) => {
+      p.el.style.color = out && p.blur ? 'transparent' : '';
+      p.el.style.textShadow = out ? p.blur : '';
+    };
+    // The new quote's words do not land as copies: each scrap's words are the quote's own,
+    // wrapped where they stand and unseen (transparent) until their scrap comes home, then
+    // faded in by colour. So a word is in its final drawing from the moment it lands — its
+    // ligatures, its spacing, its exact pixels — and nothing is left to settle when the
+    // copies hand over. (A copy sits a fraction of a pixel off and is drawn on a layer of its
+    // own while it fades; the handover showed as the whole quote adjusting.) Colour, not
+    // opacity: iOS Safari does not animate opacity on a plain inline span.
+    let real = false;
+    if (startOut && pieces.length && pieces.every((p) => p.scrap.node === p.scrap.endNode && p.scrap.node === quoteEl.firstChild) && quoteEl.childNodes.length === 1) {
+      try {
+        [...pieces].reverse().forEach((p) => { // last first: earlier offsets stay valid
+          range.setStart(p.scrap.node, p.scrap.start); range.setEnd(p.scrap.node, p.scrap.end);
+          p.word = document.createElement('span');
+          p.word.style.color = 'transparent';
+          range.surroundContents(p.word);
+        });
+        real = true;
+        wrap.classList.add('is-wiping'); // the language button waits for the last word, as before
+      } catch (e) { unwrap(); }
+    }
+    function unwrap() { // the quote back to its one text node
+      pieces.forEach((p) => { if (p.word && p.word.parentNode) p.word.replaceWith(...p.word.childNodes); p.word = null; });
+      quoteEl.normalize();
+    }
+    const land = (p) => {
+      p.word.animate([{ color: 'transparent' }, { color: cs.color }], { duration: p.homeMs, easing, fill: 'forwards' });
+    };
+    const pose = (group, out, landing = false) => pieces.forEach((p) => { // landing: the new quote coming home, at each scrap's own slow fade
+      const inMs = landing ? p.homeMs : SCRAP_FADE_MS;
+      if (landing && real) {
+        if (p.group !== group) return;
+        if (!p.stay) { const from = shown(p.el); unsettle(p.el); p.el.getAnimations().forEach((a) => a.cancel()); fade(p.el, from, 0, leaveMs(p)); } // the far copy goes, where it is
+        land(p);
+        return;
+      }
       if (p.group !== group) return;
       if (p.stay) {
         if (out) { const from = shown(p.el); unsettle(p.el); p.el.getAnimations().forEach((a) => a.cancel()); fade(p.el, from, 0); p.el.style.opacity = '0'; }
-        else { p.el.style.opacity = ''; fadeIn(p.el); }
+        else { p.el.style.opacity = ''; fadeIn(p.el, inMs); }
         return;
       }
       const ghost = p.el.cloneNode(true);
@@ -937,18 +988,19 @@
       fade(ghost, from, 0, leaveMs(p));
       setTimeout(() => ghost.remove(), leaveMs(p) + 30); // timers, not onfinish: animations stall in hidden tabs
       p.el.style.transform = out ? p.out : 'none';
-      p.el.style.filter = out ? p.blur : '';
+      depth(p, out);
       p.el.style.fontSize = out ? p.size : '';
       room(p, out);
       p.isOut = out;
-      fadeIn(p.el);
+      fadeIn(p.el, inMs);
     });
-    if (startOut) pieces.forEach((p) => { if (p.stay) { p.el.style.opacity = '0'; return; } p.el.style.transform = p.out; p.el.style.filter = p.blur; p.el.style.fontSize = p.size; room(p, true); p.isOut = true; fadeIn(p.el); });
+    if (startOut) pieces.forEach((p) => { if (p.stay) { p.el.style.opacity = '0'; return; } p.el.style.transform = p.out; depth(p, true); p.el.style.fontSize = p.size; room(p, true); p.isOut = true; fadeIn(p.el); });
     const dissolve = () => {
+      if (real) { unwrap(); wrap.classList.remove('is-wiping'); wrap.querySelector('.lang')?.classList.add('is-in'); real = false; }
       pieces.forEach((p) => { const from = shown(p.el); unsettle(p.el); p.el.getAnimations().forEach((a) => a.cancel()); fade(p.el, from, 0, leaveMs(p)); });
       setTimeout(() => layer.remove(), SCRAP_FADE_MS + DEPTH_LINGER_MS + 30);
     };
-    return { layer, pose, dissolve };
+    return { layer, pose, dissolve, homeMax: Math.max(0, ...pieces.map((p) => p.homeMs)), get real() { return real; } };
   }
 
   // Put the page in a mode, instantly (the transition around it lives in setMode).
