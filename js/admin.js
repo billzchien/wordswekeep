@@ -1,6 +1,7 @@
 /* Words We Keep — the library (admin CMS). Plain JS.
-   Three lists (Live / Pending / Archive) and an edit / review view, routed by the URL hash:
-   #live · #pending · #archive · #edit/<id>. #reset throws the demo data away.
+   Three lists (Live / Pending / Archive) and an edit / review view. Routes (`go`): #live ·
+   #pending · #archive · #fonts · #edit/<id>; kept in history.state, never in the address (an
+   address with one still opens it, then the address is cleaned). #reset throws the demo data away.
 
    Data: served by the library's Worker (workers/admin), everything comes from and goes to its
    /api (load() / persist() / publish()), behind the login. Opened anywhere else (the staging
@@ -209,21 +210,44 @@
 
   const TABS = { live: 1, pending: 1, archive: 1 };
   let tab = 'live';
+  // The view is kept in history.state (Back / Forward step through views) and in sessionStorage
+  // (a reload stays put), never in the address: it stays admin.wordswekeep.org. An address that
+  // still carries one (#pending, an old bookmark) opens it, then is cleaned.
+  const ROUTE_KEY = 'wwk-admin-route';
+  const cleanAddress = () => location.pathname + location.search;
+  function currentRoute() {
+    if (history.state && history.state.route) return history.state.route;
+    try { return sessionStorage.getItem(ROUTE_KEY) || 'live'; } catch (e) { return 'live'; }
+  }
+  function go(to) {
+    const h = String(to).replace(/^#/, '') || 'live';
+    try { sessionStorage.setItem(ROUTE_KEY, h); } catch (e) {}
+    if (!history.state || history.state.route !== h) history.pushState({ route: h }, '', cleanAddress());
+    route();
+  }
+  if (location.hash) { // opened with a route in the address
+    const h = location.hash.slice(1);
+    try { sessionStorage.setItem(ROUTE_KEY, h); } catch (e) {}
+    history.replaceState({ route: h }, '', cleanAddress());
+  } else if (!history.state) history.replaceState({ route: currentRoute() }, '', cleanAddress());
   function route() {
-    const h = location.hash.slice(1) || 'live';
-    if (h === 'reset' && !remote) { localStorage.removeItem(STORE_KEY); location.hash = '#live'; location.reload(); return; }
+    const h = currentRoute();
+    try { sessionStorage.setItem(ROUTE_KEY, h); } catch (e) {}
+    if (h === 'reset' && !remote) { localStorage.removeItem(STORE_KEY); history.replaceState({ route: 'live' }, '', cleanAddress()); try { sessionStorage.setItem(ROUTE_KEY, 'live'); } catch (e) {} location.reload(); return; }
     const [view, id] = h.split('/');
     if (view === 'edit' && findItem(id)) openEdit(id);
     else if (view === 'fonts') showFonts(id);
     else showList(view in TABS ? view : 'live');
   }
-  window.addEventListener('hashchange', route);
+  window.addEventListener('popstate', route);
   // Links are buttons with a data-href, not <a href> (no address strip at the foot of the window
   // on hover; the archive and the form do the same). A click goes there, unless the button's
   // own handler has dealt with it; ⌘ / Ctrl or a middle click opens a new tab.
   const follow = (el, e) => {
     const href = el.dataset.href;
-    if (e.metaKey || e.ctrlKey || e.button === 1) window.open(href, '_blank', 'noopener'); else location.href = href;
+    if (e.metaKey || e.ctrlKey || e.button === 1) window.open(href, '_blank', 'noopener');
+    else if (href.startsWith('#')) go(href); // a view of the library (a new tab opens it from the address, then cleans it)
+    else location.href = href;
   };
   document.addEventListener('click', (e) => { const el = e.target.closest('[data-href]'); if (el && !e.defaultPrevented) follow(el, e); });
   document.addEventListener('auxclick', (e) => { const el = e.target.closest('[data-href]'); if (el && e.button === 1) follow(el, e); });
@@ -372,11 +396,11 @@
     const act = e.target.closest('[data-act]');
     if (act) { e.preventDefault(); doAction(act.dataset.act, key, row); return; }
     if (row.classList.contains('is-open')) { row.classList.remove('is-open'); return; }
-    if (tab !== 'archive') location.hash = `#edit/${key}`;
+    if (tab !== 'archive') go(`#edit/${key}`);
   });
   $('rows').addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
-    const row = e.target.closest('.row'); if (row && tab !== 'archive') location.hash = `#edit/${row.dataset.key}`;
+    const row = e.target.closest('.row'); if (row && tab !== 'archive') go(`#edit/${row.dataset.key}`);
   });
 
   // A row goes: fades out, then the list re-renders without it.
@@ -385,7 +409,7 @@
     setTimeout(() => { then(); renderList(); refreshChrome(); }, ms(150));
   }
   async function doAction(act, key, row) {
-    if (act === 'edit') { location.hash = `#edit/${key}`; return; }
+    if (act === 'edit') { go(`#edit/${key}`); return; }
     if (act === 'archive') { leaveRow(row, () => archiveItem(key)); toast('Archived'); }
     if (act === 'revert') { // it goes back onto the site (or into the queue): worth a second look
       const f = findItem(key); const to = f && f.q.archivedFrom === 'live' ? 'live' : 'pending';
@@ -634,10 +658,10 @@
   // Stepping quote → quote with the arrows: the form slides out (up or down, the way the arrow
   // points) while fading, the next one slides in from the other side; the page is back at the top.
   const STEP_MS = 250;
-  let stepDir = 0; // set by the arrows before the hash changes: +1 next, −1 previous
+  let stepDir = 0; // set by the arrows before the route changes: +1 next, −1 previous
   async function openEdit(key) {
     const f = findItem(key); if (!f) return;
-    if (f.tab === 'archive') { location.hash = '#archive'; return; }
+    if (f.tab === 'archive') { go('#archive'); return; }
     const stepping = admin.dataset.view === 'edit' && stepDir !== 0;
     const view = $('editView');
     if (stepping) { view.style.setProperty('--dir', stepDir); view.classList.add('is-stepping-out'); await new Promise((r) => setTimeout(r, ms(STEP_MS))); }
@@ -669,7 +693,7 @@
   async function leaveTo(hash) {
     if (isDirty() && !(await ask('Leave without saving?', 'Leave', 'Keep editing'))) return;
     edit = null;
-    location.hash = hash;
+    go(hash);
   }
   $('backBtn').addEventListener('click', (e) => { e.preventDefault(); leaveTo($('backBtn').dataset.href); });
   $('prevBtn').addEventListener('click', () => { if ($('prevBtn').dataset.key) { stepDir = -1; leaveTo(`#edit/${$('prevBtn').dataset.key}`); } });
@@ -714,21 +738,21 @@
     const back = `#${edit.tab}`;
     saveEdit();
     edit = null;
-    location.hash = back;
+    go(back);
   });
   $('approveBtn').addEventListener('click', () => {
     const f = findItem(edit.key); if (!f) return;
     fromDraft(edit.draft, f.q);
     approveItem(edit.key);
     toast('Approved');
-    edit = null; location.hash = '#pending';
+    edit = null; go('#pending');
   });
   $('archiveBtn').addEventListener('click', () => {
     const f = findItem(edit.key); if (!f) return;
     fromDraft(edit.draft, f.q);
     archiveItem(edit.key);
     toast('Archived');
-    edit = null; location.hash = '#pending';
+    edit = null; go('#pending');
   });
   $('revertBtn').addEventListener('click', () => { if (!isDirty()) return; mark(); edit.draft = clone(edit.orig); fill(edit.draft); updateDirty(); });
 
