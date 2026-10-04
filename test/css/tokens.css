@@ -61,6 +61,7 @@
 
   /* ---------- Motion ---------- */
   --ease: cubic-bezier(0.4, 0, 0, 1);   /* the one curve for every transitional animation */
+  --chrome-in: 0.6s;   /* the page's controls fading in: Notes and the arrows after the typing, "Add words" and the number back from the form, the form's arrows (was 0.3s; on --ease a fade reads as about half its length) */
   --ease-drop: cubic-bezier(0.2, 0.6, 0.1, 1);   /* the notes backdrop only: off at full speed, then a long brake into the bottom edge */
 
   /* ---------- Line ---------- */

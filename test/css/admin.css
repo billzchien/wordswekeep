@@ -359,7 +359,7 @@
 @media (max-width: 599px) {
   .font-stage { width: 375px; min-height: 334px; padding: 40px 0 40px 20px; --quote-l: 40px; --quote-m: 32px; --quote-s: 28px; --quote-xs: 22px; }
   .font-stage .quote { width: 335px; }
-  .font-stage .quote[data-tier="l"] { width: 295px; }
+  .font-stage .quote[data-tier="l"] { width: 335px; } /* margin to margin like the rest, as in the archive since 2026-10-03 */
 }
 
 /* ---------- Fonts: tuning the quote faces ----------

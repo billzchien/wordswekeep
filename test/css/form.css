@@ -371,7 +371,7 @@ textarea.field--taller { height: var(--ta-l); }
    are not painted at all, so nothing shows before it fades in. */
 html.is-arriving .count, html.is-arriving .arrows,
 html.is-arriving .step:first-child .content > .group > *, html.is-arriving .step:first-child .content > .btn { opacity: 0; }
-.form.is-arriving .arrows { animation: fade-in 0.3s var(--ease) both; }
+.form.is-arriving .arrows { animation: fade-in var(--chrome-in) var(--ease) both; }
 /* The pager comes in once the form's blocks have landed (--pager-at, from js/form.js), by parts, 100ms apart: the current number fades up 10px, the line draws
    left to right (the grey track, and the dark fill 50ms behind it), the total fades up 10px. */
 .form.is-arriving .count { opacity: 1; --pager-in: 300ms; --pager-gap: 100ms; }
