@@ -31,6 +31,7 @@ body {
 
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 a { color: inherit; text-decoration: none; }
+[data-href] { cursor: pointer; } /* the site's links: buttons and spans with a data-href, not <a href> (no address strip on hover; js: follow) */
 ul { list-style: none; }
 [hidden] { display: none !important; }
 
@@ -58,16 +59,16 @@ ul { list-style: none; }
 
 /* Text links: hairline underline that redraws left → right on hover. */
 .link,
-.n-source a {
+.n-source [data-href] {
   --line: var(--hairline);
   background: linear-gradient(currentColor, currentColor) left bottom / 100% var(--line) no-repeat;
   padding-bottom: var(--link-gap);
 }
 .link { display: inline-block; white-space: nowrap; }
-@media (max-resolution: 1.5dppx) { .link, .n-source a { --line: 1px; } }
+@media (max-resolution: 1.5dppx) { .link, .n-source [data-href] { --line: 1px; } }
 @media (hover: hover) {
   .link:hover,
-  .n-source a:hover { animation: link-draw 0.7s var(--ease); }
+  .n-source [data-href]:hover { animation: link-draw 0.7s var(--ease); }
 }
 @keyframes link-draw {
   0%      { background-position: right bottom; background-size: 100% var(--line); }
@@ -331,6 +332,11 @@ ul { list-style: none; }
 /* The button steps aside while the quote is being retyped. */
 .q-wrap.is-typing .lang,
 .q-wrap.is-wiping .lang { visibility: hidden; }
+/* A word of the quote wrapped to fade in by itself (js/app.js → wordsIn, buildScraps): its box takes
+   in the room its ink may reach (the script faces' tails), with the same negative margin so nothing
+   moves — iOS Safari redraws a fading word box by box, and wiped the tails of the neighbouring
+   lines that lay inside it (js: drawWhole). */
+.q-word { padding: var(--ink-y) var(--ink-x); margin: calc(-1 * var(--ink-y)) calc(-1 * var(--ink-x)); }
 .quote-ghost { position: absolute; max-width: none; pointer-events: none; }
 
 @media (max-width: 1023px) {

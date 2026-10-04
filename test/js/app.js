@@ -294,6 +294,7 @@
       cutScraps(measureWords(quoteEl)).reverse().forEach((sc) => { // one or two words at a time, last first: earlier offsets stay valid
         range.setStart(sc.node, sc.start); range.setEnd(sc.endNode, sc.end);
         const span = document.createElement('span');
+        span.className = 'q-word';
         span.style.color = 'transparent';
         range.surroundContents(span);
         spans.push(span);
@@ -305,8 +306,21 @@
       slowest = Math.max(slowest, ms);
       span.animate([{ color: 'transparent' }, { color: ink }], { duration: ms, easing, fill: 'forwards' });
     });
-    landing = { finish: unwrap, timer: setTimeout(flushLanding, slowest + 30) };
+    drawWhole(quoteEl, slowest + 30);
+    landing = { finish: () => { quoteEl.getAnimations().forEach((a) => a.cancel()); unwrap(); }, timer: setTimeout(flushLanding, slowest + 30) };
     return Math.round(easeTimeFor(HOME_FADE_DONE, easing) * slowest);
+  }
+  // While single words of the quote fade in by colour, iOS Safari redraws only each word's own
+  // box — and in a script face a letter's tail reaches well into the line below (or above): when
+  // a word there is redrawn, the tail inside its box is wiped and not put back until the line
+  // it belongs to is next drawn. It showed as the descenders of a line flickering (Poet,
+  // Author; Bill's recordings, 2026-10-04). Two measures: each wrapped word's box takes in the
+  // room its ink may reach (css .q-word), so a redraw of one word redraws its neighbours on the
+  // lines above and below too; and for as long as words are fading, the quote's own colour
+  // moves by a hair, which has the whole block redrawn every frame.
+  function drawWhole(quoteEl, ms) {
+    const ink = getComputedStyle(quoteEl).color, rgb = (ink.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).join(', ');
+    quoteEl.animate([{ color: `rgba(${rgb}, 1)` }, { color: `rgba(${rgb}, 0.97)` }], { duration: 120, iterations: Math.ceil(ms / 120), direction: 'alternate' });
   }
   function flushLanding() {
     if (!landing) return;
@@ -714,7 +728,7 @@
       let label = ITALIC_KINDS.has(src.kind) ? `<i>${esc(src.title)}</i>` : esc(src.title);
       if (src.year) label += `, ${esc(src.year)}`;
       const linked = src.link && !youtubeId(src.link);
-      from += `<span class="n-source">${linked ? `<a href="${esc(src.link)}" target="_blank" rel="noopener">${label}</a>` : label}</span>`;
+      from += `<span class="n-source">${linked ? `<span role="link" tabindex="0" data-href="${esc(src.link)}" data-out>${label}</span>` : label}</span>`;
     } else {
       from += '<br>';
     }
@@ -1018,15 +1032,18 @@
         [...pieces].reverse().forEach((p) => { // last first: earlier offsets stay valid
           range.setStart(p.scrap.node, p.scrap.start); range.setEnd(p.scrap.node, p.scrap.end);
           p.word = document.createElement('span');
+          p.word.className = 'q-word';
           p.word.style.color = 'transparent';
           range.surroundContents(p.word);
         });
         real = true;
+        drawWhole(quoteEl, CUT_MS + HOME_FADE_MAX_MS + 200); // from the swap until the slowest word is in
         wrap.classList.add('is-wiping'); // the language button waits for the last word, as before
       } catch (e) { unwrap(); }
     }
     function unwrap() { // the quote back to its one text node
       pieces.forEach((p) => { if (p.word && p.word.parentNode) p.word.replaceWith(...p.word.childNodes); p.word = null; });
+      quoteEl.getAnimations().forEach((a) => a.cancel()); // (drawWhole)
       quoteEl.normalize();
     }
     const land = (p) => {
@@ -2554,12 +2571,28 @@
     setTimeout(() => app.classList.remove('is-arriving'), CHROME_IN_MS + 100);
   }
 
+  /* ---------- Links ---------- */
+  // Links are buttons with a data-href, not <a href>: a browser shows an <a>'s address in a
+  // strip at the foot of the window whenever the pointer is over it. This is what a click on
+  // one does (unless its own handler has dealt with it): go there; in a new tab with ⌘ / Ctrl,
+  // a middle click, or for a link out of the site (data-out).
+  const follow = (el, e) => {
+    const href = el.dataset.href;
+    if (el.hasAttribute('data-out') || e.metaKey || e.ctrlKey || e.button === 1) window.open(href, '_blank', 'noopener');
+    else location.href = href;
+  };
+  document.addEventListener('click', (e) => { const el = e.target.closest('[data-href]'); if (el && !e.defaultPrevented) follow(el, e); });
+  document.addEventListener('auxclick', (e) => { const el = e.target.closest('[data-href]'); if (el && e.button === 1) follow(el, e); });
+  document.addEventListener('keydown', (e) => { // a span with role="link" (the notes' source) answers Enter like a link
+    if (e.key === 'Enter' && e.target.matches && e.target.matches('span[data-href]')) follow(e.target, e);
+  });
+
   /* ---------- Add words: hand over to the form ---------- */
   const LEAVE_MS = 100;
   $('addBtn').addEventListener('click', (e) => {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // let the browser open a tab
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // a new tab: `follow` opens it
     e.preventDefault();
-    const href = e.currentTarget.href;
+    const href = e.currentTarget.dataset.href;
     session.set('wwk-arrive', '1');
     app.classList.add('is-leaving');
     setTimeout(() => { location.href = href; }, reduceMotion.matches ? 0 : LEAVE_MS);

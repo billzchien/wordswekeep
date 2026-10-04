@@ -50,7 +50,7 @@
     <button class="chrome menu-btn" id="menuBtn" aria-label="Menu"><svg class="sym" id="markSym" viewBox="0 0 60 60" aria-hidden="true"></svg></button> <!-- the current category's symbol, drawn by js/app.js (Symbols) -->
     <p class="chrome number" id="number"></p>
     <button class="chrome link notes-btn" id="notesBtn">Notes</button>
-    <a class="chrome link add-btn" id="addBtn" href="add.html">Add words</a>
+    <button class="chrome link add-btn" id="addBtn" role="link" data-href="add.html">Add words</button> <!-- a button, not <a href>: no address strip on hover (js/app.js → follow) -->
     <div class="chrome arrows">
       <button id="prevBtn" aria-label="Previous quote"><span class="arrow-crop"><span class="icon icon-arrow"></span></span></button> <!-- .arrow-crop: the box a pressed arrow rolls in (js/app.js → press) -->
       <button id="nextBtn" aria-label="Next quote"><span class="arrow-crop"><span class="icon icon-arrow icon-arrow--down"></span></span></button>

@@ -156,12 +156,12 @@
 
     <!-- Chrome: the list -->
     <div class="chrome-list" id="chromeList">
-      <a class="chrome home" href="#live" aria-label="Live quotes"><span class="icon icon-mark"></span></a>
+      <button type="button" class="chrome home" role="link" data-href="#live" aria-label="Live quotes"><span class="icon icon-mark"></span></button>
       <nav class="chrome tabs" id="tabs" aria-label="Sections">
-        <a class="tab" href="#live" data-tab="live">Live</a>
-        <a class="tab" href="#pending" data-tab="pending">Pending<span class="icon tab-dot" id="pendingDot" aria-label="New" hidden></span></a>
-        <a class="tab" href="#archive" data-tab="archive">Archive</a>
-        <a class="tab" href="#fonts" data-tab="fonts">Fonts</a>
+        <button type="button" class="tab" role="link" data-href="#live" data-tab="live">Live</button>
+        <button type="button" class="tab" role="link" data-href="#pending" data-tab="pending">Pending<span class="icon tab-dot" id="pendingDot" aria-label="New" hidden></span></button>
+        <button type="button" class="tab" role="link" data-href="#archive" data-tab="archive">Archive</button>
+        <button type="button" class="tab" role="link" data-href="#fonts" data-tab="fonts">Fonts</button>
       </nav>
       <div class="chrome cta" id="ctaLive">
         <p class="cta-meta" id="lastPublished"></p>
@@ -178,7 +178,7 @@
 
     <!-- Chrome: the edit view -->
     <div class="chrome-edit" id="chromeEdit" hidden>
-      <a class="chrome link back" id="backBtn" href="#live">Back</a>
+      <button type="button" class="chrome link back" id="backBtn" role="link" data-href="#live">Back</button>
       <div class="chrome cta">
         <div class="cta-links">
           <button type="button" class="link" id="revertBtn">Revert</button>
