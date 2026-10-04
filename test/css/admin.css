@@ -234,6 +234,9 @@
 .ann-pair.is-matched .ann-field .field { color: var(--placeholder); }
 .ann-field.is-warn .field { padding-right: calc(var(--fpad) + var(--ic-chevron) + 8 * var(--u)); }
 .ann-field.is-warn::after { display: none; } /* the → stays in the corner to check again; no ⓘ */
+/* A fold that has finished opening lets its content reach outside it (js: fold → is-settled):
+   form.css crops a fold's content so it can slide open, which also cropped a dropdown's list. */
+.fold.is-settled > * { overflow: visible; }
 .ann-pair > .fold { --fold-gap: var(--gap-1); } /* the folded explanation gives its 1px gap back */ /* the glyph has 3px of air in its box: pulled out so its ink ends on the field's edge */
 .sec--opt.is-many .sec-close { display: none; } /* with two or more, each pair has its own × */
 .sec--opt:not(.is-open) .sec-title, .sec--opt:not(.is-open) .sec-close { display: none; }
