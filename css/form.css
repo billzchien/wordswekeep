@@ -320,6 +320,10 @@ textarea.field::-webkit-scrollbar { display: none; }
 .done.is-in > .done-btns { animation: rise-in 0.3s var(--ease) 100ms both; }
 @media (max-width: 1023px) { .done { --done-sym: clamp(96px, 19.2vw, 160px); } }
 @media (max-width: 599px) { .done { --done-sym: clamp(96px, 18.8vh, 160px); } }
+/* The 404 (404.html, Figma 421:1885): the same screen, as narrow as the symbol and centred on the
+   window; the line centred under it, the button as wide as the symbol. */
+.content.done--404 { width: var(--done-sym); margin-left: auto; margin-right: auto; align-items: center; }
+.done--404 .done-text { text-align: center; white-space: nowrap; }
 .arrows button:disabled { opacity: 0.3; cursor: default; }
 
 /* Honeypot: off-screen, never displayed. */

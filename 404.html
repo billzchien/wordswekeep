@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#E6E6E6">
+  <meta name="robots" content="noindex">
+  <title>Page Not Found · Words We Keep</title>
+  <!-- GitHub Pages serves this for any missing address, at any depth: every path is from the root. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/form.css">
+</head>
+<body>
+  <!-- Figma 421:1885: the thank-you screen of the form (add.html, Figma 227:3992), one button,
+       narrowed to the symbol and centred (css/form.css → .done--404). -->
+  <div class="form is-done">
+    <div class="steps">
+      <section class="step" aria-label="Page not found">
+        <div class="content content--40 done done--404" id="done">
+          <div class="done-sym"><svg class="sym" id="doneSym" viewBox="0 0 60 60" aria-hidden="true"></svg></div>
+          <p class="done-text">Oops. There must be a mistake.</p>
+          <div class="done-btns">
+            <button type="button" class="btn btn--primary" role="link" id="homeBtn">View collection</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module">
+    // As the form's showDone (js/form.js): the All symbol draws in, the text and the button fade
+    // up. Without the symbols' files the still image stands.
+    const done = document.getElementById('done');
+    const box = done.querySelector('.done-sym');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById('homeBtn').addEventListener('click', () => { location.href = '/'; });
+    try {
+      const [lib, data] = await Promise.all([
+        import('/assets/symbols/ribbon-draw.js'),
+        fetch('/assets/symbols/symbol-draw-in.json').then((r) => { if (!r.ok) throw new Error(`symbols: ${r.status}`); return r.json(); }),
+      ]);
+      const model = lib.createModel(data);
+      const r = lib.createRenderer(document.getElementById('doneSym'), model);
+      r.drawIn('All', 0);
+      done.classList.add('is-in');
+      if (reduce) r.drawIn('All', 1); else lib.play(model, (t) => r.drawIn('All', t));
+    } catch (err) {
+      console.error(err);
+      box.classList.add('is-static');
+      done.classList.add('is-in');
+    }
+  </script>
+</body>
+</html>
