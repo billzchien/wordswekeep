@@ -2264,9 +2264,14 @@
     });
     const range = document.createRange();
     return lines.reverse().map((line) => { // last line first: earlier offsets stay valid
-      range.setStart(line.first.node, line.first.start);
-      range.setEnd(line.last.node, line.last.end);
+      // A word inside a link (setDesc) takes the whole link into its line: a range that cut
+      // through the link's span could not be wrapped.
+      const linkOf = (w) => w.node.parentElement.closest('[data-href]');
+      const a = linkOf(line.first), b = linkOf(line.last);
+      if (a) range.setStartBefore(a); else range.setStart(line.first.node, line.first.start);
+      if (b) range.setEndAfter(b); else range.setEnd(line.last.node, line.last.end);
       const span = document.createElement('span');
+      span.className = 'desc-line';
       try { range.surroundContents(span); } catch (e) { return null; }
       return span;
     }).filter(Boolean).reverse();
@@ -2321,7 +2326,7 @@
       p.normalize();
       fold(desc, true).then(() => {
         desc.getAnimations({ subtree: true }).forEach((a) => a.cancel());
-        p.querySelectorAll('span').forEach((span) => span.replaceWith(...span.childNodes)); // wrappers off
+        p.querySelectorAll('.desc-line').forEach((span) => span.replaceWith(...span.childNodes)); // wrappers off (the links stay)
         p.normalize();
       });
     }
