@@ -179,11 +179,12 @@
     },
     "context": null,
     "annotations": [],
-    "reflection": "I love how it illustrates the relationship of god and us, the relationship of work and rest, the relationship of joy and peace. it gives an assurance that god’s hand is in our lives and if we are still at times it will be revealed.",
+    "reflection": "I love how it illustrates the relationship of god and us, the relationship of work and rest, the relationship of joy and peace. It gives an assurance that god’s hand is in our lives and if we are still at times it will be revealed.",
     "keptBy": "Harbor",
     "submittedAt": "2026-06-27T11:14:12",
     "approvedAt": "2026-06-27T11:14:12",
-    "font": "stone"
+    "font": "stone",
+    "notFirst": true
   },
   {
     "id": 8,
@@ -231,7 +232,8 @@
     "keptBy": "Bill",
     "submittedAt": "2026-07-07T12:12:48",
     "approvedAt": "2026-07-07T12:12:48",
-    "font": "print"
+    "font": "print",
+    "notFirst": true
   },
   {
     "id": 9,
