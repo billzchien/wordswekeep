@@ -575,7 +575,7 @@
     setNumber(q.id);
     const video = videoOf(q);
     if (video) { const info = lookupVideo(video); if (info.thumb) { const warm = new Image(); warm.src = info.thumb; } } // asked now, so the notes know what to show (and the thumbnail never pops in)
-    history.replaceState(null, '', `#${q.id}`);
+    try { sessionStorage.setItem('wwk-quote', q.id); } catch (e) {} // a reload stays on this quote; the address stays clean (no #id)
   }
 
   const advance = (dir) => {
@@ -2540,7 +2540,12 @@
     .then((quotes) => {
       state.all = quotes.filter((q) => q.status === 'live').sort((a, b) => a.id - b.id);
       state.list = shuffle(state.all); // the deck is dealt at random: no. 1 is not first, and the next is not no. 2
-      const wanted = parseInt(location.hash.slice(1), 10);
+      // A quote's own address (#8) opens it, then the number leaves the address; without one, a
+      // reload comes back to the quote this tab was on (renderDeck keeps it).
+      let kept = null;
+      try { kept = sessionStorage.getItem('wwk-quote'); } catch (e) {}
+      const wanted = parseInt(location.hash.slice(1) || kept, 10);
+      if (location.hash) history.replaceState(null, '', location.pathname + location.search);
       const found = state.list.findIndex((q) => q.id === wanted);
       // A quote marked "Don't show as the first quote" in the library (`notFirst`) is never the
       // one a visitor lands on — unless its own address was opened. It trades places with the
