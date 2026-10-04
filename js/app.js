@@ -663,7 +663,8 @@
   const wheel = { lastAt: 0, steppedAt: -Infinity, floor: Infinity, recent: [] };
   deck.addEventListener('wheel', (e) => {
     e.preventDefault();
-    const now = performance.now(), abs = Math.abs(e.deltaY);
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1; // lines / pages → px (a mouse wheel in Firefox can report lines: 3 a notch)
+    const now = performance.now(), abs = Math.abs(e.deltaY * unit);
     const newGesture = now - wheel.lastAt > WHEEL_GAP_MS;
     wheel.lastAt = now;
     if (newGesture) { wheel.floor = Infinity; wheel.recent = []; }
