@@ -721,18 +721,16 @@
     const a = q.author;
     const country = a.country ? regionName(a.country) : '';
     const native = a.nativeName ? ` <span class="n-native">${esc(a.nativeName)}</span>` : '';
-    // Row 1 author · row 2 source ("Title, Year") · row 3 country
+    // Row 1 author · row 2 country · row 3 source ("Title, Year")
     let from = `${esc(a.name)}${native}`;
+    if (country) from += `<br>${esc(country)}`;
     const src = q.source || {};
     if (src.title) {
       let label = ITALIC_KINDS.has(src.kind) ? `<i>${esc(src.title)}</i>` : esc(src.title);
       if (src.year) label += `, ${esc(src.year)}`;
       const linked = src.link && !youtubeId(src.link);
-      from += `<span class="n-source">${linked ? `<span role="link" tabindex="0" data-href="${esc(src.link)}" data-out>${label}</span>` : label}</span>`;
-    } else {
-      from += '<br>';
+      from += `<span class="n-source">${linked ? `<span role="link" tabindex="0" data-href="${esc(src.link)}" data-out>${label}</span>` : label}</span>`; // (a block: its own row)
     }
-    if (country) from += esc(country);
     $('nFrom').innerHTML = from;
 
     renderNotesQuote();
@@ -741,8 +739,11 @@
     $('nVideoPin').innerHTML = $('nVideoCol').innerHTML = video ? thumbHTML(video) : '';
 
     $('nKept').textContent = q.keptBy || 'a fellow human';
-    let body = q.reflection ? `<div>${paragraphs(q.reflection)}</div>` : '';
-    if (q.context) body += `<div class="n-context"><p>/Context/</p><div>${paragraphs(q.context)}</div></div>`;
+    // The context first, then the personal note (the other way round until 2026-10-04).
+    let body = q.context ? `<div class="n-context"><p>/Context/</p><div>${paragraphs(q.context)}</div></div>` : '';
+    // With a context above it the personal note gets a title of its own, "/Note/" (set like
+    // "/Context/"), so it still reads as the keeper's; alone under "Kept by" it needs none.
+    if (q.reflection) body += q.context ? `<div class="n-context"><p>/Note/</p><div>${paragraphs(q.reflection)}</div></div>` : `<div>${paragraphs(q.reflection)}</div>`;
     $('nBody').innerHTML = body;
   }
 
@@ -2375,6 +2376,13 @@
       state.list = shuffle(state.all); // the deck is dealt at random: no. 1 is not first, and the next is not no. 2
       const wanted = parseInt(location.hash.slice(1), 10);
       const found = state.list.findIndex((q) => q.id === wanted);
+      // A quote marked "Don't show as the first quote" in the library (`notFirst`) is never the
+      // one a visitor lands on — unless its own address was opened. It trades places with the
+      // first quote in the deck that may be.
+      if (found < 0 && state.list.length && state.list[0].notFirst) {
+        const ok = state.list.findIndex((q) => !q.notFirst);
+        if (ok > 0) [state.list[0], state.list[ok]] = [state.list[ok], state.list[0]];
+      }
       state.idx = found >= 0 ? found : 0;
       renderDeck();
       arrive();

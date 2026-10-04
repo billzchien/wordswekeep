@@ -378,6 +378,8 @@ ul { list-style: none; }
   transition: filter 0.4s var(--ease);
 }
 .n-cats .sym { flex: none; width: var(--mark); height: var(--mark); } /* each category's symbol, drawn in by js/app.js (drawNoteSym) */
+/* The name is centred on the symbol by its capitals, not by its line box (whose centre is 0.0575em higher): the capitals then sit on the top line, with Close. */
+.n-cats li > span:last-child { position: relative; top: calc(var(--text-leading) * 0.5em - var(--cap-offset) - var(--cap-height) / 2); }
 .n-cats li { display: flex; align-items: center; gap: 1.333em; height: var(--mark); margin-bottom: calc(4 * var(--u)); white-space: nowrap; }
 
 .n-pin {
@@ -405,7 +407,7 @@ ul { list-style: none; }
   max-width: calc(100vw - var(--col3) - 2.667em - var(--m) - 5em);
 }
 
-.n-from { position: absolute; top: 22px; left: var(--col3); }
+.n-from { position: absolute; top: calc(20px - var(--cap-offset)); left: var(--col3); } /* its capitals on the top line, with Close and the category's name (it sat at 22px: 8 too low) */
 
 .notes .q-wrap {
   position: absolute;
@@ -443,7 +445,7 @@ ul { list-style: none; }
   padding-bottom: 160px;
   transition: filter 0.4s var(--ease);
 }
-.n-body { margin-top: 2.667em; display: flex; flex-direction: column; gap: 1.333em; } /* 40, 20 at 15px text */
+.n-body { margin-top: 1.333em; display: flex; flex-direction: column; gap: 1.333em; } /* one gap (21.3 at 16px text) under "Kept by" and between the context and the note (it was 2.667em under "Kept by") */
 .n-body p + p { margin-top: 1.067em; }
 .n-context { display: flex; flex-direction: column; gap: 0.533em; }
 .n-context p + p { margin-top: 1.067em; }

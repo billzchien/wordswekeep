@@ -522,6 +522,7 @@
     context: q.context || '', annotations: q.annotations.map((a) => ({ word: a.word, explanation: a.explanation, matched: false, at: -1 })),
     reflection: q.reflection || '', keptBy: q.keptBy || '',
     font: fontFor(q.font, tier(q.text || '')), // the face the archive shows it in
+    notFirst: !!q.notFirst, // "Don't show as the first quote"
   });
   function fromDraft(d, q) {
     const t = (s) => s.trim();
@@ -538,6 +539,7 @@
     q.reflection = t(d.reflection);
     q.keptBy = t(d.keptBy) || null;
     q.font = d.font;
+    if (d.notFirst) q.notFirst = true; else delete q.notFirst; // only ever present when set
     return q;
   }
   // The language of the original words, as a two-letter code. Other scripts are told apart by
@@ -748,6 +750,12 @@
     <button type="button" class="chk" role="checkbox" aria-checked="false" data-key="${c.key}">
       <span class="chk-box" aria-hidden="true"><span class="icon icon-check"></span></span><span>${c.name}</span>
     </button>`).join('');
+  $('fNotFirst').addEventListener('click', () => { // "Don't show as the first quote"
+    mark();
+    edit.draft.notFirst = !edit.draft.notFirst;
+    $('fNotFirst').setAttribute('aria-checked', String(edit.draft.notFirst));
+    updateDirty();
+  });
   $('catList').addEventListener('click', (e) => {
     const b = e.target.closest('.chk'); if (!b) return;
     const k = b.dataset.key, on = !edit.draft.categories.includes(k);
@@ -855,6 +863,7 @@
     const hasOrig = !!d.original.trim();
     foldNow($('fOriginalWrap'), hasOrig); $('origToggle').hidden = hasOrig;
     $('catList').querySelectorAll('.chk').forEach((b) => b.setAttribute('aria-checked', String(d.categories.includes(b.dataset.key))));
+    $('fNotFirst').setAttribute('aria-checked', String(!!d.notFirst));
     $('fName').value = d.author.name; $('fNative').value = d.author.nativeName;
     country.set(d.author.country); foldNow($('fNativeWrap'), NON_LATIN.has(d.author.country));
     kind.set(d.source.kind); year.set(d.source.year);
