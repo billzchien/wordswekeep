@@ -206,7 +206,11 @@
       vertical: () => true,
     },
   };
-  const videoLink = (q) => (q.source && q.source.link) || '';
+  // For trying a link out without publishing it (video-test.html lists some to tap):
+  // ?video=<link> gives every quote that source link; &videofail makes the lookups fail, as
+  // where the platform cannot be reached.
+  const TEST = new URLSearchParams(location.search), TEST_VIDEO = TEST.get('video'), TEST_FAIL = TEST.has('videofail');
+  const videoLink = (q) => TEST_VIDEO || (q.source && q.source.link) || '';
   function videoOf(q) {
     const link = videoLink(q);
     for (const [platform, p] of Object.entries(VIDEO)) {
@@ -227,7 +231,7 @@
     if (videoInfo.has(video.link)) return videoInfo.get(video.link);
     const info = { state: 'pending', thumb: VIDEO[video.platform].thumb ? VIDEO[video.platform].thumb(video) : null };
     const stop = new AbortController(), timer = setTimeout(() => stop.abort(), VIDEO_WAIT_MS);
-    info.done = fetch(VIDEO[video.platform].lookup(video.link), { signal: stop.signal })
+    info.done = (TEST_FAIL ? Promise.reject(new Error('videofail')) : fetch(VIDEO[video.platform].lookup(video.link), { signal: stop.signal }))
       .then((r) => { if (!r.ok) { info.state = 'broken'; return null; } return r.json(); })
       .then((d) => {
         if (!d) return;

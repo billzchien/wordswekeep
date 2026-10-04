@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Video Test · Words We Keep</title>
+  <style>
+    /* A page of links for trying the video spot (js/app.js → VIDEO) without publishing anything:
+       each opens the archive with ?video=<link>, which gives every quote that source link.
+       Open the quote's notes to see the thumbnail or logo card, tap it for the player. */
+    * { box-sizing: border-box; margin: 0; }
+    body { background: #E6E6E6; color: #000; font: 16px/1.4 ui-sans-serif, system-ui, sans-serif; padding: 20px; max-width: 560px; }
+    h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    p { margin-bottom: 16px; color: #444; }
+    h2 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin: 24px 0 8px; }
+    a.case { display: block; padding: 14px 16px; margin-bottom: 4px; background: #f3f3f3; color: inherit; text-decoration: none; }
+    a.case small { display: block; color: #666; font-size: 13px; margin-top: 2px; word-break: break-all; }
+    form { display: flex; gap: 4px; }
+    input { flex: 1; min-width: 0; font: inherit; padding: 12px; border: 0; background: #f3f3f3; }
+    button { font: inherit; padding: 12px 16px; border: 0; background: #000; color: #fff; }
+    label { display: flex; gap: 8px; align-items: center; margin-top: 8px; color: #444; }
+  </style>
+</head>
+<body>
+  <h1>Video test</h1>
+  <p>Tap a case. The archive opens on one quote with that video as its source: tap <b>Notes</b>, look at the thumbnail, tap it to play. Nothing is saved or published.</p>
+
+  <div id="cases"></div>
+
+  <h2>Your own link</h2>
+  <form id="own">
+    <input id="link" type="url" inputmode="url" placeholder="Paste a video link" autocomplete="off">
+    <button>Open</button>
+  </form>
+  <label><input type="checkbox" id="fail" style="flex:none"> Pretend the platform cannot be reached</label>
+
+  <script>
+    const QUOTE = 19; // the quote the archive opens on
+    const open = (link, fail) => `index.html?video=${encodeURIComponent(link)}${fail ? '&videofail' : ''}#${QUOTE}`;
+    const CASES = [
+      ['Should show a thumbnail and play', [
+        ['YouTube', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'],
+        ['YouTube, starting at 0:43', 'https://youtu.be/dQw4w9WgXcQ?t=43'],
+        ['Vimeo', 'https://vimeo.com/22439234'],
+        ['TikTok', 'https://www.tiktok.com/@scout2015/video/6718335390845095173'],
+      ]],
+      ['Should show the logo card and play', [
+        ['Instagram post', 'https://www.instagram.com/p/CUbHfhpswxt/'],
+      ]],
+      ['Should show the logo card, then “Video not available.”', [
+        ['YouTube, a video that does not exist', 'https://www.youtube.com/watch?v=aaaaaaaaaaa'],
+        ['TikTok, platform unreachable', 'https://www.tiktok.com/@scout2015/video/6718335390845095173', true],
+        ['Instagram, platform unreachable', 'https://www.instagram.com/p/CUbHfhpswxt/', true],
+        ['Vimeo, platform unreachable', 'https://vimeo.com/22439234', true],
+        ['YouTube, platform unreachable', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', true],
+      ]],
+      ['Should show no video, and an underlined source', [
+        ['A link to another site', 'https://example.com/some-talk'],
+      ]],
+    ];
+    document.getElementById('cases').innerHTML = CASES.map(([title, list]) =>
+      `<h2>${title}</h2>` + list.map(([name, link, fail]) => `<a class="case" href="${open(link, fail)}">${name}<small>${link}</small></a>`).join('')).join('');
+    document.getElementById('own').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const link = document.getElementById('link').value.trim();
+      if (link) location.href = open(link, document.getElementById('fail').checked);
+    });
+  </script>
+</body>
+</html>
