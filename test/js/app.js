@@ -206,11 +206,7 @@
       vertical: () => true,
     },
   };
-  // For trying a link out without publishing it (video-test.html lists some to tap):
-  // ?video=<link> gives every quote that source link; &videofail makes the lookups fail, as
-  // where the platform cannot be reached; &notes opens straight in the notes (see the boot).
-  const TEST = new URLSearchParams(location.search), TEST_VIDEO = TEST.get('video'), TEST_FAIL = TEST.has('videofail');
-  const videoLink = (q) => TEST_VIDEO || (q.source && q.source.link) || '';
+  const videoLink = (q) => (q.source && q.source.link) || '';
   function videoOf(q) {
     const link = videoLink(q);
     for (const [platform, p] of Object.entries(VIDEO)) {
@@ -231,7 +227,7 @@
     if (videoInfo.has(video.link)) return videoInfo.get(video.link);
     const info = { state: 'pending', thumb: VIDEO[video.platform].thumb ? VIDEO[video.platform].thumb(video) : null };
     const stop = new AbortController(), timer = setTimeout(() => stop.abort(), VIDEO_WAIT_MS);
-    info.done = (TEST_FAIL ? Promise.reject(new Error('videofail')) : fetch(VIDEO[video.platform].lookup(video.link), { signal: stop.signal }))
+    info.done = fetch(VIDEO[video.platform].lookup(video.link), { signal: stop.signal })
       .then((r) => { if (!r.ok) { info.state = 'broken'; return null; } return r.json(); })
       .then((d) => {
         if (!d) return;
@@ -2526,13 +2522,6 @@
       }
       state.idx = found >= 0 ? found : 0;
       renderDeck();
-      // video-test.html: with &notes the page opens straight in the quote's notes, no typing —
-      // once the platform has answered, so the thumbnail (or the logo card) is the real one.
-      if (TEST_VIDEO && TEST.has('notes')) {
-        const open = () => { drawMark(false); showChrome(); applyMode('notes'); };
-        const info = lookupVideo(videoOf(current()));
-        return info ? info.done.then(open) : open();
-      }
       arrive();
     })
     .catch((err) => {
