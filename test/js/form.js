@@ -8,7 +8,11 @@
    posts the entry to SUBMIT_URL (Worker #1); with SUBMIT_URL empty it keeps it in localStorage
    (`wwk-pending`) instead. */
 (() => {
-  const SUBMIT_URL = 'https://api.wordswekeep.org/'; // Cloudflare Worker #1 (workers/submit); '' = offline (localStorage + console)
+  // Cloudflare Worker #1 (workers/submit); '' = offline (localStorage + console). On a local
+  // preview nothing is sent: the entry stays in this browser and the form carries on to "Words
+  // submitted" as if it had gone (add ?real to the address to post to the Worker from localhost).
+  const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && !/[?&]real\b/.test(location.search);
+  const SUBMIT_URL = LOCAL ? '' : 'https://api.wordswekeep.org/';
 
   const CATEGORIES = [
     { key: 'perspective', name: 'Perspective', desc: 'The lens we bring to life. Outlooks, values, and the search for meaning.' },
@@ -180,6 +184,20 @@
     if (fw && e.target.value.trim()) fw.classList.remove('is-warn');
   });
 
+  // A required question's asterisk comes in after its screen has: from nothing to full size
+  // while it makes half a turn and fades in, over REQ_IN_MS, REQ_WAIT_MS after the screen
+  // started to come in (the step's slide and step 1's blocks on arriving are both over well
+  // before). Unseen until then.
+  const REQ_IN_MS = 300, REQ_WAIT_MS = 1000;
+  function reqIn(step, wait = REQ_WAIT_MS) {
+    if (reduceMotion.matches) return;
+    const easing = getComputedStyle(document.documentElement).getPropertyValue('--ease').trim() || 'ease';
+    step.querySelectorAll('.req').forEach((el) => {
+      el.getAnimations().forEach((a) => a.cancel());
+      el.animate([{ scale: 0, rotate: '-180deg', opacity: 0 }, { scale: 1, rotate: '0deg', opacity: 1 }], { duration: REQ_IN_MS, delay: wait, easing, fill: 'backwards' });
+    });
+  }
+
   let sliding = false;
   function go(i, { force = false } = {}) {
     if (i < 0 || i > STEPS || i === cur || sliding) return;
@@ -192,6 +210,7 @@
     cur = i;
     stepsEl.style.transform = `translateY(${-cur * 100}%)`;
     steps[cur].scrollTop = 0;
+    reqIn(steps[cur]); // its asterisks come in once the step has slid in
     sliding = !reduceMotion.matches;
     setTimeout(() => { sliding = false; }, reduceMotion.matches ? 0 : 600);
     refresh();
@@ -200,8 +219,27 @@
   /* ---------- Navigation: buttons, keys, wheel, swipe ---------- */
 
   document.querySelectorAll('[data-next]').forEach((b) => b.addEventListener('click', () => go(cur + 1)));
-  $('prevBtn').addEventListener('click', () => go(cur - 1));
-  $('nextBtn').addEventListener('click', () => go(cur + 1));
+  // A pressed arrow rolls as the archive's do (js/app.js → press), in time with the step's
+  // slide: it leaves its box (.arrow-crop) the way it points, the box is empty for a moment,
+  // and the same arrow comes in from the other side, landing as the step does (600ms in all).
+  // Only when the step really changed. (`translate`: the lower arrow is turned by a transform.)
+  const ARROW_ROLL_MS = 200, STEP_MS = 600; // each half; the slide (css --step-ms)
+  function press(btn, dir) {
+    const from = cur;
+    go(cur + dir);
+    if (cur === from || reduceMotion.matches) return;
+    const icon = btn.querySelector('.arrow-crop .icon');
+    const timing = { duration: ARROW_ROLL_MS, easing: getComputedStyle(document.documentElement).getPropertyValue('--ease').trim() || 'ease', fill: 'both' };
+    icon.getAnimations().forEach((a) => a.cancel());
+    icon.animate([{ translate: '0 0' }, { translate: `0 ${dir * 100}%` }], timing);
+    setTimeout(() => {
+      icon.getAnimations().forEach((a) => a.cancel());
+      icon.animate([{ translate: `0 ${dir * -100}%` }, { translate: '0 0' }], timing);
+      setTimeout(() => icon.getAnimations().forEach((a) => { if (a.playState === 'finished') a.cancel(); }), ARROW_ROLL_MS + 30);
+    }, STEP_MS - ARROW_ROLL_MS);
+  }
+  $('prevBtn').addEventListener('click', (e) => press(e.currentTarget, -1));
+  $('nextBtn').addEventListener('click', (e) => press(e.currentTarget, 1));
 
   // An Enter (or arrow) that belongs to an IME — picking a candidate in Chinese, Japanese, Korean —
   // is not ours. Safari reports the confirming Enter with isComposing false, but keyCode 229.
@@ -688,6 +726,7 @@
         console.log('[Words We Keep] submission (offline, saved to localStorage "wwk-pending"):', entry);
       }
       go(STEPS, { force: true });
+      showDone();
     } catch (err) {
       console.error(err);
       btn.disabled = false;
@@ -712,6 +751,7 @@
     sliding = true;
     cur = 0;
     refresh();
+    reqIn(first);
     setTimeout(() => {
       stepsEl.style.transition = 'none';
       first.style.setProperty('--i', 0);
@@ -721,7 +761,77 @@
       sliding = false;
     }, ms);
   }
-  $('againBtn').addEventListener('click', reset);
+  $('againBtn').addEventListener('click', () => {
+    reset();
+    // Once the page has slid back to step 1: the confirmation is put away and the logo draws in.
+    setTimeout(() => {
+      $('done').classList.remove('is-in');
+      if (doneStop) doneStop();
+      homeDraw();
+    }, reduceMotion.matches ? 0 : 600);
+  });
+
+  /* ---------- Words submitted: the symbols ----------
+     The category symbols' drawing code and data (assets/symbols, as the archive uses them: js/app.js
+     → "Symbols"). Fetched a moment after the page has loaded, well before anything is submitted.
+     Without them the still images stand: the logo simply goes and comes, the large symbol is
+     simply there. */
+  const SYM_DIR = '../assets/symbols/';
+  const HOME_OUT_MS = 300; // the logo drawing itself out (the archive's MENU_ICON_MS)
+  let sym = null;          // { lib, model, home, done } once the files are in
+  const symReady = new Promise((r) => setTimeout(r, 1200))
+    .then(() => Promise.all([import(new URL(SYM_DIR + 'ribbon-draw.js', document.baseURI).href), fetch(SYM_DIR + 'symbol-draw-in.json').then((r) => { if (!r.ok) throw new Error(`symbols: ${r.status}`); return r.json(); })]))
+    .then(([lib, data]) => {
+      const model = lib.createModel(data);
+      sym = { lib, model, home: lib.createRenderer($('homeSym'), model, { levels: 2, pieces: 10 }), done: lib.createRenderer($('doneSym'), model) };
+    });
+  symReady.catch((err) => console.error(err));
+  const home = document.querySelector('.home');
+  let homeStop = null, doneStop = null;
+  // The logo undraws itself, thin tip back to thick tip, on the site's curve run forwards
+  // (as the archive's mark does when the menu opens: js/app.js → undrawMark).
+  function homeUndraw() {
+    home.classList.add('is-out');
+    if (homeStop) homeStop();
+    homeStop = null;
+    if (!sym || reduceMotion.matches) { home.style.visibility = 'hidden'; return; }
+    const ease = sym.model.ease, t0 = performance.now();
+    const at = (left) => { let lo = 0, hi = 1; for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; if (ease(mid) < left) lo = mid; else hi = mid; } return (lo + hi) / 2; };
+    sym.home.rest('All');
+    home.classList.add('is-live');
+    let raf = 0;
+    const tick = (now) => {
+      const t = Math.min((now - t0) / HOME_OUT_MS, 1);
+      sym.home.drawIn('All', t < 1 ? at(1 - ease(t)) : 0, 3);
+      if (t < 1) raf = requestAnimationFrame(tick); else homeStop = null;
+    };
+    raf = requestAnimationFrame(tick);
+    homeStop = () => cancelAnimationFrame(raf);
+  }
+  function homeDraw() { // …and draws back in
+    home.classList.remove('is-out');
+    if (homeStop) homeStop();
+    homeStop = null;
+    home.style.visibility = '';
+    if (!sym || !home.classList.contains('is-live')) return; // the still logo, simply back
+    sym.home.drawIn('All', 0);
+    homeStop = sym.lib.play(sym.model, (t) => sym.home.drawIn('All', t, 3)); // reduced motion: straight to the end
+  }
+  // The confirmation comes in once the page has slid to it: the symbol draws in, the text and
+  // the buttons fade up (css .done.is-in).
+  $('doneText').textContent = noOrphans($('doneText').textContent);
+  function showDone() {
+    const done = $('done'), box = done.querySelector('.done-sym');
+    homeUndraw();
+    box.classList.toggle('is-static', !sym);
+    if (sym) sym.done.drawIn('All', 0);
+    setTimeout(() => {
+      done.classList.add('is-in');
+      if (doneStop) doneStop();
+      doneStop = null;
+      if (sym) doneStop = sym.lib.play(sym.model, (t) => sym.done.drawIn('All', t));
+    }, reduceMotion.matches ? 0 : 600); // the step's slide (css --step-ms)
+  }
 
   /* ---------- "Add word": the landing page's label animation ----------
      The letters erase left→right and type back left→right, LABEL_STEP_MS apart (index.html has
@@ -797,6 +907,7 @@
     const blocksDone = 300 + Math.max(0, blocks.length - 1) * 50;
     form.style.setProperty('--pager-at', `${blocksDone}ms`);
     form.classList.add('is-arriving');
+    reqIn(steps[0]); // the asterisk, once the blocks have landed
     setTimeout(() => { form.classList.remove('is-arriving'); document.documentElement.classList.remove('is-arriving'); }, blocksDone + 600);
-  }
+  } else reqIn(steps[0]); // opened directly: the same wait
 })();

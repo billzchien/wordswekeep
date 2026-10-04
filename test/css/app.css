@@ -18,10 +18,9 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; /* no grey flash on tap (iOS) */ }
 
 html, body { height: 100%; overflow: hidden; overscroll-behavior: none; touch-action: manipulation; /* no double-tap zoom; pinch and pan still work */ }
-/* Nothing on the site selects, except the quote in notes mode (and, on the form, the quote on
-   the annotation sheet and the fields themselves — css/form.css). */
+/* Nothing on the site selects — the quote in notes mode neither, since 2026-10-03 — except, on
+   the form, the quote on the annotation sheet and the fields themselves (css/form.css). */
 body { -webkit-user-select: none; user-select: none; }
-.notes .q-wrap { -webkit-user-select: text; user-select: text; }
 
 body {
   background: var(--bg);

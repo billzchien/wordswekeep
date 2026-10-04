@@ -341,7 +341,8 @@
     if (single && quoteEl._plain != null) node.data = quoteEl._plain;
     quoteEl._plain = null;
     const words = measureWords(quoteEl);
-    if (!single || words.some((w) => w.cjk)) return narrowBox(quoteEl); // annotated or CJK: the simpler rule
+    if (words.some((w) => w.cjk)) return; // Chinese, Japanese, Korean: every character is as wide as the next, the lines are even as they fall
+    if (!single) return narrowBox(quoteEl); // annotations inside: the simpler rule
     const lines = new Set(words.map((w) => Math.round(w.top))).size;
     if (lines < 2) return;
     const text = node.data, box = quoteEl.getBoundingClientRect().width - 1;
@@ -404,7 +405,8 @@
     }
     return null;
   }
-  // The simpler rule, where the text cannot be rewritten (annotations inside, CJK): the box is
+  // The simpler rule, where the text cannot be rewritten (annotations inside) or a word group is
+  // wider than the box (a script written without spaces, such as Thai): the box is
   // narrowed to the least width at which the quote takes the same number of lines.
   const EVEN_STEPS = 8; // halvings: finds the width to within 1/256 of the box
   function narrowBox(quoteEl) {
@@ -1609,7 +1611,7 @@
     const ghost = old.cloneNode(true);
     ghost.classList.add('quote-ghost');
     ghost.setAttribute('aria-hidden', 'true');
-    Object.assign(ghost.style, { left: `${old.offsetLeft}px`, top: `${old.offsetTop}px`, width: `${old.offsetWidth}px` });
+    Object.assign(ghost.style, { left: `${old.offsetLeft}px`, top: `${old.offsetTop}px`, width: `${old.offsetWidth}px`, maxWidth: 'none' }); // maxWidth: the incoming quote may be narrower (evenLines narrows a CJK one) and its wrap with it; the ghost keeps the width it had
     // …while the incoming text takes its real place underneath.
     wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: inNotes, tierAs: inNotes ? fittedTier(current(), state.original) : null });
     if (inNotes) evenLines(wrap.querySelector('.quote')); else fitTier(wrap.querySelector('.quote'));
@@ -2388,7 +2390,8 @@
   const ARRIVE_MAX_MS = 2600;        // budget for the letter gaps of the whole quote (the breaths and
                                      // pauses are never compressed — they are what makes it read
                                      // as typing); a long quote types faster, never below…
-  const ARRIVE_MIN_GAP_MS = 24;      // …this gap between letters
+  const ARRIVE_MIN_GAP_MS = 24;      // …this gap between letters — unless the whole quote would then take longer than…
+  const ARRIVE_TOTAL_MS = 4000;      // …this, start to finish: then the letters keep to their budget and the pauses are shortened to fit
   const COMMA_RE = /[,;:—–、；：]/, STOP_RE = /[.!?…。！？]/;
   function typingSchedule(letters) {
     // Letter gaps (jittered) are budgeted; pauses are added on top, unscaled.
@@ -2403,11 +2406,18 @@
       if (i === letters.length - 1 && /[.!?…。！？”’"']/.test(l.text)) pause += ARRIVE_FINAL_MS; // the full stop lands a beat after the last word
       pauses.push(pause);
     });
-    const sum = gaps.reduce((a, b) => a + b, 0);
-    const scale = sum > ARRIVE_MAX_MS ? Math.max(ARRIVE_MIN_GAP_MS / ARRIVE_STAGGER_MS, ARRIVE_MAX_MS / sum) : 1;
+    const sum = gaps.reduce((a, b) => a + b, 0), rests = pauses.reduce((a, b) => a + b, 0);
+    let scale = sum > ARRIVE_MAX_MS ? Math.max(ARRIVE_MIN_GAP_MS / ARRIVE_STAGGER_MS, ARRIVE_MAX_MS / sum) : 1, rest = 1;
+    // A long quote is still typed within ARRIVE_TOTAL_MS: the letters take their budget whatever
+    // the gap comes to (several to a frame, if need be), and the pauses share what is left —
+    // all shortened alike, so the rhythm keeps its shape.
+    if (sum * scale + rests > ARRIVE_TOTAL_MS) {
+      scale = Math.min(scale, ARRIVE_MAX_MS / sum);
+      rest = rests ? Math.min(1, (ARRIVE_TOTAL_MS - sum * scale) / rests) : 1;
+    }
     const at = [];
     let t = 0;
-    gaps.forEach((g, i) => { t += g * scale + pauses[i]; at.push(t); });
+    gaps.forEach((g, i) => { t += g * scale + pauses[i] * rest; at.push(t); });
     return at;
   }
   function measureLetters(quoteEl) {
