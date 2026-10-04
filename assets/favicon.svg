@@ -1,4 +1,4 @@
 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-<style>@media (prefers-color-scheme: dark) { circle, path { fill: #fff; } }</style> <!-- white on a dark browser theme, black otherwise -->
+<style>@media (prefers-color-scheme: dark) { circle, path { fill: #e6e6e6; } }</style> <!-- the site grey on a dark browser theme, black otherwise -->
 <circle cx="10" cy="10" r="7" fill="black"/>
 </svg>
