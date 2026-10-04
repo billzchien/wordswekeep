@@ -626,6 +626,7 @@
     if (e.touches.length !== 1 || e.target.closest('button') || state.mode !== 'main' || modeBusy || langBusy || state.list.length < 2) return;
     if (state.animating) return; // a change is playing out (a lifted cut always settles)
     touch = { y: e.touches[0].clientY, t: performance.now(), dy: 0, dir: 0, n0: 0, lastY: e.touches[0].clientY, lastT: performance.now(), v: 0 };
+    lastBeat = 0;
   }, { passive: true });
   deck.addEventListener('touchmove', (e) => {
     if (!touch) return;
@@ -641,14 +642,32 @@
     if (touch.done) return; // one drag, one change: past the last beat the finger is ignored until it lifts
     if (!cut && target > 0) startCut(touch.dir);
     if (!cut || cut.playing) return;
-    while (cut.n < target) cut.forward();
-    while (cut.n > target && cut.n <= GROUPS) cut.back();
-    if (cut.n >= beats()) touch.done = true;
+    touch.target = target;
+    pace();
   }, { passive: true });
+  // The finger says how far the change has got (touch.target); the beats follow it one at a
+  // time and never closer together than they are when the change plays by itself (a wheel, a
+  // key, an arrow: CUT_MS for the seven). A slow drag still scrubs beat by beat, as slowly as
+  // the finger goes; a quick swipe no longer runs the whole change through in a few frames.
+  let paceTimer = 0, lastBeat = 0;
+  const beatGap = (n) => (n > 0 ? beatAt(n) - beatAt(n - 1) : 0); // from the beat before to beat n, at the normal pace
+  function pace() {
+    clearTimeout(paceTimer);
+    if (!touch || !cut || cut.playing || cut.ended) return;
+    const fwd = cut.n < touch.target, back = cut.n > touch.target && cut.n <= GROUPS;
+    if (!fwd && !back) return;
+    const now = performance.now(), wait = lastBeat + beatGap(cut.n) - now;
+    if (wait > 0) { paceTimer = setTimeout(pace, wait); return; }
+    if (fwd) cut.forward(); else cut.back();
+    lastBeat = now;
+    if (cut.n >= beats()) { touch.done = true; return; }
+    pace(); // still behind the finger: the next beat in its turn
+  }
   const endTouch = () => {
     if (!touch) return;
-    const { dy, v, done } = touch;
+    const { dy, v, done, target = 0 } = touch;
     touch = null;
+    clearTimeout(paceTimer);
     if (done) return; // this drag already made its change
     const flick = Math.abs(dy) > FLICK_MIN_PX && Math.abs(v) > FLICK_VELOCITY;
     if (reduceMotion.matches) { if (flick || Math.abs(dy) > deck.clientHeight * 0.12) go(dy < 0 ? 1 : -1); return; }
@@ -656,7 +675,10 @@
     if (cut.playing) return;
     // Lifted: it settles. A flick in the change's direction, or being past the swap, completes it;
     // otherwise the groups jump back home and nothing changes.
-    if ((flick && (dy < 0 ? 1 : -1) === cut.dir) || cut.n > GROUPS) cut.play(); else cut.rewind();
+    // (The finger may be ahead of the beats: where it had got to counts, and what is left plays
+    // on from the last beat at the normal pace, not on top of it.)
+    const c = cut, settle = (flick && (dy < 0 ? 1 : -1) === c.dir) || Math.max(c.n, target) > GROUPS ? c.play : c.rewind;
+    setTimeout(() => { if (cut === c) settle(); }, Math.max(0, lastBeat + beatGap(c.n) - performance.now()));
   };
   deck.addEventListener('touchend', endTouch);
   deck.addEventListener('touchcancel', endTouch);
