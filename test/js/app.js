@@ -274,12 +274,52 @@
     }
     evenLines(quoteEl);
   }
-  const fitDeck = () => track.querySelectorAll('.quote').forEach(fitTier);
+  const fitDeck = () => { flushLanding(); track.querySelectorAll('.quote').forEach(fitTier); };
+  // After a change the page is free again before the new quote's slowest words have quite
+  // finished fading in (HOME_FADE_DONE); they finish in peace. Whatever needs the quote as
+  // plain text meanwhile — the next change, notes, the language, a new measuring — ends them
+  // first (the words are simply there).
+  let landing = null; // { finish, timer }
+  // The quote in `wrap` fades in word by word, the way a new quote lands after a change
+  // (random lengths, HOME_FADE_MIN_MS…HOME_FADE_MAX_MS, by colour) but with nothing scattered.
+  // Returns how long until the words read as arrived (HOME_FADE_DONE), 0 if it cannot be done.
+  function wordsIn(wrap) {
+    flushLanding();
+    const quoteEl = wrap.querySelector('.quote'), node = quoteEl && quoteEl.firstChild;
+    if (!node || node.nodeType !== 3 || quoteEl.childNodes.length !== 1) return 0;
+    const easing = getComputedStyle(document.documentElement).getPropertyValue('--ease').trim() || 'ease';
+    const ink = getComputedStyle(quoteEl).color, range = document.createRange(), spans = [];
+    const unwrap = () => { spans.forEach((sp) => { if (sp.parentNode) sp.replaceWith(...sp.childNodes); }); quoteEl.normalize(); };
+    try {
+      cutScraps(measureWords(quoteEl)).reverse().forEach((sc) => { // one or two words at a time, last first: earlier offsets stay valid
+        range.setStart(sc.node, sc.start); range.setEnd(sc.endNode, sc.end);
+        const span = document.createElement('span');
+        span.style.color = 'transparent';
+        range.surroundContents(span);
+        spans.push(span);
+      });
+    } catch (e) { unwrap(); return 0; }
+    let slowest = 0;
+    spans.forEach((span) => {
+      const ms = Math.round(HOME_FADE_MIN_MS + (HOME_FADE_MAX_MS - HOME_FADE_MIN_MS) * Math.random());
+      slowest = Math.max(slowest, ms);
+      span.animate([{ color: 'transparent' }, { color: ink }], { duration: ms, easing, fill: 'forwards' });
+    });
+    landing = { finish: unwrap, timer: setTimeout(flushLanding, slowest + 30) };
+    return Math.round(easeTimeFor(HOME_FADE_DONE, easing) * slowest);
+  }
+  function flushLanding() {
+    if (!landing) return;
+    const l = landing;
+    landing = null;
+    clearTimeout(l.timer);
+    l.finish();
+  }
 
-  // Phone: a good rag — a soft unevenness, no line much longer or shorter than the others.
-  // A narrow column filled line by line as far as each goes leaves lines of very different
+  // A good rag, at every width — a soft unevenness, no line much longer or shorter than the
+  // others. A column filled line by line as far as each goes leaves lines of very different
   // lengths (a long word dropping to the next line, the tied last words under a short one).
-  // So on a phone the breaks are chosen for the whole quote at once: the same number of lines
+  // So the breaks are chosen for the whole quote at once: the same number of lines
   // as the plain filling takes, never more, and among all the ways to break it into that
   // many, the one whose lines fall least short of the box (the squares of what each line
   // leaves are summed, so one very short line costs more than several slightly short ones).
@@ -300,7 +340,6 @@
     const single = node && node.nodeType === 3 && quoteEl.childNodes.length === 1;
     if (single && quoteEl._plain != null) node.data = quoteEl._plain;
     quoteEl._plain = null;
-    if (!mqMobile.matches) return;
     const words = measureWords(quoteEl);
     if (!single || words.some((w) => w.cjk)) return narrowBox(quoteEl); // annotated or CJK: the simpler rule
     const lines = new Set(words.map((w) => Math.round(w.top))).size;
@@ -331,6 +370,7 @@
     // The browser must agree line for line; if a line it was given does not fit after all, back to plain.
     if (lineCount(quoteEl) !== paragraphs + breaks.length) { node.data = text; quoteEl._plain = null; narrowBox(quoteEl); }
   }
+  // (evenLines and ragBreaks are copied in js/admin.js for the library's preview: change both.)
   // One paragraph: `width` of each word, `open[i]` whether a line may start at word i. Returns
   // the words that start lines 2…n for the fewest lines that fit and the least raggedness, or
   // null when a word group is wider than the box (left to the browser).
@@ -468,6 +508,7 @@
   const beats = () => 2 * GROUPS + 1; // (GROUPS is declared further down, with the cut-up)
   let cut = null; // the cut-up in progress
   function startCut(dir) {
+    flushLanding();
     const c = { dir, n: 0, leaving: buildScraps(currentWrap(), false), arriving: null, playing: false, ended: false };
     currentWrap().style.visibility = 'hidden';
     state.animating = true;
@@ -482,6 +523,7 @@
       (c.arriving || c.leaving).dissolve();
       state.animating = false;
       if (cut === c) cut = null;
+      if (c.onLanded) { const back = c.onLanded; c.onLanded = null; back(); } // (a change undone before the swap: the arrow comes back all the same)
     };
     c.forward = () => {
       if (c.ended || c.n >= beats()) return;
@@ -493,7 +535,8 @@
         if (!c.arriving.real) currentWrap().style.visibility = 'hidden'; // (real: the quote itself is there, its words unseen until they land)
         c.leaving.dissolve();
       } else c.arriving.pose(b - GROUPS - 1, false, true);                       // home: the new quote's words fade into place
-      if (c.n === beats()) setTimeout(end, c.arriving.homeMax + 60); // after the slowest word; slack: Safari runs the last fade a frame or two late
+      if (c.n === beats() && c.onLanded) { const back = c.onLanded; c.onLanded = null; back(); } // the last words are landing: the pressed arrow comes back in
+      if (c.n === beats()) setTimeout(end, c.arriving.homeMax + 60); // once the slowest word reads as arrived (HOME_FADE_DONE); slack: Safari runs the last fade a frame or two late
     };
     c.back = () => {
       if (c.n === 0 || c.n > GROUPS) return; // nothing to undo, or past the swap
@@ -602,8 +645,29 @@
   deck.addEventListener('touchend', endTouch);
   deck.addEventListener('touchcancel', endTouch);
 
-  $('prevBtn').addEventListener('click', () => go(-1));
-  $('nextBtn').addEventListener('click', () => go(1));
+  // A pressed arrow rolls like the number of "No. 8", in two halves that keep time with the
+  // quote: it leaves its box (.arrow-crop) the way it points as the change starts, the box
+  // stays empty while the words are out, and the same arrow comes in from the other side with
+  // the last jump, as the last of the new quote's words start to land (CUT_MS after the press).
+  // (Waiting until the words were 80% in, about a second, felt too slow.)
+  // (`translate`, not `transform`: the lower arrow is the upper one turned by a transform.)
+  const ARROW_ROLL_MS = 300; // each half
+  function press(btn, dir) {
+    const before = cut;
+    go(dir);
+    if (!cut || cut === before) return; // no change began (busy, one quote only, reduced motion)
+    const icon = btn.querySelector('.arrow-crop .icon');
+    const timing = { duration: ARROW_ROLL_MS, easing: getComputedStyle(document.documentElement).getPropertyValue('--ease').trim() || 'ease', fill: 'both' };
+    icon.getAnimations().forEach((a) => a.cancel());
+    icon.animate([{ translate: '0 0' }, { translate: `0 ${dir * 100}%` }], timing);
+    cut.onLanded = () => {
+      icon.getAnimations().forEach((a) => a.cancel());
+      icon.animate([{ translate: `0 ${dir * -100}%` }, { translate: '0 0' }], timing);
+      setTimeout(() => icon.getAnimations().forEach((a) => { if (a.playState === 'finished') a.cancel(); }), ARROW_ROLL_MS + 30);
+    };
+  }
+  $('prevBtn').addEventListener('click', (e) => press(e.currentTarget, -1));
+  $('nextBtn').addEventListener('click', (e) => press(e.currentTarget, 1));
 
   // A mouse click leaves focus on the button, so the next arrow-key press would draw a focus
   // ring around it. Drop focus after pointer clicks; Tab navigation keeps its (quiet) ring.
@@ -727,11 +791,14 @@
     return Math.round(CUT_MS * f);
   }
   const SCRAP_FADE_MS = 150;    // softness of each jump: a cross-dissolve that overlaps the next beat
-  // The new quote's words, landing in their places, fade in slowly and not all alike: from
-  // HOME_FADE_MIN_MS at the start of the quote to HOME_FADE_MAX_MS at its last words, each
-  // moved off that line at random by up to HOME_FADE_JITTER of the range (the scattered copy
-  // still leaves at the jump's pace).
-  const HOME_FADE_MIN_MS = 400, HOME_FADE_MAX_MS = 800, HOME_FADE_JITTER = 0.25;
+  // The new quote's words, landing in their places, fade in slowly and not all alike: each
+  // scrap draws its own length at random between the two, wherever it is in the quote (the
+  // scattered copy still leaves at the jump's pace).
+  const HOME_FADE_MIN_MS = 600, HOME_FADE_MAX_MS = 2000;
+  // The site's curve is nearly all the way there long before it ends (a long, flat tail): the
+  // words read as arrived while the fade is still running. The change is over, and the next
+  // one may start, once every word is this far in — not when the last fade has run out.
+  const HOME_FADE_DONE = 0.8;
   const SCRAP_GAP = 14;         // breathing room kept between scraps (px)
   const SCRAP_ROOM = 1;         // em of box around a scattered scrap's letters, so Safari's layer never crops them, whatever the face
   // Lens depth: each scattered scrap has its own distance. The closer it is, the larger, the more
@@ -900,11 +967,7 @@
     });
 
     // Deal the scraps into groups at random (as evenly as possible).
-    pieces.forEach((p, i) => { // in reading order
-      const along = pieces.length > 1 ? i / (pieces.length - 1) : 1;
-      const k = Math.min(1, Math.max(0, along + (Math.random() - 0.5) * 2 * HOME_FADE_JITTER));
-      p.homeMs = Math.round(HOME_FADE_MIN_MS + (HOME_FADE_MAX_MS - HOME_FADE_MIN_MS) * (i === pieces.length - 1 ? 1 : k)); // the last words are always the slowest
-    });
+    pieces.forEach((p) => { p.homeMs = Math.round(HOME_FADE_MIN_MS + (HOME_FADE_MAX_MS - HOME_FADE_MIN_MS) * Math.random()); });
     const order = pieces.map((_, i) => i).sort(() => Math.random() - 0.5);
     order.forEach((pieceIndex, n) => { pieces[pieceIndex].group = n % GROUPS; });
 
@@ -996,11 +1059,17 @@
     });
     if (startOut) pieces.forEach((p) => { if (p.stay) { p.el.style.opacity = '0'; return; } p.el.style.transform = p.out; depth(p, true); p.el.style.fontSize = p.size; room(p, true); p.isOut = true; fadeIn(p.el); });
     const dissolve = () => {
-      if (real) { unwrap(); wrap.classList.remove('is-wiping'); wrap.querySelector('.lang')?.classList.add('is-in'); real = false; }
+      if (real) { // the page is free and the language button comes in; the words finish their fade, then the wrappers come off
+        real = false;
+        wrap.classList.remove('is-wiping');
+        wrap.querySelector('.lang')?.classList.add('is-in');
+        flushLanding();
+        landing = { finish: unwrap, timer: setTimeout(flushLanding, Math.max(0, ...pieces.map((p) => p.homeMs)) + 30) }; // from the last beat's own start, give or take: every fade is over by then
+      }
       pieces.forEach((p) => { const from = shown(p.el); unsettle(p.el); p.el.getAnimations().forEach((a) => a.cancel()); fade(p.el, from, 0, leaveMs(p)); });
       setTimeout(() => layer.remove(), SCRAP_FADE_MS + DEPTH_LINGER_MS + 30);
     };
-    return { layer, pose, dissolve, homeMax: Math.max(0, ...pieces.map((p) => p.homeMs)), get real() { return real; } };
+    return { layer, pose, dissolve, homeMax: Math.round(easeTimeFor(HOME_FADE_DONE, easing) * Math.max(0, ...pieces.map((p) => p.homeMs))), get real() { return real; } };
   }
 
   // Put the page in a mode, instantly (the transition around it lives in setMode).
@@ -1256,6 +1325,7 @@
   const EXIT_TRAVEL_MS = 400;   // leaving: the quote's ease back to its main size and spot
 
   function setMode(mode) {
+    flushLanding();
     if (modeBusy || langBusy || state.animating || mode === state.mode) return;
     if (reduceMotion.matches) return applyMode(mode);
     modeBusy = true;
@@ -1351,6 +1421,20 @@
       float.style.transition = `translate ${EXIT_TRAVEL_MS}ms var(--ease) ${lift}ms, scale ${EXIT_TRAVEL_MS}ms var(--ease) ${lift}ms`;
       float.style.translate = '0px 0px';
       float.style.scale = 1;
+      // The language button makes the trip with the quote: a copy on the same layer, from its
+      // place in the notes to its place on the page (it kept out of sight until the page's own
+      // appeared at the end, a jump).
+      const fromBtn = $('nQuoteWrap').querySelector('.lang'), toBtn = wrap.querySelector('.lang');
+      if (fromBtn && toBtn) {
+        const a = fromBtn.getBoundingClientRect(), b = toBtn.getBoundingClientRect();
+        const btn = toBtn.cloneNode(true);
+        btn.classList.remove('is-in');
+        Object.assign(btn.style, { left: `${b.left}px`, top: `${b.top}px`, translate: `${a.left - b.left}px ${a.top - b.top}px` });
+        layer.appendChild(btn);
+        btn.getBoundingClientRect(); // commit the start pose
+        btn.style.transition = `translate ${EXIT_TRAVEL_MS}ms var(--ease) ${lift}ms`;
+        btn.style.translate = '0px 0px';
+      }
       scanEnds = lift + EXIT_TRAVEL_MS;
     }
     cropAt(0);
@@ -1504,6 +1588,7 @@
 
   function toggleLanguage() {
     if (langBusy || modeBusy || state.animating) return;
+    flushLanding();
     const inNotes = state.mode === 'notes';
     const render = () => (inNotes ? renderNotesQuote() : renderDeck());
     state.original = !state.original;
@@ -2098,6 +2183,7 @@
     const menu = $('menu');
     if (menu.hidden || menuBusy) return;
     const icon = $('markSym');
+    let holdChrome = false; // the words are fading back in: Notes and the arrows wait for them
     const finish = () => {
       menu.hidden = true;
       menu.getAnimations({ subtree: true }).forEach((a) => a.cancel());
@@ -2105,7 +2191,7 @@
       icon.getAnimations().forEach((a) => a.cancel());
       if (reduceMotion.matches) drawMark(false);
       menuBusy = false;
-      if (!state.animating) app.classList.remove('is-typing'); // no arrival ran (reduced motion / notes): show them at once
+      if (!state.animating && !holdChrome) showChrome(); // no arrival ran (reduced motion / notes): show them at once
     };
     if (reduceMotion.matches) return finish();
 
@@ -2126,10 +2212,17 @@
       icon.getAnimations().forEach((a) => a.cancel());
       if (state.mode === 'main') {
         if (changed) arrive(); // the symbol draws in as the typing starts
-        else { // nothing changed: the quote fades back in with Notes and the arrows
+        else { // nothing changed: the quote comes back word by word, as after a change, without the scraps
           drawMark();
-          if (wrap) wrap.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MENU_RETURN_MS, easing, fill: 'backwards' });
-          app.classList.remove('is-typing');
+          const arrived = wrap ? wordsIn(wrap) : 0;
+          if (arrived) {
+            holdChrome = true;
+            wrap.classList.add('is-wiping'); // the language button waits with Notes and the arrows…
+            setTimeout(() => { wrap.classList.remove('is-wiping'); wrap.querySelector('.lang')?.classList.add('is-in'); showChrome(); }, arrived); // …until the words read as arrived
+          } else { // (not plain text: the whole quote fades in)
+            if (wrap) wrap.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MENU_RETURN_MS, easing, fill: 'backwards' });
+            showChrome();
+          }
         }
       }
       fadeOut(menu, 0).effect.updateTiming({ duration: MENU_BG_MS }); // background last, over the symbol drawing in
@@ -2270,7 +2363,7 @@
     .catch((err) => {
       console.error(err);
       drawMark(false);
-      app.classList.remove('is-typing');
+      showChrome();
       track.innerHTML = '<div class="slide" data-pos="0"><div class="q-wrap"><blockquote class="quote" data-tier="m">The words couldn’t be loaded. Please refresh.</blockquote></div></div>';
     });
 
@@ -2331,17 +2424,34 @@
     });
     return letters;
   }
+  // Notes and the arrows come in with the fade "Add words" has coming back from the form (css
+  // .app.chrome-in: fade-in, --chrome-in). After the typing they wait until the real quote has been
+  // drawn, and CHROME_IN_WAIT_MS more: the swap from the typed letters to the real quote is a
+  // heavy frame, and a fade begun in or right after it is over by the time it shows — they
+  // jumped in (50ms was not enough on a phone).
+  const CHROME_IN_MS = 600, CHROME_IN_WAIT_MS = 400; // CHROME_IN_MS: css --chrome-in
+  function showChrome() {
+    if (!app.classList.contains('is-typing')) return;
+    app.classList.add('chrome-in');
+    app.classList.remove('is-typing');
+    setTimeout(() => app.classList.remove('chrome-in'), CHROME_IN_MS + 100);
+  }
   let markStill = false;
   const ARRIVE_FONT_WAIT_MS = 3000; // the longest the typing waits for the quote's font
   function arrive() {
     const wrap = currentWrap();
     const still = markStill; // back from the form the logo never left: it is not drawn again
     markStill = false;
-    if (!wrap || reduceMotion.matches) { app.classList.remove('is-typing'); drawMark(false); return; }
+    if (!wrap || reduceMotion.matches) { showChrome(); drawMark(false); return; }
     wrap.style.visibility = 'hidden';
     state.animating = true;
     app.classList.add('is-typing'); // Notes and the arrows wait for the last letter, then fade in
-    const done = () => { state.animating = false; app.classList.remove('is-typing'); };
+    const done = () => {
+      state.animating = false;
+      // Only once the real quote has actually been drawn (two frames on), and a beat after that.
+      requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(showChrome, CHROME_IN_WAIT_MS)));
+      setTimeout(showChrome, CHROME_IN_WAIT_MS + 800); // a hidden tab runs no frames: they still come in
+    };
     // The letters are measured off the rendered quote, so its own font must be in first.
     // `fonts.ready` alone is not enough: on a first visit it can resolve before the quote's font
     // has even been asked for, the letters are then measured in the fallback (wider) and drawn
@@ -2431,7 +2541,7 @@
     markStill = true;
     $('menuBtn').classList.add('is-static'); // the still logo holds the place until the drawn one is ready
     app.classList.add('is-arriving');
-    setTimeout(() => app.classList.remove('is-arriving'), 600);
+    setTimeout(() => app.classList.remove('is-arriving'), CHROME_IN_MS + 100);
   }
 
   /* ---------- Add words: hand over to the form ---------- */

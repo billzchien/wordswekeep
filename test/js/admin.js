@@ -904,11 +904,96 @@
   // set in the medium size. Counted on the preview itself, and again when its face has loaded.
   function fitFont(q) {
     if (!q || !q.firstChild) return;
+    plainLines(q);
     q.dataset.tier = 'l';
     const r = document.createRange(); r.selectNodeContents(q);
     let lines = 0, last = null;
     [...r.getClientRects()].filter((b) => b.width > 0).forEach((b) => { if (last === null || Math.abs(b.top - last) > b.height / 2) { lines++; last = b.top; } });
     if (lines > 2) q.dataset.tier = 'm';
+  }
+  // The archive's rag (js/app.js → evenLines / ragBreaks, copied: change both), so the preview
+  // breaks where the archive does: the same number of lines as plain filling takes, and
+  // among every way to break the quote into that many, the one whose lines fall least short
+  // of the box. The breaks are written into the text as newlines; the text as it was is kept
+  // on the element (`_plain`) and put back before each new measuring. Not here: the archive's
+  // fallback for CJK and for a word group wider than the box (those stay as the browser breaks them).
+  const RAG_LAST = 0.5, RAG_LAST_MIN = 0.33;
+  function plainLines(q) {
+    if (q._plain != null && q.firstChild && q.childNodes.length === 1) q.firstChild.data = q._plain;
+    q._plain = null;
+  }
+  function evenLines(q) {
+    plainLines(q);
+    const node = q.firstChild;
+    if (!node || node.nodeType !== 3 || q.childNodes.length !== 1) return;
+    const text = node.data, range = document.createRange(), words = [];
+    if (CJK_CHAR.test(text) || [...text].length !== text.length) return;
+    const re = /\S+/g;
+    let m;
+    while ((m = re.exec(text))) {
+      range.setStart(node, m.index); range.setEnd(node, m.index + m[0].length);
+      const rects = [...range.getClientRects()].filter((r) => r.width > 0);
+      if (rects.length !== 1) return; // a word broken at its hyphen: left alone
+      words.push({ left: rects[0].left, right: rects[0].right, top: rects[0].top, height: rects[0].height, start: m.index, end: m.index + m[0].length });
+    }
+    const sameLine = (a, b) => Math.abs(a.top - b.top) < a.height / 2;
+    const count = () => { // lines as rendered now
+      const r = document.createRange(); r.selectNodeContents(q);
+      let lines = 0, last = null;
+      [...r.getClientRects()].filter((b) => b.width > 0).forEach((b) => { if (last === null || Math.abs(b.top - last) > b.height / 2) { lines++; last = b.top; } });
+      return lines;
+    };
+    if (words.length < 2 || count() < 2) return;
+    const box = q.getBoundingClientRect().width - 1;
+    const before = words.map((w, k) => (k ? text.slice(words[k - 1].end, w.start) : '\n'));
+    const gapAt = words.findIndex((w, k) => k && before[k] === ' ' && sameLine(w, words[k - 1]));
+    const space = gapAt > 0 ? words[gapAt].left - words[gapAt - 1].right : parseFloat(getComputedStyle(q).fontSize) * 0.25;
+    const width = words.map((w) => w.right - w.left);
+    const breaks = [];
+    let from = 0;
+    for (let k = 1; k <= words.length; k++) {
+      if (k < words.length && !before[k].includes('\n')) continue;
+      const cut = ragBreaks(width.slice(from, k), before.slice(from, k).map((b, i) => i > 0 && b === ' '), space, box);
+      if (!cut) return;
+      cut.forEach((c) => breaks.push(from + c));
+      from = k;
+    }
+    if (!breaks.length) return;
+    const chars = [...text];
+    breaks.forEach((k) => { chars[words[k].start - 1] = '\n'; });
+    node.data = chars.join('');
+    q._plain = text;
+    if (count() !== before.filter((b) => b.includes('\n')).length + breaks.length) plainLines(q); // the browser must agree line for line
+  }
+  function ragBreaks(width, open, space, box) {
+    const n = width.length;
+    const span = (i, j) => { let w = 0; for (let k = i; k < j; k++) w += width[k]; return w + (j - i - 1) * space; }; // words i…j-1 on one line
+    // best[j] per line count: least cost of setting the first j words in exactly `l` lines.
+    let prev = new Array(n + 1).fill(Infinity), trail = [];
+    prev[0] = 0;
+    for (let l = 1; l <= n; l++) {
+      const cur = new Array(n + 1).fill(Infinity), back = new Array(n + 1).fill(-1);
+      for (let j = 1; j <= n; j++) {
+        if (j < n && !open[j]) continue; // a line cannot end inside a tie
+        for (let i = j - 1; i >= 0; i--) {
+          if (i > 0 && !open[i]) continue;
+          const w = span(i, j);
+          if (w > box) break;
+          if (prev[i] === Infinity) continue;
+          const short = box - w, last = j === n;
+          const cost = prev[i] + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+          if (cost < cur[j]) { cur[j] = cost; back[j] = i; }
+        }
+      }
+      trail.push(back);
+      if (cur[n] < Infinity) { // the fewest lines that fit: take this one
+        const starts = [];
+        for (let j = n, k = trail.length - 1; k > 0; k--) { j = trail[k][j]; starts.unshift(j); }
+        return starts;
+      }
+      prev = cur;
+    }
+    return null;
   }
   // A panel is its stage scaled to the panel's width (--s); the stage is as tall as the quote
   // needs, and never less than its minimum (css/admin.css), so nothing is cut and no room is
@@ -921,7 +1006,7 @@
       if (!w || !sw) return;
       const k = w / sw;
       stage.style.setProperty('--s', k.toFixed(4));
-      stage.querySelectorAll('.quote[data-short]').forEach(fitFont);
+      stage.querySelectorAll('.quote').forEach((q) => { if (q.hasAttribute('data-short')) fitFont(q); evenLines(q); });
       view.style.height = `${Math.ceil(stage.offsetHeight * k)}px`;
     });
   }
@@ -1063,7 +1148,7 @@
         `${rnd(size, 1)}px${wasS}`,
         `Leading ${rnd(parseFloat(cs.lineHeight) / size, 3)}${wasL}`,
         `Tracking ${rnd(track, 2)}%${wasT}`,
-        cs.fontFeatureSettings === 'normal' ? 'No sets' : cs.fontFeatureSettings.replace(/"/g, '').replace(/ 1\b/g, ''),
+        (cs.fontFeatureSettings === 'normal' ? '' : cs.fontFeatureSettings.replace(/"/g, '').replace(/ 1\b/g, '').split(/,\s*/).filter((f) => f !== 'liga' && f !== 'clig').join(', ')) || 'No sets', // ligatures are on in every face (fonts.css): not listed
       ].join('. ');
     });
   }
