@@ -1,18 +1,22 @@
 /* Words We Keep — main experience. Plain JS, renders from data/quotes.json. */
 (() => {
-  const DATA_URL = '../data/quotes.json';
-  const FACES_URL = '../data/faces.json'; // the quote faces' tuned settings (the library's Fonts tab)
+  const DATA_URL = 'data/quotes.json';
+  const FACES_URL = 'data/faces.json'; // the quote faces' tuned settings (the library's Fonts tab)
 
   const CATEGORIES = [
-    { key: 'perspective', name: 'Perspective', desc: 'The lens we bring to life. Outlooks, values, and the search for meaning.' },
-    { key: 'growth',      name: 'Growth',      desc: 'The hardships, changes, and moments that shape who we become.' },
+    { key: 'perspective', name: 'Perspective', desc: 'The lens we bring to life. Values, time, presence, and the search for meaning.' },
+    { key: 'growth',      name: 'Growth',      desc: 'The hardships, changes, and realizations that shape who we become.' },
     { key: 'drive',       name: 'Drive',       desc: 'The work, ambition, and craft we pour into building something that matters.' },
     { key: 'community',   name: 'Community',   desc: 'The family, friends, and connections that remind us we’re not alone.' },
-    { key: 'romance',     name: 'Romance',     desc: 'The joy and heartbreak of loving and being loved by another person.' },
+    { key: 'romance',     name: 'Romance',     desc: 'The joy and heartbreak of loving and being loved.' },
   ];
   const ALL = {
     key: 'all', name: 'All words',
-    desc: 'Words We Keep is a collections of words that contributed by people to who kept them by hearts. This is a side project by brooklyn-based designer Bill, with the help of Rohan. Established since 2026.',
+    desc: 'Words We Keep is a collection of words from every culture, time, and corner of life, shared by the people who hold them close. Words that found you at the right time, changed how you see, and stayed engraved. It hopes to revive the good spirit of the internet, where wisdom from strangers can inspire and heal. A side project by Bill, a designer based in Brooklyn. Thoughts go to hello@wordswekeep.org',
+    links: [ // the first of each text in desc becomes a link (js → setDesc)
+      { text: 'Bill', href: 'https://www.billchien.net' },
+      { text: 'hello@wordswekeep.org', href: 'mailto:hello@wordswekeep.org' },
+    ],
   };
   const CAT_BY_KEY = Object.fromEntries(CATEGORIES.map((c) => [c.key, c]));
   // Titles are set in italics for a book or a film / TV work only; everything else stays upright.
@@ -786,7 +790,7 @@
   // black (a square-ish card, a smaller play mark in the palette's colour; YouTube's logo is a
   // play mark already and gets none). A thumbnail that fails to load turns into the logo card.
   const logoThumbHTML = (video) => `<button class="thumb thumb--logo" data-video data-platform="${video.platform}" aria-label="Play video">
-      <img class="thumb-logo" src="../assets/icons/video-${video.platform}.svg" alt="">
+      <img class="thumb-logo" src="assets/icons/video-${video.platform}.svg" alt="">
       ${video.platform === 'youtube' ? '' : '<span class="thumb-play thumb-play--sm"><span class="icon"></span></span>'}
     </button>`;
   function thumbHTML(video) {
@@ -795,7 +799,7 @@
     const second = video.platform === 'youtube' ? ` data-second="https://i.ytimg.com/vi/${video.id}/mqdefault.jpg"` : '';
     return `<button class="thumb" data-video data-platform="${video.platform}" data-orientation="${video.orientation}" aria-label="Play video">
       <img src="${esc(info.thumb)}"${second} alt="" decoding="sync">
-      <span class="thumb-play"><img src="../assets/icons/play.svg" alt=""></span>
+      <span class="thumb-play"><img src="assets/icons/play.svg" alt=""></span>
     </button>`;
   }
   // (error does not bubble: caught on the way down.) A YouTube thumbnail has a smaller second
@@ -2038,7 +2042,7 @@
      files. Two are drawn live: the mark at the top left (the current category's symbol; it
      draws in with the typing and as the menu closes) and the menu's one large symbol. The
      symbols elsewhere (notes, the form, the library) are still images: css .icon-mark. */
-  const SYM_DIR = '../assets/symbols/';
+  const SYM_DIR = 'assets/symbols/';
   const SYM = { all: 'All', perspective: 'Perspective', growth: 'Growth', drive: 'Drive', community: 'Community', romance: 'Romance' };
   const SYM_SMALL = { levels: 2, pieces: 10 }, SYM_SMALL_STRIDE = 3; // the 24px mark: the file's low-cost settings
   const symJSON = (file) => fetch(SYM_DIR + file).then((r) => { if (!r.ok) throw new Error(`${file}: ${r.status}`); return r.json(); });
@@ -2179,6 +2183,31 @@
     updateMenuPreview();
   }
 
+  // The description, with its links (if it has any) as role="link" spans like the notes' source
+  // (no address strip; `follow` handles the click); a web link opens a new tab.
+  function setDesc(el, cat) {
+    const text = noOrphans(cat.desc);
+    const found = (cat.links || [])
+      .map((l) => ({ ...l, at: text.indexOf(l.text) }))
+      .filter((l) => l.at >= 0)
+      .sort((a, b) => a.at - b.at);
+    const parts = [];
+    let from = 0;
+    for (const l of found) {
+      if (l.at < from) continue;
+      const a = document.createElement('span');
+      a.setAttribute('role', 'link');
+      a.tabIndex = 0;
+      a.dataset.href = l.href;
+      if (!l.href.startsWith('mailto:')) a.setAttribute('data-out', '');
+      a.textContent = l.text;
+      parts.push(text.slice(from, l.at), a);
+      from = l.at + l.text.length;
+    }
+    parts.push(text.slice(from));
+    el.replaceChildren(...parts);
+  }
+
   function updateMenuPreview() {
     const key = state.preview;
     const cat = key === 'all' ? ALL : CAT_BY_KEY[key];
@@ -2189,7 +2218,7 @@
     });
     const n = countFor(key);
     placeDesc(key, () => {
-      $('catDescText').textContent = noOrphans(cat.desc);
+      setDesc($('catDescText'), cat);
       $('catCount').textContent = `${n} quote${n === 1 ? '' : 's'} total`;
       sizeDescLine();
     });
