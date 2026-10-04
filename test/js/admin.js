@@ -1301,10 +1301,13 @@
   const foldTimers = new WeakMap();
   function fold(el, open) {
     clearTimeout(foldTimers.get(el));
-    if (open) { if (!el.hidden && el.classList.contains('is-open')) return; el.hidden = false; void el.offsetHeight; el.classList.add('is-open'); }
-    else { if (el.hidden) return; el.classList.remove('is-open'); foldTimers.set(el, setTimeout(() => { el.hidden = true; }, ms(FOLD_MS))); }
+    // is-settled (css): once open, what is inside may reach out of the fold — a dropdown's list
+    // (the language under the original words) was cropped at the fold's edge, and scrolled the
+    // fold's content up when it opened.
+    if (open) { if (!el.hidden && el.classList.contains('is-open')) return; el.hidden = false; void el.offsetHeight; el.classList.add('is-open'); foldTimers.set(el, setTimeout(() => el.classList.add('is-settled'), ms(FOLD_MS))); }
+    else { if (el.hidden) return; el.classList.remove('is-open', 'is-settled'); foldTimers.set(el, setTimeout(() => { el.hidden = true; }, ms(FOLD_MS))); }
   }
-  function foldNow(el, open) { clearTimeout(foldTimers.get(el)); el.style.transition = 'none'; el.hidden = !open; el.classList.toggle('is-open', open); void el.offsetHeight; el.style.transition = ''; }
+  function foldNow(el, open) { clearTimeout(foldTimers.get(el)); el.style.transition = 'none'; el.hidden = !open; el.classList.toggle('is-open', open); el.classList.toggle('is-settled', open); void el.offsetHeight; el.style.transition = ''; }
 
   // The 2px overlay scrollbar on textareas (the native one is hidden by form.css).
   function attachBar(ta) {
