@@ -84,24 +84,24 @@ ul { list-style: none; }
   mask: var(--src) center / 100% 100% no-repeat;
 }
 /* The category symbols as still images (assets/symbols/svg). With no data-sym it is "All": the logo. */
-.icon-mark  { --src: url(../../assets/symbols/svg/All.svg); width: var(--mark); height: var(--mark); }
-.icon-mark[data-sym="perspective"] { --src: url(../../assets/symbols/svg/Perspective.svg); }
-.icon-mark[data-sym="growth"]      { --src: url(../../assets/symbols/svg/Growth.svg); }
-.icon-mark[data-sym="drive"]       { --src: url(../../assets/symbols/svg/Drive.svg); }
-.icon-mark[data-sym="community"]   { --src: url(../../assets/symbols/svg/Community.svg); }
-.icon-mark[data-sym="romance"]     { --src: url(../../assets/symbols/svg/Romance.svg); }
+.icon-mark  { --src: url(../assets/symbols/svg/All.svg); width: var(--mark); height: var(--mark); }
+.icon-mark[data-sym="perspective"] { --src: url(../assets/symbols/svg/Perspective.svg); }
+.icon-mark[data-sym="growth"]      { --src: url(../assets/symbols/svg/Growth.svg); }
+.icon-mark[data-sym="drive"]       { --src: url(../assets/symbols/svg/Drive.svg); }
+.icon-mark[data-sym="community"]   { --src: url(../assets/symbols/svg/Community.svg); }
+.icon-mark[data-sym="romance"]     { --src: url(../assets/symbols/svg/Romance.svg); }
 /* The symbols drawn live (js/app.js → "Symbols"): an <svg viewBox="0 0 60 60">, inked in the text colour. */
 .sym { display: block; overflow: visible; }
-.icon-arrow { --src: url(../../assets/icons/arrow-up.svg); width: 12px; height: 12px; }
+.icon-arrow { --src: url(../assets/icons/arrow-up.svg); width: 12px; height: 12px; }
 .icon-arrow--down { transform: rotate(180deg); }
-.icon-asterisk   { --src: url(../../assets/icons/asterisk.svg); width: 8px; height: 8px; }
-.icon-arrow-left { --src: url(../../assets/icons/arrow-left.svg); width: 8px; height: 8px; }
+.icon-asterisk   { --src: url(../assets/icons/asterisk.svg); width: 8px; height: 8px; }
+.icon-arrow-left { --src: url(../assets/icons/arrow-left.svg); width: 8px; height: 8px; }
 
 /* ---------- Chrome ---------- */
 
 .chrome { position: absolute; z-index: 20; }
 .menu-btn .sym { width: var(--mark); height: var(--mark); }
-.menu-btn.is-static::before { content: ""; position: absolute; inset: 0; background: currentColor; -webkit-mask: url(../../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; mask: url(../../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; } /* the still logo, until the drawn one is ready (back from the form; symbols' files missing) */
+.menu-btn.is-static::before { content: ""; position: absolute; inset: 0; background: currentColor; -webkit-mask: url(../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; mask: url(../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; } /* the still logo, until the drawn one is ready (back from the form; symbols' files missing) */
 .menu-btn  { top: var(--mark-top); left: var(--mark-top); } /* the same distance from the top and the left edge */ /* centred on the caps of No. / Notes; same spot as the first category mark in notes mode */
 .number    { top: calc(20px - var(--cap-offset)); left: var(--col2); white-space: nowrap; font-feature-settings: "ss01" 1, "ss07" 1, "lnum" 1, "pnum" 1; } /* caps on the mark's top edge; lining figures, proportional: tabular ones (--numeral-features) set a gap around the 1 of "16" */
 /* The number rolls on a change (js/app.js → setNumber): a box one line high, the old and the next
@@ -426,14 +426,15 @@ ul { list-style: none; }
 .notes .quote[data-tier="s"]  { --q-size: var(--quote-s-notes); }
 .notes .quote[data-tier="xs"] { --q-size: var(--quote-xs-notes); }
 
-/* Annotated words: hairline dashed underline. */
-.ann {
+/* Annotated words (and the link in a menu description): hairline dashed underline. */
+.ann,
+.cat-desc [data-href] {
   cursor: pointer;
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone; /* an underlined phrase may now wrap: each line gets its own full underline */
   background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 4px) left bottom 0.08em / 100% 1px no-repeat;
 }
-@media (min-resolution: 2dppx) { .ann { background-size: 100% 0.5px; } }
+@media (min-resolution: 2dppx) { .ann, .cat-desc [data-href] { background-size: 100% 0.5px; } }
 
 .n-col {
   position: relative;
@@ -496,7 +497,7 @@ ul { list-style: none; }
 .thumb--logo[data-platform="vimeo"]     { --logo-w: 25.31%; }  /* 40.5 */
 .thumb--logo[data-platform="instagram"] { --logo-w: 22.5%; }   /* 36 */
 .thumb-play--sm { left: 7.5px; bottom: 7.5px; border: 0; }
-.thumb-play--sm .icon { --src: url(../../assets/icons/video-play.svg); width: 10.34px; height: 11.94px; color: var(--fg); }
+.thumb-play--sm .icon { --src: url(../assets/icons/video-play.svg); width: 10.34px; height: 11.94px; color: var(--fg); }
 
 /* A word from the page at the foot of the window (the library's toast: css/admin.css). Here it
    says a video cannot be played; in notes it is black with white text. */
@@ -620,7 +621,7 @@ ul { list-style: none; }
   --lh: calc(var(--text-size) * var(--text-leading));
   --menu-sym: calc(200 * var(--u));                 /* the symbol's box */
   --row: max(48px, 8.9vh);                          /* from one name to the next: 74 in an 832 window */
-  --list-top: 30vh;                                 /* the first name's top: 250 in an 832 window */
+  --list-top: max(80px, calc((100vh - 5 * var(--row) - var(--lh)) / 2)); /* the first name's top: the block (six names, the description beside them) centred in the window, clear of Back on a short one */
   --list-left: calc(var(--m) + var(--menu-sym) + 80 * var(--u));
   --desc-left: var(--col4);
 }
@@ -654,8 +655,8 @@ ul { list-style: none; }
 .cat-row .cat-ind { visibility: hidden; width: 8px; height: 8px; }
 .cat-row.is-selected .cat-ind,
 .cat-row.is-preview .cat-ind { visibility: visible; }
-.cat-row.is-selected .cat-ind { --src: url(../../assets/icons/asterisk.svg); }
-.cat-row.is-preview:not(.is-selected) .cat-ind { --src: url(../../assets/icons/arrow-left.svg); }
+.cat-row.is-selected .cat-ind { --src: url(../assets/icons/asterisk.svg); }
+.cat-row.is-preview:not(.is-selected) .cat-ind { --src: url(../assets/icons/arrow-left.svg); }
 .cat-row[data-empty] .cat-ind { visibility: hidden; } /* nothing to go to: no arrow */
 
 /* The descriptor column: its first line sits on "All words", its count on the last row. */
@@ -690,7 +691,6 @@ ul { list-style: none; }
        names never reach the descriptor (which also keeps clear of the longest name + its arrow). */
     --menu-sym: clamp(96px, 19.2vw, 160px);
     --row: max(48px, 10.2vh);   /* 85 in an 832 window */
-    --list-top: 24.9vh;         /* 207 */
     --list-left: calc(var(--m) + var(--menu-sym) + clamp(20px, calc(60px - (834px - 100vw) * 0.17), 60px)); /* 60 at 834 wide, 20 at 600 */
     --desc-left: max(50%, calc(var(--list-left) + 130px));
   }

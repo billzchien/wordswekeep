@@ -2,309 +2,98 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" id="themeColor" content="#E6E6E6"> <!-- kept in step with the page by js/app.js (syncChromeColor) -->
   <title>Words We Keep</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro&family=Geist:wght@600&family=Geist+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=Crimson+Pro:ital@0;1&family=Instrument+Serif:ital@0;1&family=Noto+Sans:wght@400;500&family=Noto+Sans+JP:wght@400;500&family=Noto+Sans+KR:wght@400;500&family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@500&family=Sorts+Mill+Goudy&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <style>
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    html, body {
-      overflow: hidden;
-    }
-
-    body {
-      background-color: #F5F5F5;
-      color: #000;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      -webkit-user-select: none;
-      user-select: none;
-    }
-
-    .page {
-      min-height: 100vh;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .content {
-      display: flex;
-      flex-direction: column;
-      gap: 40px;
-      width: 320px;
-      margin-top: -15vh;
-    }
-
-    .title {
-      font-family: 'Geist', sans-serif;
-      font-weight: 600;
-      font-size: 18px;
-      line-height: 1.99;
-      letter-spacing: -0.4px;
-      white-space: nowrap;
-    }
-
-    .body-text {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      font-family: 'Crimson Pro', serif;
-      font-weight: 400;
-      font-size: 20px;
-      line-height: 22px;
-      letter-spacing: -0.2px;
-    }
-
-    .body-text .align-right {
-      text-align: right;
-    }
-
-    .btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #000;
-      padding: 8px 12px;
-      width: 100%;
-      text-decoration: none;
-      cursor: pointer;
-    }
-
-    .btn > span {
-      font-family: 'Geist Mono', monospace;
-      font-weight: 400;
-      font-size: 12px;
-      line-height: 1.99;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      color: #fff;
-    }
-
-    .btn .cell {
-      display: inline-block;
-    }
-
-    .footer {
-      position: absolute;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-family: 'Geist Mono', monospace;
-      font-weight: 400;
-      font-size: 10px;
-      letter-spacing: 0.72px;
-      text-transform: uppercase;
-      text-align: center;
-      white-space: nowrap;
-    }
-
-    @media (max-width: 480px) {
-      .page {
-        padding: 0 36px;
-      }
-
-      .content {
-        width: 100%;
-      }
-
-      .btn {
-        position: fixed;
-        left: 36px;
-        right: 36px;
-        width: auto;
-        height: 40px;
-        bottom: 71.5px;
-      }
-
-      .btn span {
-        letter-spacing: 0.96px;
-      }
-
-      .footer {
-        position: fixed;
-        bottom: 24px;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/fonts.css">
 </head>
 <body>
-  <div class="page">
-    <div class="content">
-      <p class="title">Words We Keep</p>
-      <div class="body-text">
-        <p>Words are powerful. <br>Some arrive exactly when you need them. They stop you, inspire you, <br>stay with you.</p>
-        <p class="align-right">From every time, <br>every culture, <br>every corner of life.</p>
-        <p>If you remember those words, <br>share them here.</p>
+  <div class="app is-typing" id="app" data-mode="main"> <!-- is-typing: Notes and the arrows stay hidden from the first paint until the quote has typed itself in (js/app.js → arrive) -->
+
+    <!-- Main: one quote per screen, snapping deck -->
+    <main class="deck" id="deck" aria-live="polite">
+      <div class="track" id="track"></div>
+    </main>
+
+    <!-- Notes mode -->
+    <section class="notes" id="notes" aria-label="Notes" hidden>
+      <ul class="n-cats" id="nCats"></ul>
+      <div class="n-pin" id="nPin">
+        <div class="n-meta n-from">
+          <p>Words from</p>
+          <p class="n-indent n-indent--from" id="nFrom"></p>
+        </div>
+        <div class="q-wrap" id="nQuoteWrap"></div>
+        <div id="nVideoPin"></div>
       </div>
-      <a class="btn" role="button" onclick="window.location.href='https://forms.gle/uLNipYUT6cnNmigw5'" style="cursor:pointer;">
-        <span>Add words</span>
-      </a>
+      <div class="n-col" id="nCol">
+        <div id="nVideoCol"></div>
+        <div class="n-meta n-kept">
+          <p>Kept by</p>
+          <p class="n-indent n-indent--kept" id="nKept"></p>
+        </div>
+        <div class="n-body" id="nBody"></div>
+      </div>
+    </section>
+    <!-- Mobile notes: the fading top bar (outside the scroller so it stays put; see .app in app.css) -->
+    <div class="n-topfade" aria-hidden="true"></div>
+
+    <!-- Chrome -->
+    <button class="chrome menu-btn" id="menuBtn" aria-label="Menu"><svg class="sym" id="markSym" viewBox="0 0 60 60" aria-hidden="true"></svg></button> <!-- the current category's symbol, drawn by js/app.js (Symbols) -->
+    <p class="chrome number" id="number"></p>
+    <button class="chrome link notes-btn" id="notesBtn">Notes</button>
+    <button class="chrome link add-btn" id="addBtn" role="link" data-href="add.html">Add words</button> <!-- a button, not <a href>: no address strip on hover (js/app.js → follow) -->
+    <div class="chrome arrows">
+      <button id="prevBtn" aria-label="Previous quote"><span class="arrow-crop"><span class="icon icon-arrow"></span></span></button> <!-- .arrow-crop: the box a pressed arrow rolls in (js/app.js → press) -->
+      <button id="nextBtn" aria-label="Next quote"><span class="arrow-crop"><span class="icon icon-arrow icon-arrow--down"></span></span></button>
     </div>
-    <p class="footer">
-      a project by Bill &amp; Rohan. Coming soon.
-    </p>
+
+    <!-- Word annotation overlay -->
+    <div class="overlay ann-overlay" id="annOverlay" hidden>
+      <button class="x-btn ann-back" id="annBack" aria-label="Close"></button>
+      <p class="ann-word" id="annWord"></p>
+      <p class="ann-text" id="annText"></p>
+    </div>
+
+    <!-- Video overlay -->
+    <div class="overlay video-overlay" id="videoOverlay" hidden>
+      <div class="video-box" id="videoBox">
+        <button class="x-btn video-close" id="videoClose" aria-label="Close"></button>
+        <div class="video-frame" id="videoFrame"></div>
+      </div>
+    </div>
+
+    <!-- A word at the foot of the window ("Video not available."): js/app.js → toast -->
+    <p class="toast" id="toast" role="status" aria-live="polite" hidden></p>
+
+    <!-- Menu -->
+    <nav class="menu" id="menu" aria-label="Categories" hidden>
+      <button class="link menu-back" id="menuBack">Back</button>
+      <svg class="sym menu-sym" id="menuSym" viewBox="0 0 60 60" aria-hidden="true"></svg> <!-- one symbol for the whole menu: it redraws into the previewed category's -->
+      <ul class="cat-list" id="catList"></ul>
+      <aside class="cat-desc">
+        <p id="catDescText"></p>
+        <span class="cat-desc-line" aria-hidden="true"></span>
+        <p id="catCount"></p>
+      </aside>
+      <button class="menu-apply" id="menuApply"></button>
+    </nav>
   </div>
 
-  <script>
-    const desktopHover = window.matchMedia(
-      '(hover: hover) and (pointer: fine) and (min-width: 1024px)'
-    ).matches;
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  <!-- "Scan" effect for entering notes: RGB-split filters are generated into these defs by
+       js/app.js (scanIn), at a strength that depends on how far down the screen an item sits.
+       Native SVG filters — no library, no external code. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs id="rgbDefs"></defs>
+  </svg>
 
-    if (!reduceMotion) {
-      const btn = document.querySelector('.btn');
-      const label = btn.querySelector('span');
-      const STEP = 26;
-
-      const originalText = label.textContent;
-      const cells = [];
-      label.textContent = '';
-      [...originalText].forEach((ch) => {
-        if (ch === ' ') {
-          label.appendChild(document.createTextNode(' '));
-        } else {
-          const cell = document.createElement('span');
-          cell.className = 'cell';
-          cell.textContent = ch;
-          cells.push(cell);
-          label.appendChild(cell);
-        }
-      });
-
-      const animateLabel = () => {
-        const eraseDone = cells.length * STEP;
-        cells.forEach((cell, i) => {
-          setTimeout(() => { cell.style.opacity = '0'; }, i * STEP);
-          setTimeout(() => { cell.style.opacity = '1'; }, eraseDone + i * STEP);
-        });
-      };
-
-      if (desktopHover) {
-        // Desktop: magnet effect on text + CTA animation on hover.
-        const RADIUS = 40;
-        const STRENGTH = 12;
-
-        const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed;inset:0;pointer-events:none;';
-        document.body.appendChild(overlay);
-
-        let chars = [];
-
-        const processElement = (el) => {
-          const textNodes = [];
-          const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-          let node;
-          while ((node = walker.nextNode())) {
-            if (node.textContent.trim()) textNodes.push(node);
-          }
-          textNodes.forEach((node) => {
-            const text = node.textContent;
-            const cs = getComputedStyle(node.parentElement);
-            const hidden = document.createElement('span');
-            hidden.style.visibility = 'hidden';
-            const tn = document.createTextNode(text);
-            hidden.appendChild(tn);
-            node.replaceWith(hidden);
-            for (let i = 0; i < text.length; i++) {
-              if (/\s/.test(text[i])) continue;
-              const range = document.createRange();
-              range.setStart(tn, i);
-              range.setEnd(tn, i + 1);
-              const r = range.getBoundingClientRect();
-              const span = document.createElement('span');
-              span.textContent = text[i];
-              span.style.cssText = [
-                'position:fixed',
-                `left:${r.left}px`,
-                `top:${r.top}px`,
-                `font-family:${cs.fontFamily}`,
-                `font-size:${cs.fontSize}`,
-                `font-weight:${cs.fontWeight}`,
-                `line-height:${cs.lineHeight}`,
-                `letter-spacing:${cs.letterSpacing}`,
-                `color:${cs.color}`,
-                'pointer-events:none',
-                'will-change:transform',
-                'transition:transform 0.5s cubic-bezier(0.16,1,0.3,1)',
-              ].join(';');
-              overlay.appendChild(span);
-              span._cx = r.left + r.width / 2;
-              span._cy = r.top + r.height / 2;
-              chars.push({ span, tn, i });
-            }
-          });
-        };
-
-        document.querySelectorAll('.title, .body-text p').forEach(processElement);
-
-        const remeasure = () => {
-          chars.forEach(({ span }) => {
-            span.style.transition = 'none';
-            span.style.transform = '';
-          });
-          document.body.offsetHeight;
-          chars.forEach(({ span, tn, i }) => {
-            const range = document.createRange();
-            range.setStart(tn, i);
-            range.setEnd(tn, i + 1);
-            const r = range.getBoundingClientRect();
-            span.style.left = r.left + 'px';
-            span.style.top = r.top + 'px';
-            span._cx = r.left + r.width / 2;
-            span._cy = r.top + r.height / 2;
-          });
-          requestAnimationFrame(() => {
-            chars.forEach(({ span }) => {
-              span.style.transition = 'transform 0.5s cubic-bezier(0.16,1,0.3,1)';
-            });
-          });
-        };
-
-        document.fonts.ready.then(remeasure);
-        window.addEventListener('load', remeasure);
-        window.addEventListener('resize', remeasure);
-
-        window.addEventListener('mousemove', (e) => {
-          chars.forEach(({ span }) => {
-            const dx = span._cx - e.clientX;
-            const dy = span._cy - e.clientY;
-            const dist = Math.hypot(dx, dy);
-            if (dist < RADIUS) {
-              const force = (1 - dist / RADIUS) * STRENGTH;
-              span.style.transform = `translate(${(dx / (dist || 1)) * force}px,${(dy / (dist || 1)) * force}px)`;
-            } else {
-              span.style.transform = '';
-            }
-          });
-        });
-
-        document.addEventListener('mouseleave', () => {
-          chars.forEach(({ span }) => { span.style.transform = ''; });
-        });
-
-        let timers = [];
-        btn.addEventListener('mouseenter', () => {
-          timers.forEach(clearTimeout); timers = [];
-          animateLabel();
-        });
-        btn.addEventListener('mouseleave', () => {
-          timers.forEach(clearTimeout); timers = [];
-          animateLabel();
-        });
-      } else {
-        // Mobile/tablet: no magnet effect, CTA animates once after fonts load.
-        document.fonts.ready.then(animateLabel);
-      }
-    }
-  </script>
+  <noscript>Words We Keep needs JavaScript to show its quotes.</noscript>
+  <script src="js/app.js"></script>
 </body>
 </html>

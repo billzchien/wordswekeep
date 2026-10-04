@@ -104,7 +104,7 @@
   --req: calc(6 * var(--u)); --req-gap: 6px;
   position: absolute; right: calc(100% + var(--req-gap));
   top: calc(var(--cap-offset) - var(--req-gap) - var(--req));
-  --src: url(../../assets/icons/required.svg); width: var(--req); height: var(--req);
+  --src: url(../assets/icons/required.svg); width: var(--req); height: var(--req);
   background: #7a7a7a; /* Bill, 2026-10-03 (it was the text's ink) */
   -webkit-mask-size: 300% 300%; mask-size: 300% 300%;
   -webkit-mask-position: 100% 50%; mask-position: 100% 50%;
@@ -143,8 +143,8 @@ textarea.field::-webkit-scrollbar { display: none; }
 .fw.is-warn::after {
   content: ""; position: absolute; right: var(--fpad); top: calc((var(--fh) - var(--ic)) / 2); width: var(--ic); height: var(--ic);
   background: currentColor;
-  -webkit-mask: url(../../assets/icons/info.svg) center / 100% 100% no-repeat;
-  mask: url(../../assets/icons/info.svg) center / 100% 100% no-repeat;
+  -webkit-mask: url(../assets/icons/info.svg) center / 100% 100% no-repeat;
+  mask: url(../assets/icons/info.svg) center / 100% 100% no-repeat;
   pointer-events: none;
 }
 .fw.is-warn .combo-btn { display: none; } /* the ⓘ takes the chevron's place until the field is opened */
@@ -239,12 +239,12 @@ textarea.field::-webkit-scrollbar { display: none; }
 /* "In original language +", "Annotate specific words +", "Another +" */
 .more { display: inline-flex; align-items: center; gap: calc(2 * var(--u)); height: calc(32 * var(--u)); align-self: flex-start; white-space: nowrap; }
 .more--flat { height: auto; }
-.icon-plus     { --src: url(../../assets/icons/plus.svg); width: var(--ic); height: var(--ic); }
-.icon-chevron  { --src: url(../../assets/icons/chevron.svg); width: var(--ic-chevron); height: var(--ic-chevron); }
-.icon-check    { --src: url(../../assets/icons/check.svg); width: var(--box); height: var(--box); }
+.icon-plus     { --src: url(../assets/icons/plus.svg); width: var(--ic); height: var(--ic); }
+.icon-chevron  { --src: url(../assets/icons/chevron.svg); width: var(--ic-chevron); height: var(--ic-chevron); }
+.icon-check    { --src: url(../assets/icons/check.svg); width: var(--box); height: var(--box); }
 /* The navigation arrow, turned to point right, inside the same 18px box as the plus (Figma 226:3107). */
 .more .icon-arrow--right { width: calc(12 * var(--u)); height: calc(12 * var(--u)); margin: calc(3 * var(--u)); transform: rotate(90deg); }
-.icon-x        { --src: url(../../assets/icons/x-small.svg); width: calc(12 * var(--u)); height: calc(12 * var(--u)); }
+.icon-x        { --src: url(../assets/icons/x-small.svg); width: calc(12 * var(--u)); height: calc(12 * var(--u)); }
 
 /* ---------- Buttons ---------- */
 
@@ -311,7 +311,7 @@ textarea.field::-webkit-scrollbar { display: none; }
 .done { --done-sym: calc(200 * var(--u)); }
 .done-sym { width: var(--done-sym); height: var(--done-sym); }
 .done-sym .sym { width: 100%; height: 100%; }
-.done-sym.is-static { background: currentColor; -webkit-mask: url(../../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; mask: url(../../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; } /* the symbols' files did not load: the still image */
+.done-sym.is-static { background: currentColor; -webkit-mask: url(../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; mask: url(../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; } /* the symbols' files did not load: the still image */
 .done-btns { display: flex; gap: var(--gap-4); width: 100%; }
 .done-btns .btn { flex: 1 1 0; min-width: 0; }
 .done > * { opacity: 0; }

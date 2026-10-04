@@ -58,7 +58,7 @@
 @media (max-resolution: 1.5dppx) { .tab { --line: 1px; } }
 .tab.is-active { background-position: left bottom; background-size: 100% var(--line); }
 @media (hover: hover) { .tab:hover { background-position: left bottom; background-size: 100% var(--line); } }
-.tab-dot { --src: url(../../assets/icons/asterisk-small.svg); width: calc(4 * var(--u)); height: calc(4 * var(--u)); margin-top: calc(7 * var(--u)); } /* Figma 299:1235: the tiny asterisk = new items to review */
+.tab-dot { --src: url(../assets/icons/asterisk-small.svg); width: calc(4 * var(--u)); height: calc(4 * var(--u)); margin-top: calc(7 * var(--u)); } /* Figma 299:1235: the tiny asterisk = new items to review */
 
 .cta { top: var(--line-top); right: var(--btn-inset); display: flex; align-items: flex-start; gap: calc(4 * var(--u)); }
 :root { --btn-inset: calc(var(--line-c) - var(--btn-h) / 2); } /* a top-line button's distance from the top edge — and from the right edge, so the corner is square */
@@ -112,7 +112,7 @@
 .admin[data-view="list"] .guard--top { display: none; }
 .thead > * { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sort { display: inline-flex; align-items: center; gap: calc(4 * var(--u)); color: inherit; text-align: left; }
-.sort .icon-sort { --src: url(../../assets/icons/sort.svg); width: calc(16 * var(--u)); height: calc(16 * var(--u)); transition: transform 0.2s var(--ease); }
+.sort .icon-sort { --src: url(../assets/icons/sort.svg); width: calc(16 * var(--u)); height: calc(16 * var(--u)); transition: transform 0.2s var(--ease); }
 .sort[data-dir="-1"] .icon-sort { transform: rotate(180deg); }
 
 /* Search (Figma 307:2989), Live and Pending: the icon at the end of the head; a click opens the
@@ -131,7 +131,7 @@
 .search-btn { flex: none; width: calc(16 * var(--u)); height: calc(16 * var(--u)); color: var(--head); transition: color 0.15s var(--ease); }
 .search.is-open .search-btn { color: var(--ink); }
 @media (hover: hover) { .search-btn:hover { color: var(--ink); } }
-.icon-search { --src: url(../../assets/icons/search.svg); width: 100%; height: 100%; }
+.icon-search { --src: url(../assets/icons/search.svg); width: 100%; height: 100%; }
 .search-box {
   box-sizing: border-box; width: 0; overflow: hidden; opacity: 0; visibility: hidden;
   display: flex; align-items: center; gap: calc(8 * var(--u));
@@ -164,10 +164,10 @@
 @media (hover: hover) { .row:hover .c-act, .row:focus-within .c-act { opacity: 1; } }
 .c-act button { width: calc(16 * var(--u)); height: calc(16 * var(--u)); display: grid; place-items: center; }
 .c-act .icon { width: 100%; height: 100%; }
-.icon-edit   { --src: url(../../assets/icons/edit.svg); }
-.icon-x16    { --src: url(../../assets/icons/x-16.svg); }
-.icon-eye    { --src: url(../../assets/icons/eye.svg); }
-.icon-revert { --src: url(../../assets/icons/revert.svg); }
+.icon-edit   { --src: url(../assets/icons/edit.svg); }
+.icon-x16    { --src: url(../assets/icons/x-16.svg); }
+.icon-eye    { --src: url(../assets/icons/eye.svg); }
+.icon-revert { --src: url(../assets/icons/revert.svg); }
 .row.is-leaving { opacity: 0; transition: opacity var(--act-ms) var(--ease); pointer-events: none; }
 .row:not(.is-leaving) { transition: opacity var(--act-ms) var(--ease); }
 /* Archive: no number; date · category (2) · quote (2) · actions */

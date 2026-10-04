@@ -158,7 +158,7 @@
     }
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) { try { store = JSON.parse(raw); if (store && store.live && store.live.every((q) => q.key)) return; } catch (e) { /* fall through */ } } // no keys = an older demo store: re-seed
-    const res = await fetch('../../data/quotes.json');
+    const res = await fetch('../data/quotes.json');
     store = seed(await res.json());
     persist();
   }
@@ -1077,7 +1077,7 @@
       else {
         const kept = localStorage.getItem(FACES_KEY);
         if (kept) faces = JSON.parse(kept) || {};
-        else { const r = await fetch('../../data/faces.json', { cache: 'no-cache' }); if (r.ok) faces = await r.json(); }
+        else { const r = await fetch('../data/faces.json', { cache: 'no-cache' }); if (r.ok) faces = await r.json(); }
       }
     } catch (e) { faces = {}; }
     applyFaces();

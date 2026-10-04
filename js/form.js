@@ -15,11 +15,11 @@
   const SUBMIT_URL = LOCAL ? '' : 'https://api.wordswekeep.org/';
 
   const CATEGORIES = [
-    { key: 'perspective', name: 'Perspective', desc: 'The lens we bring to life. Outlooks, values, and the search for meaning.' },
-    { key: 'growth',      name: 'Growth',      desc: 'The hardships, changes, and moments that shape who we become.' },
+    { key: 'perspective', name: 'Perspective', desc: 'The lens we bring to life. Values, time, presence, and the search for meaning.' },
+    { key: 'growth',      name: 'Growth',      desc: 'The hardships, changes, and realizations that shape who we become.' },
     { key: 'drive',       name: 'Drive',       desc: 'The work, ambition, and craft we pour into building something that matters.' },
     { key: 'community',   name: 'Community',   desc: 'The family, friends, and connections that remind us we’re not alone.' },
-    { key: 'romance',     name: 'Romance',     desc: 'The joy and heartbreak of loving and being loved by another person.' },
+    { key: 'romance',     name: 'Romance',     desc: 'The joy and heartbreak of loving and being loved.' },
   ];
   // Source kinds. The site sets a title in italics only for book and film (js/app.js → ITALIC_KINDS).
   // "Personal" (something said to the submitter), or no kind chosen yet: no source name or link.
@@ -776,7 +776,7 @@
      → "Symbols"). Fetched a moment after the page has loaded, well before anything is submitted.
      Without them the still images stand: the logo simply goes and comes, the large symbol is
      simply there. */
-  const SYM_DIR = '../assets/symbols/';
+  const SYM_DIR = 'assets/symbols/';
   const HOME_OUT_MS = 300; // the logo drawing itself out (the archive's MENU_ICON_MS)
   let sym = null;          // { lib, model, home, done } once the files are in
   const symReady = new Promise((r) => setTimeout(r, 1200))
