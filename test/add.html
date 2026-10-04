@@ -6,7 +6,7 @@
   <meta name="theme-color" id="themeColor" content="#E6E6E6"> <!-- kept in step with the page by js/form.js -->
   <!-- Staging: keep out of search engines until launch. Remove on publish. -->
   <meta name="robots" content="noindex, nofollow, noarchive">
-  <title>Add words — Words We Keep</title>
+  <title>Add Words · Words We Keep</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital@0;1&family=Noto+Sans:wght@400;500&family=Noto+Sans+JP:wght@400;500&family=Noto+Sans+KR:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
@@ -124,12 +124,14 @@
 
       <!-- 6 · Done -->
       <section class="step" data-step="5" aria-label="Words submitted">
-        <div class="content">
-          <p>Words submitted.</p>
-          <p>Thank you for contributing to Words We Keep! You just made the archive a little wiser.</p>
-          <div class="stack stack--4">
+        <!-- Figma 227:3992. The All symbol at the menu's size, drawn in by js/form.js (showDone) once the
+             top left logo has drawn itself out; then the text and the buttons fade up. -->
+        <div class="content content--40 done" id="done">
+          <div class="done-sym"><svg class="sym" id="doneSym" viewBox="0 0 60 60" aria-hidden="true"></svg></div>
+          <p class="done-text" id="doneText">Thank you for sharing these words! You just made the archive a little wiser. We will take it from here.</p>
+          <div class="done-btns">
+            <a class="btn" href="index.html">Back to archive</a>
             <button type="button" class="btn btn--primary" id="againBtn">Add another</button>
-            <a class="btn" href="index.html">Back to home</a>
           </div>
         </div>
       </section>
@@ -141,15 +143,15 @@
     <div class="guard guard--bottom" aria-hidden="true"></div>
 
     <!-- Chrome -->
-    <a class="chrome home" href="index.html" aria-label="Words We Keep"><span class="icon icon-mark"></span></a>
+    <a class="chrome home" href="index.html" aria-label="Words We Keep"><span class="icon icon-mark"></span><svg class="sym" id="homeSym" viewBox="0 0 60 60" aria-hidden="true"></svg></a> <!-- the still logo; the svg takes over when it has to draw itself out or in (js/form.js) -->
     <p class="chrome count" id="count" aria-live="polite" aria-label="Step 1 of 5">
       <span class="pager-num"><span class="pager-roll" id="pageCur"><span>1</span></span></span>
       <span class="pager-track" aria-hidden="true"><span class="pager-fill" id="pageFill"></span></span>
       <span class="pager-num" id="pageTotal">5</span>
     </p>
     <div class="chrome arrows">
-      <button id="prevBtn" aria-label="Previous"><span class="icon icon-arrow"></span></button>
-      <button id="nextBtn" aria-label="Next"><span class="icon icon-arrow icon-arrow--down"></span></button>
+      <button id="prevBtn" aria-label="Previous"><span class="arrow-crop"><span class="icon icon-arrow"></span></span></button> <!-- .arrow-crop: the box a pressed arrow rolls in (js/form.js → press) -->
+      <button id="nextBtn" aria-label="Next"><span class="arrow-crop"><span class="icon icon-arrow icon-arrow--down"></span></span></button>
     </div>
 
     <!-- Word annotations (step 4) -->
