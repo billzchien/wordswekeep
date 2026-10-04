@@ -242,8 +242,9 @@
     if (!quoteEl || quoteEl.querySelector('.ann')) return; // one text node expected
     const words = measureWords(quoteEl);
     if (words.length < 2) return;
-    const text = quoteEl.textContent;
-    let out = text;
+    const shown = quoteEl.textContent;
+    const text = quoteEl._plain != null ? quoteEl._plain : shown; // as rendered, before evenLines wrote its breaks in (same length)
+    let out = shown;
     for (let i = words.length - 1; i > 0; i--) {
       if (Math.abs(words[i].top - words[i - 1].top) < 4) continue;
       const at = words[i].start;
@@ -266,46 +267,118 @@
   }
   function fitTier(quoteEl) {
     if (!quoteEl) return;
-    if (quoteEl.hasAttribute('data-short')) quoteEl.dataset.tier = 'l';
-    fitHang(quoteEl);
-    if (!quoteEl.hasAttribute('data-short') || lineCount(quoteEl) <= SHORT_MAX_LINES) return;
-    quoteEl.dataset.tier = 'm';
-    fitHang(quoteEl);
+    evenLines.reset(quoteEl); // measured as plain text in the full box
+    if (quoteEl.hasAttribute('data-short')) {
+      quoteEl.dataset.tier = 'l';
+      if (lineCount(quoteEl) > SHORT_MAX_LINES) quoteEl.dataset.tier = 'm';
+    }
+    evenLines(quoteEl);
   }
   const fitDeck = () => track.querySelectorAll('.quote').forEach(fitTier);
 
-  // Phone: every quote keeps 40px clear on its right (app.css). The exception: when that
-  // leaves the quote's last word alone on a line of its own, the word is kept on the line
-  // before, which may then run into the 40px, as far as the page margin. `data-hang`: the
-  // quote's box goes out to the margin and the empty .q-hang at its start, floated right, 40px
-  // wide and as tall as the lines above (--hang-h), holds those lines where they were — only
-  // the line that takes the word is longer. Only when that really saves the line.
-  // noOrphans ties the last two words, so the lone word shows as a last line of two: it is
-  // one of ours when the first of the two would have fitted on the line before by itself.
-  function fitHang(quoteEl) {
+  // Phone: a good rag — a soft unevenness, no line much longer or shorter than the others.
+  // A narrow column filled line by line as far as each goes leaves lines of very different
+  // lengths (a long word dropping to the next line, the tied last words under a short one).
+  // So on a phone the breaks are chosen for the whole quote at once: the same number of lines
+  // as the plain filling takes, never more, and among all the ways to break it into that
+  // many, the one whose lines fall least short of the box (the squares of what each line
+  // leaves are summed, so one very short line costs more than several slightly short ones).
+  // noOrphans' ties and the quote's own line breaks are kept. The chosen breaks are written
+  // into the text as newlines (the quote is `white-space: pre-line`); the text as it was is
+  // kept on the element (`_plain`) and put back before every new measuring.
+  evenLines.reset = (quoteEl) => {
+    quoteEl.style.width = '';
+    if (quoteEl._plain != null && quoteEl.firstChild && quoteEl.childNodes.length === 1) quoteEl.firstChild.data = quoteEl._plain;
+    quoteEl._plain = null;
+  };
+  const RAG_LAST = 0.5;      // how much the last line's shortfall counts (0 = it may be any length, 1 = like the others)
+  const RAG_LAST_MIN = 0.33; // …but a last line under this share of the box counts in full
+  function evenLines(quoteEl) {
     if (!quoteEl) return;
-    quoteEl.removeAttribute('data-hang');
-    quoteEl.style.removeProperty('--hang-h');
+    quoteEl.style.width = '';
+    const node = quoteEl.firstChild;
+    const single = node && node.nodeType === 3 && quoteEl.childNodes.length === 1;
+    if (single && quoteEl._plain != null) node.data = quoteEl._plain;
+    quoteEl._plain = null;
     if (!mqMobile.matches) return;
-    const lines = [];
-    measureWords(quoteEl).forEach((w) => {
-      const line = lines[lines.length - 1];
-      if (line && Math.abs(line[0].top - w.top) < 4) line.push(w); else lines.push([w]);
-    });
-    if (lines.length < 2) return;
-    const last = lines[lines.length - 1], end = lines[lines.length - 2].slice(-1)[0];
-    if (last.length > 2 || last[0].cjk) return;
-    const between = document.createRange();
-    between.setStart(end.node, end.end); between.setEnd(last[0].node, last[0].start);
-    if (between.toString().includes('\n')) return; // a line of its own (a poem's, a locked one), not a leftover
-    if (last.length === 2) {
-      const gap = last[1].left - last[0].right;
-      if (end.right + gap + (last[0].right - last[0].left) > quoteEl.getBoundingClientRect().right + 0.5) return; // both words were too many
+    const words = measureWords(quoteEl);
+    if (!single || words.some((w) => w.cjk)) return narrowBox(quoteEl); // annotated or CJK: the simpler rule
+    const lines = new Set(words.map((w) => Math.round(w.top))).size;
+    if (lines < 2) return;
+    const text = node.data, box = quoteEl.getBoundingClientRect().width - 1;
+    // What sits before each word: a space (a break may go there), a newline (a break is
+    // there), or anything else — a no-break space, nothing at all — which ties it to the word before.
+    const before = words.map((w, k) => (k ? text.slice(words[k - 1].end, w.start) : '\n'));
+    const gapAt = words.findIndex((w, k) => k && before[k] === ' ' && Math.abs(w.top - words[k - 1].top) < 4);
+    const space = gapAt > 0 ? words[gapAt].left - words[gapAt - 1].right : parseFloat(getComputedStyle(quoteEl).fontSize) * 0.25;
+    const width = words.map((w) => w.right - w.left);
+    const breaks = []; // indices of the words that start a new line
+    let from = 0;
+    for (let k = 1; k <= words.length; k++) {
+      if (k < words.length && !before[k].includes('\n')) continue;
+      const cut = ragBreaks(width.slice(from, k), before.slice(from, k).map((b, i) => i > 0 && b === ' '), space, box);
+      if (!cut) return narrowBox(quoteEl);
+      cut.forEach((c) => breaks.push(from + c));
+      from = k;
     }
-    const above = lines[lines.length - 2][0].top - lines[0][0].top; // from the first line down to the one that takes the word
-    quoteEl.style.setProperty('--hang-h', `${Math.max(0, above - 2)}px`);
-    quoteEl.setAttribute('data-hang', '');
-    if (lineCount(quoteEl) !== lines.length - 1) { quoteEl.removeAttribute('data-hang'); quoteEl.style.removeProperty('--hang-h'); } // still too long for the margin
+    if (!breaks.length) return;
+    const chars = [...text];
+    if (chars.length !== text.length) return; // astral characters: offsets would not line up
+    breaks.forEach((k) => { chars[words[k].start - 1] = '\n'; });
+    const paragraphs = before.filter((b) => b.includes('\n')).length;
+    node.data = chars.join('');
+    quoteEl._plain = text;
+    // The browser must agree line for line; if a line it was given does not fit after all, back to plain.
+    if (lineCount(quoteEl) !== paragraphs + breaks.length) { node.data = text; quoteEl._plain = null; narrowBox(quoteEl); }
+  }
+  // One paragraph: `width` of each word, `open[i]` whether a line may start at word i. Returns
+  // the words that start lines 2…n for the fewest lines that fit and the least raggedness, or
+  // null when a word group is wider than the box (left to the browser).
+  function ragBreaks(width, open, space, box) {
+    const n = width.length;
+    const span = (i, j) => { let w = 0; for (let k = i; k < j; k++) w += width[k]; return w + (j - i - 1) * space; }; // words i…j-1 on one line
+    // best[j] per line count: least cost of setting the first j words in exactly `l` lines.
+    let prev = new Array(n + 1).fill(Infinity), trail = [];
+    prev[0] = 0;
+    for (let l = 1; l <= n; l++) {
+      const cur = new Array(n + 1).fill(Infinity), back = new Array(n + 1).fill(-1);
+      for (let j = 1; j <= n; j++) {
+        if (j < n && !open[j]) continue; // a line cannot end inside a tie
+        for (let i = j - 1; i >= 0; i--) {
+          if (i > 0 && !open[i]) continue;
+          const w = span(i, j);
+          if (w > box) break;
+          if (prev[i] === Infinity) continue;
+          const short = box - w, last = j === n;
+          const cost = prev[i] + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+          if (cost < cur[j]) { cur[j] = cost; back[j] = i; }
+        }
+      }
+      trail.push(back);
+      if (cur[n] < Infinity) { // the fewest lines that fit: take this one
+        const starts = [];
+        for (let j = n, k = trail.length - 1; k > 0; k--) { j = trail[k][j]; starts.unshift(j); }
+        return starts;
+      }
+      prev = cur;
+    }
+    return null;
+  }
+  // The simpler rule, where the text cannot be rewritten (annotations inside, CJK): the box is
+  // narrowed to the least width at which the quote takes the same number of lines.
+  const EVEN_STEPS = 8; // halvings: finds the width to within 1/256 of the box
+  function narrowBox(quoteEl) {
+    quoteEl.style.width = '';
+    const full = quoteEl.getBoundingClientRect().width, lines = lineCount(quoteEl);
+    if (lines < 2 || !full) return;
+    let lo = full / 2, hi = full; // at `hi` it fits in `lines`
+    for (let i = 0; i < EVEN_STEPS; i++) {
+      const mid = (lo + hi) / 2;
+      quoteEl.style.width = `${mid}px`;
+      if (lineCount(quoteEl) === lines) hi = mid; else lo = mid;
+    }
+    quoteEl.style.width = `${Math.ceil(hi)}px`;
+    if (lineCount(quoteEl) !== lines) quoteEl.style.width = ''; // never at the cost of a line
   }
   // The size the main screen shows this quote in (the notes quote takes the same): tried on a
   // hidden copy in the main quote's place.
@@ -341,7 +414,7 @@
       ? `<button class="lang" data-lang${showOrig || LANG_GLYPH[orig.lang] ? '' : ' data-code'} aria-pressed="${showOrig ? 'true' : 'false'}" aria-label="${showOrig ? 'Show English' : 'Show original language'}">${showOrig ? 'EN' : esc(langLabel(orig.lang))}</button>`
       : '';
     const nativeAttr = showOrig ? `${inFace ? '' : ' data-native'} lang="${esc(orig.lang)}"` : ''; // data-native = set in Noto (css)
-    return `${langBtn}<blockquote class="quote${locked ? ' quote--locked' : ''}" data-tier="${tierAs || size}"${size === 'l' ? ' data-short' : ''} data-font="${font}"${nativeAttr}><span class="q-hang"></span>${body}</blockquote>`; // .q-hang: see fitHang
+    return `${langBtn}<blockquote class="quote${locked ? ' quote--locked' : ''}" data-tier="${tierAs || size}"${size === 'l' ? ' data-short' : ''} data-font="${font}"${nativeAttr}>${body}</blockquote>`;
   }
 
   /* ---------- Deck ---------- */
@@ -597,14 +670,14 @@
     const wrap = $('nQuoteWrap');
     const tierAs = fittedTier(current(), state.original);
     wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true, keepLines: true, tierAs });
-    fitHang(wrap.querySelector('.quote')); // phone: the main quote's last line may run into the right padding; so does this one
+    evenLines(wrap.querySelector('.quote:not(.quote--locked)')); // phone: an even rag (a locked quote already has the main quote's lines)
     // Belt and braces: if a locked line does not fit here after all (it would wrap into an
     // orphan), let the quote wrap naturally rather than show a broken line.
     const locked = wrap.querySelector('.quote--locked');
     if (locked) {
       const wanted = locked.textContent.split('\n').length;
       const got = new Set(measureWords(locked).map((w) => Math.round(w.top))).size;
-      if (got !== wanted) { wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true, tierAs }); fitHang(wrap.querySelector('.quote')); }
+      if (got !== wanted) { wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true, tierAs }); evenLines(wrap.querySelector('.quote')); }
     }
     wrap.classList.toggle('has-lang', !!current().originalLanguage);
     layoutNotes();
@@ -1402,7 +1475,7 @@
     Object.assign(ghost.style, { left: `${old.offsetLeft}px`, top: `${old.offsetTop}px`, width: `${old.offsetWidth}px` });
     // …while the incoming text takes its real place underneath.
     wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: inNotes, tierAs: inNotes ? fittedTier(current(), state.original) : null });
-    if (inNotes) fitHang(wrap.querySelector('.quote')); else fitTier(wrap.querySelector('.quote'));
+    if (inNotes) evenLines(wrap.querySelector('.quote')); else fitTier(wrap.querySelector('.quote'));
     wrap.appendChild(ghost);
     wrap.classList.add('is-typing');
 
