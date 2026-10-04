@@ -208,7 +208,7 @@
   };
   // For trying a link out without publishing it (video-test.html lists some to tap):
   // ?video=<link> gives every quote that source link; &videofail makes the lookups fail, as
-  // where the platform cannot be reached.
+  // where the platform cannot be reached; &notes opens straight in the notes (see the boot).
   const TEST = new URLSearchParams(location.search), TEST_VIDEO = TEST.get('video'), TEST_FAIL = TEST.has('videofail');
   const videoLink = (q) => TEST_VIDEO || (q.source && q.source.link) || '';
   function videoOf(q) {
@@ -2526,6 +2526,13 @@
       }
       state.idx = found >= 0 ? found : 0;
       renderDeck();
+      // video-test.html: with &notes the page opens straight in the quote's notes, no typing —
+      // once the platform has answered, so the thumbnail (or the logo card) is the real one.
+      if (TEST_VIDEO && TEST.has('notes')) {
+        const open = () => { drawMark(false); showChrome(); applyMode('notes'); };
+        const info = lookupVideo(videoOf(current()));
+        return info ? info.done.then(open) : open();
+      }
       arrive();
     })
     .catch((err) => {
