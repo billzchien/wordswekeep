@@ -265,11 +265,48 @@
     return lines;
   }
   function fitTier(quoteEl) {
-    if (!quoteEl || !quoteEl.hasAttribute('data-short')) return;
-    quoteEl.dataset.tier = 'l';
-    if (lineCount(quoteEl) > SHORT_MAX_LINES) quoteEl.dataset.tier = 'm';
+    if (!quoteEl) return;
+    if (quoteEl.hasAttribute('data-short')) quoteEl.dataset.tier = 'l';
+    fitHang(quoteEl);
+    if (!quoteEl.hasAttribute('data-short') || lineCount(quoteEl) <= SHORT_MAX_LINES) return;
+    quoteEl.dataset.tier = 'm';
+    fitHang(quoteEl);
   }
-  const fitDeck = () => track.querySelectorAll('.quote[data-short]').forEach(fitTier);
+  const fitDeck = () => track.querySelectorAll('.quote').forEach(fitTier);
+
+  // Phone: every quote keeps 40px clear on its right (app.css). The exception: when that
+  // leaves the quote's last word alone on a line of its own, the word is kept on the line
+  // before, which may then run into the 40px, as far as the page margin. `data-hang`: the
+  // quote's box goes out to the margin and the empty .q-hang at its start, floated right, 40px
+  // wide and as tall as the lines above (--hang-h), holds those lines where they were — only
+  // the line that takes the word is longer. Only when that really saves the line.
+  // noOrphans ties the last two words, so the lone word shows as a last line of two: it is
+  // one of ours when the first of the two would have fitted on the line before by itself.
+  function fitHang(quoteEl) {
+    if (!quoteEl) return;
+    quoteEl.removeAttribute('data-hang');
+    quoteEl.style.removeProperty('--hang-h');
+    if (!mqMobile.matches) return;
+    const lines = [];
+    measureWords(quoteEl).forEach((w) => {
+      const line = lines[lines.length - 1];
+      if (line && Math.abs(line[0].top - w.top) < 4) line.push(w); else lines.push([w]);
+    });
+    if (lines.length < 2) return;
+    const last = lines[lines.length - 1], end = lines[lines.length - 2].slice(-1)[0];
+    if (last.length > 2 || last[0].cjk) return;
+    const between = document.createRange();
+    between.setStart(end.node, end.end); between.setEnd(last[0].node, last[0].start);
+    if (between.toString().includes('\n')) return; // a line of its own (a poem's, a locked one), not a leftover
+    if (last.length === 2) {
+      const gap = last[1].left - last[0].right;
+      if (end.right + gap + (last[0].right - last[0].left) > quoteEl.getBoundingClientRect().right + 0.5) return; // both words were too many
+    }
+    const above = lines[lines.length - 2][0].top - lines[0][0].top; // from the first line down to the one that takes the word
+    quoteEl.style.setProperty('--hang-h', `${Math.max(0, above - 2)}px`);
+    quoteEl.setAttribute('data-hang', '');
+    if (lineCount(quoteEl) !== lines.length - 1) { quoteEl.removeAttribute('data-hang'); quoteEl.style.removeProperty('--hang-h'); } // still too long for the margin
+  }
   // The size the main screen shows this quote in (the notes quote takes the same): tried on a
   // hidden copy in the main quote's place.
   function fittedTier(q, original) {
@@ -304,7 +341,7 @@
       ? `<button class="lang" data-lang${showOrig || LANG_GLYPH[orig.lang] ? '' : ' data-code'} aria-pressed="${showOrig ? 'true' : 'false'}" aria-label="${showOrig ? 'Show English' : 'Show original language'}">${showOrig ? 'EN' : esc(langLabel(orig.lang))}</button>`
       : '';
     const nativeAttr = showOrig ? `${inFace ? '' : ' data-native'} lang="${esc(orig.lang)}"` : ''; // data-native = set in Noto (css)
-    return `${langBtn}<blockquote class="quote${locked ? ' quote--locked' : ''}" data-tier="${tierAs || size}"${size === 'l' ? ' data-short' : ''} data-font="${font}"${nativeAttr}>${body}</blockquote>`;
+    return `${langBtn}<blockquote class="quote${locked ? ' quote--locked' : ''}" data-tier="${tierAs || size}"${size === 'l' ? ' data-short' : ''} data-font="${font}"${nativeAttr}><span class="q-hang"></span>${body}</blockquote>`; // .q-hang: see fitHang
   }
 
   /* ---------- Deck ---------- */
@@ -560,13 +597,14 @@
     const wrap = $('nQuoteWrap');
     const tierAs = fittedTier(current(), state.original);
     wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true, keepLines: true, tierAs });
+    fitHang(wrap.querySelector('.quote')); // phone: the main quote's last line may run into the right padding; so does this one
     // Belt and braces: if a locked line does not fit here after all (it would wrap into an
     // orphan), let the quote wrap naturally rather than show a broken line.
     const locked = wrap.querySelector('.quote--locked');
     if (locked) {
       const wanted = locked.textContent.split('\n').length;
       const got = new Set(measureWords(locked).map((w) => Math.round(w.top))).size;
-      if (got !== wanted) wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true, tierAs });
+      if (got !== wanted) { wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true, tierAs }); fitHang(wrap.querySelector('.quote')); }
     }
     wrap.classList.toggle('has-lang', !!current().originalLanguage);
     layoutNotes();
@@ -1364,7 +1402,7 @@
     Object.assign(ghost.style, { left: `${old.offsetLeft}px`, top: `${old.offsetTop}px`, width: `${old.offsetWidth}px` });
     // …while the incoming text takes its real place underneath.
     wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: inNotes, tierAs: inNotes ? fittedTier(current(), state.original) : null });
-    if (!inNotes) fitTier(wrap.querySelector('.quote'));
+    if (inNotes) fitHang(wrap.querySelector('.quote')); else fitTier(wrap.querySelector('.quote'));
     wrap.appendChild(ghost);
     wrap.classList.add('is-typing');
 
@@ -2156,12 +2194,14 @@
   }
   function measureLetters(quoteEl) {
     const letters = [], range = document.createRange(), plainOf = new Map();
-    measureWords(quoteEl).forEach((w) => {
+    letters.words = []; // each word whole: its text and place (the typing swaps a typed word's letters for it)
+    measureWords(quoteEl).forEach((w, word) => {
+      letters.words.push({ text: w.text, left: w.left, top: w.top });
       if (!plainOf.has(w.node)) plainOf.set(w.node, plainLetters(quoteEl, w.node.data));
       for (let i = w.start; i < w.end; i++) {
         range.setStart(w.node, i); range.setEnd(w.node, i + 1);
         const r = inkRect(range);
-        if (r) letters.push({ text: w.node.data[i], left: r.left, top: r.top, wordStart: i === w.start, plain: plainOf.get(w.node).has(i) });
+        if (r) letters.push({ text: w.node.data[i], left: r.left, top: r.top, wordStart: i === w.start, plain: plainOf.get(w.node).has(i), word });
       }
     });
     return letters;
@@ -2205,19 +2245,46 @@
       const range = document.createRange();
       const easing = getComputedStyle(document.documentElement).getPropertyValue('--ease').trim() || 'ease';
       const at = typingSchedule(letters);
-      letters.forEach((l, i) => {
+      // A copy laid exactly over its place in the rendered quote (its own ink on the measured ink).
+      const place = (text, left, top) => {
         const el = document.createElement('span');
         el.className = 'dada-scrap';
-        el.textContent = l.text;
-        if (l.plain) el.style.fontFeatureSettings = ROSE_PLAIN;
-        el.style.left = `${l.left}px`; el.style.top = `${l.top}px`;
+        el.textContent = text;
+        el.style.left = `${left}px`; el.style.top = `${top}px`;
         if (ARRIVE_LETTER_MS > 0) el.style.opacity = '0'; else el.style.visibility = 'hidden';
         layer.appendChild(el);
         range.selectNodeContents(el);
         const own = inkRect(range);
-        if (own) { el.style.left = `${2 * l.left - own.left}px`; el.style.top = `${2 * l.top - own.top}px`; }
+        if (own) { el.style.left = `${2 * left - own.left}px`; el.style.top = `${2 * top - own.top}px`; }
+        return el;
+      };
+      const typed = letters.map((l) => {
+        const el = place(l.text, l.left, l.top);
+        if (l.plain) el.style.fontFeatureSettings = ROSE_PLAIN;
+        return el;
+      });
+      // Letters set one by one have no ligatures and none of the face's letter-to-letter
+      // shaping, so a word settles as its last letter lands, not when the whole quote is done:
+      // with that letter the word's letters are swapped for the word set whole.
+      const whole = new Map(); // a word's last letter → { the word set whole, its letters }
+      if (ARRIVE_LETTER_MS === 0) {
+        const lettersOf = new Map();
+        letters.forEach((l, i) => { if (!lettersOf.has(l.word)) lettersOf.set(l.word, []); lettersOf.get(l.word).push(i); });
+        lettersOf.forEach((ids, word) => {
+          if (ids.length < 2) return;
+          const w = letters.words[word];
+          whole.set(ids[ids.length - 1], { el: place(w.text, w.left, w.top), ids });
+        });
+      }
+      letters.forEach((l, i) => {
+        const el = typed[i];
         if (ARRIVE_LETTER_MS > 0) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ARRIVE_LETTER_MS, delay: at[i], easing, fill: 'forwards' });
-        else setTimeout(() => { el.style.visibility = ''; }, at[i]); // typewriter: visibility, which cannot fade, in one frame
+        else setTimeout(() => { // typewriter: visibility, which cannot fade, in one frame
+          const w = whole.get(i);
+          if (!w) { el.style.visibility = ''; return; }
+          w.ids.forEach((k) => { typed[k].style.visibility = 'hidden'; });
+          w.el.style.visibility = '';
+        }, at[i]);
       });
       const total = (at[at.length - 1] || 0) + ARRIVE_LETTER_MS;
       setTimeout(() => {
