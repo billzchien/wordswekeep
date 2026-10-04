@@ -338,7 +338,10 @@ ul { list-style: none; }
 @media (max-width: 599px) {
   .slide .q-wrap { left: var(--m); right: var(--m); }
   .slide .quote { max-width: 100%; } /* the notes quote is full width on a phone, not 4 columns */
-  .quote[data-tier="l"] { --q-width: calc(100% - 40px) !important; }
+  .quote { --q-width: calc(100% - 40px) !important; } /* every quote, main and notes, keeps 40px clear on the right… */
+  /* …except a last word that would sit alone on a line: it stays on the line before, which runs into the 40px (js/app.js → fitHang). The box goes out to the margin; a float keeps the lines above where they were. */
+  .quote[data-hang] { --q-width: 100% !important; }
+  .quote[data-hang] .q-hang { float: right; width: 40px; height: var(--hang-h, 0px); }
   .lang { left: 0; top: -48px; }
 }
 
