@@ -291,7 +291,7 @@
     const now = performance.now();
     if (now - lastScrollAt < SCROLL_REST_MS) return;
     if (now < wheelLock) return;
-    wheelAcc += e.deltaY;
+    wheelAcc += e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1); // lines / pages → px (a mouse wheel in Firefox can report lines)
     clearTimeout(wheelTimer);
     wheelTimer = setTimeout(() => { wheelAcc = 0; }, 180);
     if (Math.abs(wheelAcc) >= WHEEL_MIN) {
