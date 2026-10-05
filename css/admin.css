@@ -5,7 +5,7 @@
 
 :root {
   --fh: calc(40 * var(--u));         /* fields and the checkbox rows are 40 here (the public form: 48) */
-  --ta-s: calc(3 * var(--fh));       /* every large box (the words, context, personal note…): three fields, 120 (Bill, 2026-10-04; it was 100) */
+  --ta-s: calc(3 * var(--fh) + 2 * var(--gap-1)); /* every large box (the words, context, personal note…): three rows of the grid, gaps included — 122 (Bill, 2026-10-04; it was 100) */
   --rule: #b2b2b2;                   /* table rules, the edit view's meta rule */
   --head: #5e5e5e;                   /* table column heads */
   --meta: #707070;                   /* "Last published", No. / Published */
@@ -190,10 +190,14 @@
    Four columns from col2. Left: the quote. Right: what the submitter added. */
 .edit { margin-left: var(--col2); width: calc(4 * var(--colw) + 3 * var(--g)); padding-left: 0; padding-right: 0; }
 .edit-meta { display: flex; justify-content: space-between; gap: var(--g); color: var(--meta); padding-bottom: calc(8 * var(--u)); border-bottom: var(--hairline) solid var(--rule); font-feature-settings: var(--numeral-features); white-space: nowrap; }
-.edit-cols { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--g); row-gap: calc(8 * var(--u)); margin-top: calc(20 * var(--u)); align-items: start; }
-.col { display: flex; flex-direction: column; gap: calc(8 * var(--u)); min-width: 0; }
-.sec { display: flex; flex-direction: column; gap: calc(8 * var(--u)); }
-.sec .more { margin-top: calc(-4 * var(--u)); }
+.edit-cols { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--g); row-gap: var(--gap-1); margin-top: calc(20 * var(--u)); align-items: start; }
+/* One grid for both columns (Bill, 2026-10-04): every title and "+" button takes a row of its
+   own, as tall as a field (--fh), its text centred as a field's is; rows are 1px apart, and a
+   large box is three rows (--ta-s). So the two columns stay on the same lines whatever stacks. */
+.col { display: flex; flex-direction: column; gap: var(--gap-1); min-width: 0; }
+.sec { display: flex; flex-direction: column; gap: var(--gap-1); }
+.edit .sec-title { display: flex; align-items: center; height: var(--fh); margin: 0; }
+.sec .more { height: var(--fh); margin: 0; }
 .row2 { display: flex; gap: var(--gap-1); width: 100%; }
 .row2 > * { flex: 1 1 0; min-width: 0; }
 .stack { gap: var(--gap-1); }
@@ -214,9 +218,9 @@
 .chk[aria-checked="true"] .icon-check { display: block; }
 
 /* Annotations: word + explanation pairs; a head with the number and a × once there are two or more. */
-.ann-list { display: flex; flex-direction: column; gap: calc(8 * var(--u)); }
+.ann-list { display: flex; flex-direction: column; gap: var(--gap-1); }
 .ann-pair { display: flex; flex-direction: column; gap: var(--gap-1); }
-.ann-pair-head { display: flex; justify-content: space-between; align-items: center; color: var(--meta); font-feature-settings: var(--numeral-features); padding: calc(4 * var(--u)) 0 calc(2 * var(--u)); }
+.ann-pair-head { display: flex; justify-content: space-between; align-items: center; color: var(--meta); font-feature-settings: var(--numeral-features); height: var(--fh); padding: 0; }
 .ann-pair-head .ann-remove { color: var(--ink); }
 .ann-pair .field--word { height: var(--fh); }
 
@@ -225,9 +229,7 @@
 .fw-close { position: absolute; top: var(--fpad); right: var(--fpad); width: calc(12 * var(--u)); height: calc(12 * var(--u)); display: grid; place-items: center; color: var(--ink); }
 /* A section that opens on demand (annotations): "Annotation +" closed; the title and a × on the
    field's right edge when open. The × and the field's edge line up because both sit on the column's edge. */
-.sec-head { display: flex; justify-content: space-between; align-items: center; min-height: calc(var(--text-size) * var(--text-leading)); }
-.sec-head .more { height: auto; }
-.sec--opt:not(.is-open) .sec-head .more { height: calc(32 * var(--u)); } /* closed, "Annotation +" is the same 32 as "In original language +" across from it, so the two columns line up below */
+.sec-head { display: flex; justify-content: space-between; align-items: center; height: var(--fh); }
 .sec-close, .ann-pair-head .ann-remove, .fw-close { width: calc(12 * var(--u)); height: calc(12 * var(--u)); margin: 0; display: grid; place-items: center; color: var(--ink); justify-content: center; } /* one × everywhere: the 12px glyph */
 .sec-close { margin-right: calc(-3 * var(--u)); }
 /* Annotation rows (the form's sheet pattern, css/form.css): the → and × in the Word field are
@@ -243,8 +245,7 @@
 .sec--opt.is-many .sec-close { display: none; } /* with two or more, each pair has its own × */
 .sec--opt:not(.is-open) .sec-title, .sec--opt:not(.is-open) .sec-close { display: none; }
 .sec--opt.is-open .sec-head .more { display: none; }
-.sec-body { display: flex; flex-direction: column; gap: calc(8 * var(--u)); }
-.sec-body .more { margin-top: calc(-4 * var(--u)); }
+.sec-body { display: flex; flex-direction: column; gap: var(--gap-1); }
 
 /* CJK in a field (the original words, a native name) runs at the site's native scale, 80% of
    the Latin size, so it reads as the same weight of text (tokens.css --quote-native-scale). */
@@ -433,7 +434,7 @@
 
 /* The source's video, previewed under its link (js/admin.js → drawVideo): the platform's own
    player, 16:9; a vertical video (TikTok, Instagram, Shorts) fits its height, with bars. */
-.video-preview { position: relative; aspect-ratio: 16 / 9; background: #000; }
+.video-preview { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; } /* the column's width; js snaps its height to the grid's rows (and drops the ratio) */
 .video-preview iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .video-preview[data-orientation="vertical"] iframe { /* drawn at a phone's size, scaled to the box's height (js: --fit), centred */
   inset: 0 auto auto 50%; width: 360px; height: 640px;
