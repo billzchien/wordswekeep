@@ -226,6 +226,7 @@
    field's right edge when open. The × and the field's edge line up because both sit on the column's edge. */
 .sec-head { display: flex; justify-content: space-between; align-items: center; min-height: calc(var(--text-size) * var(--text-leading)); }
 .sec-head .more { height: auto; }
+.sec--opt:not(.is-open) .sec-head .more { height: calc(32 * var(--u)); } /* closed, "Annotation +" is the same 32 as "In original language +" across from it, so the two columns line up below */
 .sec-close, .ann-pair-head .ann-remove, .fw-close { width: calc(12 * var(--u)); height: calc(12 * var(--u)); margin: 0; display: grid; place-items: center; color: var(--ink); justify-content: center; } /* one × everywhere: the 12px glyph */
 .sec-close { margin-right: calc(-3 * var(--u)); }
 /* Annotation rows (the form's sheet pattern, css/form.css): the → and × in the Word field are
