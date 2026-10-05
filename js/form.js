@@ -23,14 +23,16 @@
   ];
   // Source kinds. The site sets a title in italics only for book and film (js/app.js → ITALIC_KINDS).
   // "Personal" (something said to the submitter), or no kind chosen yet: no source name or link.
+  // `hint`: what the empty source link field says for that kind — the platforms the site plays
+  // (js/app.js → VIDEO). Any link is still taken. Without one: "Source link".
   const KINDS = [
     { value: 'book', label: 'Book' },
-    { value: 'film', label: 'Film / TV' },
-    { value: 'song', label: 'Song' },
+    { value: 'film', label: 'Film / TV', hint: 'Link to YouTube, Vimeo, or another site' },
+    { value: 'song', label: 'Song', hint: 'Link to Apple Music, Spotify, or another site' },
     { value: 'poem', label: 'Poem' },
-    { value: 'speech', label: 'Speech / Interview' },
+    { value: 'speech', label: 'Speech / Interview', hint: 'Link to YouTube, Vimeo, or another site' },
     { value: 'writing', label: 'Writing' },
-    { value: 'social', label: 'Social media' },
+    { value: 'social', label: 'Social media', hint: 'Link to TikTok, Instagram, or another site' },
     { value: 'personal', label: 'Personal' },
     { value: 'other', label: 'Other' },
   ];
@@ -522,7 +524,12 @@
     if (on) { fold(name, true); showSourceFields.t = setTimeout(() => fold(link, true), SOURCE_STAGGER_MS); }
     else { fold(link, false); showSourceFields.t = setTimeout(() => fold(name, false), SOURCE_STAGGER_MS); }
   }
-  const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', label: 'Source category', onChange: (v) => { data.source.kind = v; showSourceFields(!!v && v !== 'personal'); } });
+  // The link field's hint (and what a screen reader hears) follows the kind.
+  function linkHint(v) {
+    const hint = (KINDS.find((k) => k.value === v) || {}).hint || 'Source link';
+    $('fSourceLink').placeholder = hint; $('fSourceLink').setAttribute('aria-label', hint);
+  }
+  const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', label: 'Source category', onChange: (v) => { data.source.kind = v; linkHint(v); showSourceFields(!!v && v !== 'personal'); } });
   const year = combo($('fYear'), { options: YEARS, placeholder: 'Year', free: true, onChange: (v) => { data.source.year = /^\d{1,4}$/.test(v) ? v : ''; } });
   year.input.inputMode = 'numeric';
 
@@ -741,7 +748,7 @@
     fold($('fOriginalWrap'), false); fold($('origToggleWrap'), true); fold($('fNativeWrap'), false); showSourceFields(false);
     document.querySelectorAll('.cat').forEach((b) => b.setAttribute('aria-checked', 'false'));
     document.querySelectorAll('.fw.is-warn').forEach((w) => w.classList.remove('is-warn'));
-    country.set(''); kind.set(''); year.set('');
+    country.set(''); kind.set(''); year.set(''); linkHint('');
     // From "Words submitted", a fresh step 1 comes in from below (one slide down, like every
     // other step), not by rewinding up through all five. Step 1 is parked under the done screen
     // for the slide, then everything is put back in place without a transition.

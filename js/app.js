@@ -174,7 +174,11 @@
      comes up: it says whether the video is there, and — Vimeo, TikTok — gives a thumbnail.
      YouTube's thumbnail has a fixed address; Instagram gives none. With no thumbnail (or none
      that loads) the spot shows the platform's logo instead (Figma 421:1179). A link to any other
-     site is not a video here: the source's title is underlined and links to it. */
+     site is not a video here: the source's title is underlined and links to it.
+     Music (since 2026-10-05, Figma 430:2508 / 2543 / 2603): a link to Spotify or Apple Music gets
+     the same spot, square — the cover, else the platform's logo — and opens the platform's own
+     player in its dark look, as wide as a video's, untouched. Spotify's lookup is its oEmbed;
+     Apple's is the iTunes lookup, asked in the link's own country. */
   // Where a shared link says to start, in seconds: YouTube's "start at" (?t=90, &t=1m30s,
   // &start=90) and Vimeo's (#t=1m30s). 0 when it says nothing.
   function startOf(link) {
@@ -209,6 +213,27 @@
       player: (v) => `https://www.instagram.com/${v.id}/embed/`,
       vertical: () => true,
     },
+    // Music: `music` marks them; `height` is the player's (the platforms' own sizes: one song is
+    // the short banner, an album or playlist the tall one with its tracks); `bg` its dark grey,
+    // the container's (and the morph's) colour, so the player's rounded corners melt into it.
+    spotify: {
+      music: true,
+      match: (l) => { const m = l.match(/open\.spotify\.com\/(?:intl-[\w-]+\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]+)/); return m ? `${m[1]}/${m[2]}` : null; },
+      lookup: (l) => `https://open.spotify.com/oembed?url=${encodeURIComponent(l)}`,
+      player: (v) => `https://open.spotify.com/embed/${v.id}?theme=0`,
+      bg: '#1f1f1f',
+      height: (v) => (/^(track|episode)\//.test(v.id) ? 152 : 352),
+    },
+    apple: {
+      music: true,
+      match: (l) => { const m = l.match(/music\.apple\.com\/[a-z]{2}\/(album|song|playlist)\/(?:[^/?#]+\/)?([\w.-]+)/); return m ? ((l.match(/[?&]i=(\d+)/) || [])[1] || m[2]) : null; }, // a song in an album: its own id (?i=)
+      // (a playlist, pl.…, has no lookup: its player is simply offered, with the logo)
+      lookup: (l, v) => (/^\d+$/.test(v.id) ? `https://itunes.apple.com/lookup?id=${v.id}&country=${l.match(/music\.apple\.com\/([a-z]{2})\//)[1]}` : null),
+      read: (d) => (d.resultCount ? { thumb: (d.results[0].artworkUrl100 || '').replace(/100x100bb/, '400x400bb') || null } : null),
+      player: (v) => { const u = new URL(v.link), i = u.searchParams.get('i'); return `https://embed.music.apple.com${u.pathname}?${i ? `i=${i}&` : ''}theme=dark`; },
+      bg: '#1c1c1e',
+      height: (v) => (/[?&]i=\d+/.test(v.link) || /\/song\//.test(v.link) ? 175 : 450),
+    },
   };
   const videoLink = (q) => (q.source && q.source.link) || '';
   function videoOf(q) {
@@ -216,6 +241,7 @@
     for (const [platform, p] of Object.entries(VIDEO)) {
       const id = p.match(link);
       if (!id) continue;
+      if (p.music) return { platform, id, link, orientation: 'music' };
       const vertical = (q.source && q.source.orientation === 'vertical') || !!(p.vertical && p.vertical(link));
       return { platform, id, link, orientation: vertical ? 'vertical' : 'horizontal' };
     }
@@ -229,12 +255,17 @@
   function lookupVideo(video) {
     if (!video) return null;
     if (videoInfo.has(video.link)) return videoInfo.get(video.link);
-    const info = { state: 'pending', thumb: VIDEO[video.platform].thumb ? VIDEO[video.platform].thumb(video) : null };
+    const p = VIDEO[video.platform];
+    const info = { state: 'pending', thumb: p.thumb ? p.thumb(video) : null };
+    videoInfo.set(video.link, info);
+    const url = p.lookup(video.link, video);
+    if (!url) { info.state = 'ok'; info.done = Promise.resolve(info); return info; } // nothing to ask
     const stop = new AbortController(), timer = setTimeout(() => stop.abort(), VIDEO_WAIT_MS);
-    info.done = fetch(VIDEO[video.platform].lookup(video.link), { signal: stop.signal })
+    info.done = fetch(url, { signal: stop.signal })
       .then((r) => { if (!r.ok) { info.state = 'broken'; return null; } return r.json(); })
       .then((d) => {
         if (!d) return;
+        if (p.read) { d = p.read(d); if (!d) { info.state = 'broken'; return; } d = { thumbnail_url: d.thumb }; } // (Apple's answer, in oEmbed's words)
         info.state = 'ok';
         if (d.thumbnail_url && !info.thumb) info.thumb = d.thumbnail_url;
         if (d.embed_product_id) info.id = String(d.embed_product_id);
@@ -243,7 +274,6 @@
       })
       .catch(() => { info.state = 'offline'; })
       .then(() => { clearTimeout(timer); return info; });
-    videoInfo.set(video.link, info);
     return info;
   }
 
@@ -575,6 +605,7 @@
     setNumber(q.id);
     const video = videoOf(q);
     if (video) { const info = lookupVideo(video); if (info.thumb) { const warm = new Image(); warm.src = info.thumb; } } // asked now, so the notes know what to show (and the thumbnail never pops in)
+    else if (q.source && q.source.kind === 'book' && q.source.cover) { const warm = new Image(); warm.src = q.source.cover; } // a book's cover, likewise
     try { sessionStorage.setItem('wwk-quote', q.id); } catch (e) {} // a reload stays on this quote; the address stays clean (no #id)
   }
 
@@ -790,24 +821,34 @@
   // The video spot: the video's own thumbnail when there is one, else the platform's logo on
   // black (a square-ish card, a smaller play mark in the palette's colour; YouTube's logo is a
   // play mark already and gets none). A thumbnail that fails to load turns into the logo card.
-  const logoThumbHTML = (video) => `<button class="thumb thumb--logo" data-video data-platform="${video.platform}" aria-label="Play video">
-      <img class="thumb-logo" src="assets/icons/video-${video.platform}.svg" alt="">
+  const playLabel = (video) => (VIDEO[video.platform].music ? 'Play music' : 'Play video');
+  const logoThumbHTML = (video) => `<button class="thumb thumb--logo" data-video data-platform="${video.platform}" aria-label="${playLabel(video)}">
+      <img class="thumb-logo" src="assets/icons/${VIDEO[video.platform].music ? 'music' : 'video'}-${video.platform}.svg" alt="">
       ${video.platform === 'youtube' ? '' : '<span class="thumb-play thumb-play--sm"><span class="icon"></span></span>'}
     </button>`;
   function thumbHTML(video) {
     const info = lookupVideo(video);
     if (!info.thumb || info.state === 'offline' || info.state === 'broken') return logoThumbHTML(video);
     const second = video.platform === 'youtube' ? ` data-second="https://i.ytimg.com/vi/${video.id}/mqdefault.jpg"` : '';
-    return `<button class="thumb" data-video data-platform="${video.platform}" data-orientation="${video.orientation}" aria-label="Play video">
+    return `<button class="thumb" data-video data-platform="${video.platform}" data-orientation="${video.orientation}" aria-label="${playLabel(video)}">
       <img src="${esc(info.thumb)}"${second} alt="" decoding="sync">
       <span class="thumb-play"><img src="assets/icons/play.svg" alt=""></span>
     </button>`;
+  }
+  // A book's cover (since 2026-10-05; picked in the library, source.cover): in the video spot, as
+  // wide as a thumbnail at its own height — a picture only, not a button (the source's title
+  // carries any link). A cover that fails to load simply goes.
+  function coverHTML(q) {
+    const src = q.source || {};
+    if (src.kind !== 'book' || !src.cover) return '';
+    return `<span class="thumb thumb--cover"><img src="${esc(src.cover)}" alt="${src.title ? `Cover of ${esc(src.title)}` : 'Book cover'}" decoding="sync"></span>`;
   }
   // (error does not bubble: caught on the way down.) A YouTube thumbnail has a smaller second
   // address to try; after that, or for any other, the logo card takes the thumbnail's place.
   document.addEventListener('error', (e) => {
     const img = e.target;
     if (!(img instanceof HTMLImageElement) || !img.parentNode || !img.parentNode.matches || !img.parentNode.matches('.thumb:not(.thumb--logo)')) return;
+    if (img.parentNode.matches('.thumb--cover')) { img.parentNode.remove(); return; } // a book's cover: none, then
     if (img.dataset.second) { img.src = img.dataset.second; delete img.dataset.second; return; }
     const video = videoOf(current());
     if (video) img.parentNode.outerHTML = logoThumbHTML(video);
@@ -854,7 +895,7 @@
     renderNotesQuote();
 
     const video = videoOf(q);
-    $('nVideoPin').innerHTML = $('nVideoCol').innerHTML = video ? thumbHTML(video) : '';
+    $('nVideoPin').innerHTML = $('nVideoCol').innerHTML = video ? thumbHTML(video) : coverHTML(q);
 
     $('nKept').textContent = q.keptBy || 'a fellow human';
     // The context first, then the personal note (the other way round until 2026-10-04).
@@ -1918,9 +1959,10 @@
   });
 
   // A stand-in showing the thumbnail image, animated between two rectangles.
-  function morph(poster, from, to, done) {
+  function morph(poster, from, to, done, bg = '') {
     const el = document.createElement('div');
     el.className = 'video-morph';
+    el.style.background = bg; // (music: the player's grey)
     if (poster) el.innerHTML = `<img src="${esc(poster)}" alt="">`; // (a logo card has none: the morph is a black box)
     setRect(el, from);
     app.appendChild(el);
@@ -1957,33 +1999,37 @@
     // Only a video the platform has just vouched for is opened: a broken link, or a platform
     // that cannot be reached from here, gets a word instead of a dead player.
     const info = await lookupVideo(video).done;
-    if (info.state !== 'ok' || !thumb.isConnected) { videoBusy = false; if (thumb.isConnected) toast('Video not available.'); return; }
+    const music = !!VIDEO[video.platform].music;
+    if (info.state !== 'ok' || !thumb.isConnected) { videoBusy = false; if (thumb.isConnected) toast(music ? 'Music not available.' : 'Video not available.'); return; }
     if (info.id) video.id = info.id;
     if (info.vertical) video.orientation = 'vertical';
     videoThumb = thumb;
-    const poster = posterOf(thumb);
+    const poster = music ? '' : posterOf(thumb); // music: a cover would not stretch into the player's banner — the morph is the container's grey
     const box = $('videoBox'), frame = $('videoFrame');
     box.dataset.orientation = video.orientation;
+    box.style.setProperty('--player-h', music ? `${VIDEO[video.platform].height(video)}px` : '');
     box.dataset.platform = video.platform;
     box.classList.remove('is-ready');
     frame.innerHTML = '';
     frame.style.backgroundImage = poster ? `url("${poster}")` : '';
+    frame.style.backgroundColor = music ? VIDEO[video.platform].bg : '';
     $('videoOverlay').hidden = false;
     const from = thumb.getBoundingClientRect(), to = box.getBoundingClientRect();
     thumb.style.visibility = 'hidden';
     dim(true);
     morph(poster, from, to, (el) => {
-      frame.innerHTML = `<iframe src="${esc(VIDEO[video.platform].player(video))}" title="Video" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+      frame.innerHTML = `<iframe src="${esc(VIDEO[video.platform].player(video))}" title="${music ? 'Music' : 'Video'}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
       box.classList.add('is-ready');
       setTimeout(() => el.remove(), 250); // the poster stays underneath while the player loads
       videoBusy = false;
-    });
+    }, frame.style.backgroundColor);
   }
 
   function closeVideo() {
     if ($('videoOverlay').hidden || videoBusy) return;
     const thumb = videoThumb, box = $('videoBox'), frame = $('videoFrame');
-    const poster = posterOf(thumb);
+    const music = box.dataset.orientation === 'music';
+    const poster = music ? '' : posterOf(thumb);
     const reset = () => {
       frame.innerHTML = '';
       box.classList.remove('is-ready');
@@ -1998,7 +2044,7 @@
     frame.innerHTML = '';
     box.classList.remove('is-ready');
     dim(false);
-    morph(poster, from, to, (el) => { reset(); el.remove(); });
+    morph(poster, from, to, (el) => { reset(); el.remove(); }, frame.style.backgroundColor);
   }
 
   function closeOverlays({ instant = false } = {}) {
@@ -2149,6 +2195,7 @@
   }).catch(() => {});
   function hoverMark() {
     if (!markMorph || markBusy || reduceMotion.matches || !canHover.matches || !menuEl.hidden || state.mode !== 'main') return;
+    if (menuBusy || modeBusy || langBusy || state.animating) return; // the menu could not open now (the quote typing in, changing, …): no invitation to it either (openMenu's own test)
     const from = state.filter;
     let to = 'all';
     if (from === 'all') {
@@ -2511,15 +2558,25 @@
     updateMenuPreview();
   });
   catList.addEventListener('mouseover', (e) => {
+    previewHeld = false;
     const row = e.target.closest('[data-cat]');
     if (!row || !mqHoverDesktop.matches || state.preview === row.dataset.cat) return;
     state.preview = row.dataset.cat;
     updateMenuPreview();
   });
-  catList.addEventListener('mouseleave', () => {
+  // Leaving the list goes back to the selected category — except to the right, toward the
+  // description: the previewed one stays, to be read (and its links clicked), until the pointer
+  // comes back left of the list's edge.
+  let previewHeld = false;
+  const backToSelected = () => { previewHeld = false; state.preview = state.filter; updateMenuPreview(); };
+  catList.addEventListener('mouseleave', (e) => {
     if (!mqHoverDesktop.matches) return;
-    state.preview = state.filter;
-    updateMenuPreview();
+    if (e.clientX >= catList.getBoundingClientRect().right - 1) { previewHeld = true; return; }
+    backToSelected();
+  });
+  menuEl.addEventListener('mousemove', (e) => {
+    if (!previewHeld || !mqHoverDesktop.matches || catList.contains(e.target)) return;
+    if (e.clientX < catList.getBoundingClientRect().right - 1) backToSelected();
   });
 
   /* ---------- Keyboard & resize ---------- */
