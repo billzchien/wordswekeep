@@ -2063,15 +2063,18 @@
 
   // The mark: the current category's symbol draws itself in (or, `animate` false, is simply there).
   let markStop = null;
+  let markBusy = false; // the mark is drawing (in, out, or the hover's redraw); markStop alone stays set after a draw-in
   function drawMark(animate = true) {
     const name = SYM[state.filter];
     markReady.then(({ lib, model, r }) => {
       if (markStop) markStop();
       markStop = null;
       $('menuBtn').classList.remove('is-static');
+      markBusy = false;
       if (!animate) return r.rest(name);
       r.drawIn(name, 0);
-      markStop = lib.play(model, (t) => r.drawIn(name, t, SYM_SMALL_STRIDE)); // reduced motion: straight to the end
+      markBusy = true;
+      markStop = lib.play(model, (t) => r.drawIn(name, t, SYM_SMALL_STRIDE), () => { markBusy = false; }); // reduced motion: straight to the end
     }).catch(() => {});
   }
   // Notes: each category's symbol beside its name (renderNotes), drawn live so it can draw in
@@ -2103,6 +2106,7 @@
   function undrawMark(ms, done) {
     if (markStop) markStop();
     markStop = null;
+    markBusy = false;
     if (!markSym) return done(); // not loaded: nothing to play
     const name = SYM[state.filter], t0 = performance.now(), ease = markSym.model.ease;
     // The site's curve runs forwards in time (off fast, a long brake), so most of the symbol is
@@ -2112,16 +2116,69 @@
     const tick = (now) => {
       const t = Math.min((now - t0) / ms, 1);
       markSym.r.drawIn(name, t < 1 ? at(1 - ease(t)) : 0, SYM_SMALL_STRIDE);
-      if (t < 1) raf = requestAnimationFrame(tick); else { markStop = null; done(); }
+      if (t < 1) raf = requestAnimationFrame(tick); else { markStop = null; markBusy = false; done(); }
     };
+    markBusy = true;
     raf = requestAnimationFrame(tick);
     markStop = () => cancelAnimationFrame(raf);
   }
   function clearMark() { // nothing drawn: the state a draw-in starts from
     if (markStop) markStop();
     markStop = null;
+    markBusy = false;
     if (markSym) markSym.r.drawIn(SYM[state.filter], 0);
   }
+
+  // Hovering the mark (a mouse, at any width): it redraws, along the pair's bridge, into another symbol and
+  // straight back (fast, a slow drift while it is up, fast back), MARK_HOVER_MS each way — on All, into one of the current quote's categories
+  // (picked at random when it has several); on a category, into All. It needs the transitions
+  // file (the menu's): once that is in, the mark's renderer is made again to carry both.
+  const MARK_HOVER_MS = 400;   // each half: into the other symbol, and back
+  const MARK_HOVER_HOLD = 3;   // the way out: 1 = even speed; higher = a faster start, a longer drift while the new shape is up
+  const MARK_HOVER_BACK = 'cubic-bezier(0.8, 0, 0.35, 1)'; // the way back: slow out of the drift, quick, slowing to land
+  const canHover = window.matchMedia('(hover: hover) and (pointer: fine)');
+  let markMorph = false; // the mark's renderer can redraw from one symbol into another
+  menuReady.then(function swap() {
+    if (markBusy) return setTimeout(swap, 100); // the mark is drawing (in or out): not mid-way
+    const svg = $('markSym');
+    svg.replaceChildren();
+    markSym.r = markSym.lib.createRenderer(svg, menuSym.model, { ...SYM_SMALL, drawInModel: markSym.model });
+    if (menuEl.hidden) markSym.r.rest(SYM[state.filter]); else markSym.r.drawIn(SYM[state.filter], 0); // (menu open: the mark is undrawn)
+    markMorph = true;
+  }).catch(() => {});
+  function hoverMark() {
+    if (!markMorph || markBusy || reduceMotion.matches || !canHover.matches || !menuEl.hidden || state.mode !== 'main') return;
+    const from = state.filter;
+    let to = 'all';
+    if (from === 'all') {
+      const cats = (current() && current().categories) || [];
+      if (!cats.length) return;
+      to = cats[Math.floor(Math.random() * cats.length)];
+    }
+    const a = SYM[from], b = SYM[to], t0 = performance.now();
+    // Fast out, a slow drift while the new shape is up, fast back, a gentle landing: the way
+    // out is 1 - (1 - 2τ)^MARK_HOVER_HOLD, the way back MARK_HOVER_BACK. The way back rewinds the same
+    // bridge. The file's own easing is undone first (the head's progress is ease(time)), so
+    // the speed is this curve's, not the file's.
+    const M = menuSym.model, D = M.S.durationMs, lag = M.S.thinEndDelayMs, run = Math.max(D - lag, 1);
+    const unease = (v) => { let lo = 0, hi = 1; for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; if (M.ease(mid) < v) lo = mid; else hi = mid; } return (lo + hi) / 2; };
+    const timeFor = (shape) => Math.min(1, (unease(shape) * run + shape * lag) / D); // the trailing end lands as the shape reaches 1
+    let raf = 0;
+    const tick = (now) => {
+      const tau = (now - t0) / (2 * MARK_HOVER_MS);
+      if (tau >= 1) { markSym.r.rest(a); markStop = null; markBusy = false; return; }
+      const shape = tau < 0.5
+        ? 1 - Math.pow(1 - 2 * tau, MARK_HOVER_HOLD)                 // out: fast, slowing into the new shape
+        : 1 - easeProgressAt(2 * tau - 1, MARK_HOVER_BACK);          // back: out of the slow-mo, quick, easing onto the original
+      markSym.r.transition(a, b, timeFor(shape), SYM_SMALL_STRIDE);
+      raf = requestAnimationFrame(tick);
+    };
+    if (markStop) markStop(); // (a finished draw-in's)
+    markBusy = true;
+    raf = requestAnimationFrame(tick);
+    markStop = () => { cancelAnimationFrame(raf); markSym.r.rest(a); markBusy = false; }; // a click opens the menu mid-way: it undraws from the symbol itself
+  }
+  $('menuBtn').addEventListener('mouseenter', hoverMark);
 
   // The menu's symbol. One redraw runs at a time, rest to rest: a preview that changes on the
   // way is picked up as the current one lands (`want`), from the symbol then shown.
