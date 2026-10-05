@@ -2130,12 +2130,13 @@
   }
 
   // Hovering the mark (a mouse, at any width): it redraws, along the pair's bridge, into another symbol and
-  // straight back (fast, a slow drift while it is up, fast back), MARK_HOVER_MS each way — on All, into one of the current quote's categories
+  // straight back (fast, a slow drift while it is up, fast back), growing to 28 with it, MARK_HOVER_MS each way — on All, into one of the current quote's categories
   // (picked at random when it has several); on a category, into All. It needs the transitions
   // file (the menu's): once that is in, the mark's renderer is made again to carry both.
   const MARK_HOVER_MS = 400;   // each half: into the other symbol, and back
   const MARK_HOVER_HOLD = 3;   // the way out: 1 = even speed; higher = a faster start, a longer drift while the new shape is up
   const MARK_HOVER_BACK = 'cubic-bezier(0.8, 0, 0.35, 1)'; // the way back: slow out of the drift, quick, slowing to land
+  const MARK_HOVER_SIZE = 28 / 24; // it grows with the redraw, 24 → 28 at the other symbol, and back (the same curve)
   const canHover = window.matchMedia('(hover: hover) and (pointer: fine)');
   let markMorph = false; // the mark's renderer can redraw from one symbol into another
   menuReady.then(function swap() {
@@ -2163,20 +2164,22 @@
     const M = menuSym.model, D = M.S.durationMs, lag = M.S.thinEndDelayMs, run = Math.max(D - lag, 1);
     const unease = (v) => { let lo = 0, hi = 1; for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; if (M.ease(mid) < v) lo = mid; else hi = mid; } return (lo + hi) / 2; };
     const timeFor = (shape) => Math.min(1, (unease(shape) * run + shape * lag) / D); // the trailing end lands as the shape reaches 1
+    const svg = $('markSym');
     let raf = 0;
     const tick = (now) => {
       const tau = (now - t0) / (2 * MARK_HOVER_MS);
-      if (tau >= 1) { markSym.r.rest(a); markStop = null; markBusy = false; return; }
+      if (tau >= 1) { markSym.r.rest(a); svg.style.scale = ''; markStop = null; markBusy = false; return; }
       const shape = tau < 0.5
         ? 1 - Math.pow(1 - 2 * tau, MARK_HOVER_HOLD)                 // out: fast, slowing into the new shape
         : 1 - easeProgressAt(2 * tau - 1, MARK_HOVER_BACK);          // back: out of the slow-mo, quick, easing onto the original
       markSym.r.transition(a, b, timeFor(shape), SYM_SMALL_STRIDE);
+      svg.style.scale = (1 + (MARK_HOVER_SIZE - 1) * shape).toFixed(4);
       raf = requestAnimationFrame(tick);
     };
     if (markStop) markStop(); // (a finished draw-in's)
     markBusy = true;
     raf = requestAnimationFrame(tick);
-    markStop = () => { cancelAnimationFrame(raf); markSym.r.rest(a); markBusy = false; }; // a click opens the menu mid-way: it undraws from the symbol itself
+    markStop = () => { cancelAnimationFrame(raf); markSym.r.rest(a); svg.style.scale = ''; markBusy = false; }; // a click opens the menu mid-way: it undraws from the symbol itself, at its own size
   }
   $('menuBtn').addEventListener('mouseenter', hoverMark);
 
