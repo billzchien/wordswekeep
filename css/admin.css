@@ -445,15 +445,13 @@
 }
 /* A book's cover, picked under its source (js/admin.js → drawCovers): the covers found, four to a
    row, each a tile like a checkbox row — the field's grey, its box at the top left (over the cover
-   is fine: Bill), checked when picked — the cover whole on it (contain), no text (the title and author on hover). */
+   is fine: Bill), checked when picked — the cover whole on it (contain), no text (the title and author on hover). The tile is the notes' background the
+   cover will sit on: the quote's category's, or a band of each when it has several (js: --cover-bg). */
 .cover-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap-1); }
 .cover-pick {
   position: relative; display: flex; flex-direction: column; padding: var(--fpad);
-  background: var(--field); color: var(--placeholder); text-align: left; min-width: 0;
-  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+  background: var(--cover-bg, var(--field)); color: var(--placeholder); text-align: left; min-width: 0;
 }
-@media (hover: hover) { .cover-pick:hover { background: var(--field-hover); } }
-.cover-pick[aria-checked="true"] { color: var(--ink); background: var(--field-hover); }
 .cover-pick > .chk-box { position: absolute; top: var(--fpad); left: var(--fpad); z-index: 1; background: var(--field); }
 .cover-pick[aria-checked="true"] .chk-box { background: var(--ink); box-shadow: none; }
 .cover-pick[aria-checked="true"] .icon-check { display: block; }

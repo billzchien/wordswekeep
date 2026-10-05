@@ -802,6 +802,7 @@
     mark();
     edit.draft.categories = on ? [...edit.draft.categories, k] : edit.draft.categories.filter((x) => x !== k);
     b.setAttribute('aria-checked', String(on));
+    coverGround();
     updateDirty();
   });
 
@@ -960,7 +961,16 @@
     </button>`;
   // The tiles, the picked one checked (a pasted or earlier pick that is not among them comes first).
   // The cover alone, no text under it (Bill, 2026-10-05): its title and author are on hover.
+  // The tiles sit on the notes' background, the quote's category's (tokens.css); with several, the
+  // notes take one at random each time, so the tile is split into a band of each (Bill, 2026-10-05).
+  function coverGround() {
+    const cats = edit ? CATEGORIES.map((c) => c.key).filter((k) => edit.draft.categories.includes(k)) : [];
+    const list = cats.length ? cats : ['perspective']; // (none yet: the archive's own fallback)
+    $('fCovers').style.setProperty('--cover-bg', list.length === 1 ? `var(--${list[0]}-bg)`
+      : `linear-gradient(to right, ${list.map((k, i) => `var(--${k}-bg) ${(i * 100 / list.length).toFixed(2)}% ${((i + 1) * 100 / list.length).toFixed(2)}%`).join(', ')})`);
+  }
   function pickCovers(list) {
+    coverGround();
     const cover = edit ? edit.draft.source.cover : '';
     const tiles = cover && !list.some((c) => c.src === cover) ? [{ src: cover, title: 'Picked' }, ...list] : list;
     $('fCovers').innerHTML = tiles.length ? tiles.map((c) => coverTile(c, c.src === cover)).join('') : `<p class="cover-note">${drawCovers.busy ? 'Looking for covers…' : 'No covers found.'}</p>`;
