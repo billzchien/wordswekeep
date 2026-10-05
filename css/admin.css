@@ -5,6 +5,7 @@
 
 :root {
   --fh: calc(40 * var(--u));         /* fields and the checkbox rows are 40 here (the public form: 48) */
+  --ta-s: calc(3 * var(--fh));       /* every large box (the words, context, personal note…): three fields, 120 (Bill, 2026-10-04; it was 100) */
   --rule: #b2b2b2;                   /* table rules, the edit view's meta rule */
   --head: #5e5e5e;                   /* table column heads */
   --meta: #707070;                   /* "Last published", No. / Published */
@@ -201,7 +202,7 @@
 .chk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-1); }
 .chk:last-child:nth-child(odd) { grid-column: span 2; }
 .chk {
-  display: flex; align-items: center; gap: calc(10 * var(--u)); height: calc(42 * var(--u)); padding: 0 var(--fpad);
+  display: flex; align-items: center; gap: calc(10 * var(--u)); height: var(--fh); padding: 0 var(--fpad);
   background: var(--field); color: var(--placeholder); text-align: left;
   transition: background 0.15s var(--ease), color 0.15s var(--ease);
 }
@@ -217,7 +218,7 @@
 .ann-pair { display: flex; flex-direction: column; gap: var(--gap-1); }
 .ann-pair-head { display: flex; justify-content: space-between; align-items: center; color: var(--meta); font-feature-settings: var(--numeral-features); padding: calc(4 * var(--u)) 0 calc(2 * var(--u)); }
 .ann-pair-head .ann-remove { color: var(--ink); }
-.ann-pair .field--word { height: calc(42 * var(--u)); }
+.ann-pair .field--word { height: var(--fh); }
 
 /* A field that can be taken away again (the original-language words): × in its top-right corner. */
 .fw--closable .field { padding-right: calc(2 * var(--fpad) + 12 * var(--u)); }
