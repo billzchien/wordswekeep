@@ -961,14 +961,24 @@
     </button>`;
   // The tiles, the picked one checked (a pasted or earlier pick that is not among them comes first).
   // The cover alone, no text under it (Bill, 2026-10-05): its title and author are on hover.
-  // The tiles sit on the notes' background, the quote's category's (tokens.css); with several, the
-  // notes take one at random each time, so the tile is split into a band of each (Bill, 2026-10-05).
+  // The tiles sit on the notes' background, a category's (tokens.css). With several, the notes take
+  // one at random each time: "Note background" steps to the next (Bill, 2026-10-05; only for
+  // looking, not stored — off with one category).
+  let coverGroundAt = 0;
   function coverGround() {
     const cats = edit ? CATEGORIES.map((c) => c.key).filter((k) => edit.draft.categories.includes(k)) : [];
     const list = cats.length ? cats : ['perspective']; // (none yet: the archive's own fallback)
-    $('fCovers').style.setProperty('--cover-bg', list.length === 1 ? `var(--${list[0]}-bg)`
-      : `linear-gradient(to right, ${list.map((k, i) => `var(--${k}-bg) ${(i * 100 / list.length).toFixed(2)}% ${((i + 1) * 100 / list.length).toFixed(2)}%`).join(', ')})`);
+    const k = list[coverGroundAt % list.length], name = (CATEGORIES.find((c) => c.key === k) || {}).name || k;
+    $('fCovers').style.setProperty('--cover-bg', `var(--${k}-bg)`);
+    $('fCoverBg').setAttribute('aria-disabled', String(list.length < 2));
+    $('fCoverBg').setAttribute('aria-label', `Note background: ${name}${list.length < 2 ? '' : ', show the next category'}`);
+    $('fCoverBg').title = name;
   }
+  $('fCoverBg').addEventListener('click', () => {
+    if ($('fCoverBg').getAttribute('aria-disabled') === 'true') return;
+    coverGroundAt += 1; coverGround();
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) $('fCoverBg').querySelector('.icon').style.rotate = `${coverGroundAt * 360}deg`; // one more turn clockwise
+  });
   function pickCovers(list) {
     coverGround();
     const cover = edit ? edit.draft.source.cover : '';
