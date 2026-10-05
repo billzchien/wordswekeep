@@ -1,6 +1,10 @@
 /* Words We Keep — main experience. Plain JS, renders from data/quotes.json. */
 (() => {
-  const DATA_URL = 'data/quotes.json';
+  // TEMPORARY (native-test.html; remove with that page and data/native-samples.json): ?samples
+  // reads made-up quotes with Chinese, Japanese, Korean in every typed field instead of the real
+  // ones; &notes opens straight in the notes.
+  const SAMPLES = /[?&]samples\b/.test(location.search);
+  const DATA_URL = SAMPLES ? 'data/native-samples.json' : 'data/quotes.json';
   const FACES_URL = 'data/faces.json'; // the quote faces' tuned settings (the library's Fonts tab)
 
   const CATEGORIES = [
@@ -158,14 +162,36 @@
     return 'xs';
   }
 
-  // Chinese/Japanese/Korean set inside running Latin text looks oversized at the same font size,
-  // so those runs get the smaller native-script style (same as the author's native name).
+  // Anything typed, in a script Crimson Pro does not have (it has Latin and Vietnamese only), is
+  // set in that script's Noto, sized to sit with Crimson Pro, and upright (css .n-native, .n-script):
+  // · Chinese/Japanese/Korean set inside running Latin text looks oversized at the same font size,
+  //   so those runs get the smaller native-script style (same as the author's native name);
+  // · the others (since 2026-10-05): Cyrillic and Greek in Noto Serif, Arabic, Hebrew, Thai and
+  //   Devanagari in Noto Sans — at 0.78 of the text, where Noto's x-height (53.6% of the em, the
+  //   same across its scripts) meets Crimson Pro's (42.0%). Arabic and Hebrew runs read right to
+  //   left on their own (dir, css isolate); a paragraph whose first letter is Arabic or Hebrew
+  //   reads right to left (rtlFirst → dir="rtl"), so a full stop lands where it belongs. (Not
+  //   dir="auto": it looks past the letters inside the runs' isolates and finds none.)
   const CJK_RUN = /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\uff00-\uffef\u3000-\u303f]+/g;
-  const nativeRuns = (escapedHtml) => escapedHtml.replace(CJK_RUN, (run) => `<span class="n-native">${run}</span>`);
+  const SCRIPTS = [ // [class, letters, right to left]
+    ['cyrl', '\\u0400-\\u052f\\u1c80-\\u1c8f\\u2de0-\\u2dff\\ua640-\\ua69f'],
+    ['grek', '\\u0370-\\u03ff\\u1f00-\\u1fff'],
+    ['arab', '\\u0600-\\u06ff\\u0750-\\u077f\\u08a0-\\u08ff\\ufb50-\\ufdff\\ufe70-\\ufeff', true],
+    ['hebr', '\\u0590-\\u05ff\\ufb1d-\\ufb4f', true],
+    ['thai', '\\u0e00-\\u0e7f'],
+    ['deva', '\\u0900-\\u097f\\ua8e0-\\ua8ff'],
+  ].map(([cls, letters, rtl]) => [cls, rtl, new RegExp(`[${letters}]+(?:[ \\u00a0${rtl ? '\\u060c\\u061b\\u061f\\u05be\\u05f3\\u05f4"\'.,:;!?()«»\\-' : '\'\\-'}]+[${letters}]+)*${rtl ? '[.!?…\\u061f\\u06d4]*' : ''}`, 'g')]); // (a right-to-left sentence keeps its full stop)
+  // In a right-to-left paragraph, a stretch of Latin (with its own full stop) is kept left to right.
+  const LTR_RUN = /[A-Za-z0-9\u00c0-\u024f][^\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufeff]*?(?=\s*(?:[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufeff]|$))/g;
+  const ltrRuns = (escapedHtml) => escapedHtml.replace(LTR_RUN, (run) => `<span class="n-ltr" dir="ltr">${run}</span>`);
+  const rtlFirst = (text) => /^[^A-Za-z\u00c0-\u024f\u0370-\u052f\u0900-\u0e7f\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufeff]*[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufeff]/.test(text);
+  const nativeRuns = (escapedHtml) => SCRIPTS.reduce(
+    (html, [cls, rtl, re]) => html.replace(re, (run) => `<span class="n-script n-${cls}"${rtl ? ' dir="rtl"' : ''}>${run}</span>`),
+    escapedHtml.replace(CJK_RUN, (run) => `<span class="n-native">${run}</span>`));
 
   function paragraphs(text) {
     return text.split(/\n\s*\n/).map((p) => p.replace(/[​\s]+$/g, '').trim()).filter(Boolean)
-      .map((p) => `<p>${nativeRuns(esc(noOrphans(p))).replace(/\n/g, '<br>')}</p>`).join('');
+      .map((p) => { const rtl = rtlFirst(p), html = esc(noOrphans(p)); return `<p${rtl ? ' dir="rtl"' : ''}>${nativeRuns(rtl ? ltrRuns(html) : html).replace(/\n/g, '<br>')}</p>`; }).join(''); // (an Arabic or Hebrew paragraph reads right to left)
   }
 
   /* ---------- Video: a source link to YouTube, Vimeo, TikTok or Instagram ----------
@@ -875,11 +901,11 @@
     const country = a.country ? regionName(a.country) : '';
     const native = a.nativeName ? ` <span class="n-native">${esc(a.nativeName)}</span>` : '';
     // Row 1 author · row 2 country · row 3 source ("Title, Year")
-    let from = `${esc(a.name)}${native}`;
+    let from = `${nativeRuns(esc(a.name))}${native}`; // (anything typed: its Chinese, Japanese, Korean in Noto — nativeRuns)
     if (country) from += `<br>${esc(country)}`;
     const src = q.source || {}, link = videoLink(q);
     if (src.title) {
-      let label = ITALIC_KINDS.has(src.kind) ? `<i>${esc(src.title)}</i>` : esc(src.title);
+      let label = ITALIC_KINDS.has(src.kind) ? `<i>${nativeRuns(esc(src.title))}</i>` : nativeRuns(esc(src.title)); // (Noto upright inside the italics: css .n-native)
       if (src.year) label += `, ${esc(src.year)}`;
       const linked = link && !videoOf(q); // a video plays in the video spot; any other link is the title's
       from += `<span class="n-source">${linked ? `<span role="link" tabindex="0" data-href="${esc(link)}" data-out>${label}</span>` : label}</span>`; // (a block: its own row)
@@ -897,7 +923,7 @@
     const video = videoOf(q);
     $('nVideoPin').innerHTML = $('nVideoCol').innerHTML = video ? thumbHTML(video) : coverHTML(q);
 
-    $('nKept').textContent = q.keptBy || 'a fellow human';
+    $('nKept').innerHTML = q.keptBy ? nativeRuns(esc(q.keptBy)) : 'a fellow human';
     // The context first, then the personal note (the other way round until 2026-10-04).
     let body = q.context ? `<div class="n-context"><p>/Context/</p><div>${paragraphs(q.context)}</div></div>` : '';
     // With a context above it the personal note gets a title of its own, "/Note/" (set like
@@ -1889,7 +1915,9 @@
     word.textContent = el.textContent;
     const quoteEl = el.closest('.quote'); // the enlarged word is set in the quote's face, at the quote's scale
     word.dataset.font = quoteEl.dataset.font; word.dataset.tier = quoteEl.dataset.tier;
-    text.textContent = noOrphans(a.explanation);
+    const rtl = rtlFirst(a.explanation);
+    text.innerHTML = nativeRuns(rtl ? ltrRuns(esc(noOrphans(a.explanation))) : esc(noOrphans(a.explanation)));
+    text.dir = rtl ? 'rtl' : '';
     [word, text, back].forEach((n) => { n.style.transition = 'none'; });
     word.style.transform = '';
     overlay.hidden = false;
@@ -2679,6 +2707,7 @@
       }
       state.idx = found >= 0 ? found : 0;
       renderDeck();
+      if (SAMPLES && /[?&]notes\b/.test(location.search)) { drawMark(false); showChrome(); applyMode('notes'); return; } // native-test.html
       arrive();
     })
     .catch((err) => {

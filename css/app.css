@@ -398,7 +398,16 @@ ul { list-style: none; }
 /* Indents line the names up under the label's second word. */
 .n-indent--from { padding-left: 2.667em; } /* 40 / 15 */
 .n-indent--kept { padding-left: 2em; }     /* 30 / 15 */
-.n-native { font-family: var(--font-native); font-size: var(--text-native-size); letter-spacing: 0; }
+.n-native { font-family: var(--font-native); font-size: var(--text-native-size); letter-spacing: 0; font-style: normal; } /* any typed field's Chinese, Japanese, Korean (js: nativeRuns) — upright, even in an italic title */
+/* Any other script Crimson Pro lacks (js: nativeRuns): its Noto, at --script-scale of the text so
+   the x-heights meet, upright; a right-to-left run kept whole inside a left-to-right line. */
+.n-script { font-size: calc(var(--script-scale) * 1em); letter-spacing: 0; font-style: normal; }
+.n-script[dir="rtl"], .n-ltr { unicode-bidi: isolate; }
+.n-cyrl, .n-grek { font-family: 'Noto Serif', var(--font-text); font-style: inherit; } /* they have real italics: a Russian or Greek book title stays italic */
+.n-arab { font-family: 'Noto Sans Arabic', var(--font-native); }
+.n-hebr { font-family: 'Noto Sans Hebrew', var(--font-native); }
+.n-thai { font-family: 'Noto Sans Thai', var(--font-native); }
+.n-deva { font-family: 'Noto Sans Devanagari', var(--font-native); }
 .n-source {
   white-space: normal; display: block; text-wrap: balance;
   /* As wide as the top line allows: from the indent to the margin, keeping clear of Close (its

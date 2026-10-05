@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Native Script Test · Words We Keep</title>
+  <style>
+    /* TEMPORARY — remove with data/native-samples.json and the ?samples switch in js/app.js.
+       Links into the archive with made-up quotes that have Chinese, Japanese and Korean in every
+       field a visitor types, to see how each is set on the live site. Nothing here is real. */
+    * { box-sizing: border-box; margin: 0; }
+    body { background: #E6E6E6; color: #000; font: 16px/1.4 ui-sans-serif, system-ui, sans-serif; padding: 20px; max-width: 560px; }
+    h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    p { margin-bottom: 16px; color: #444; }
+    h2 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin: 24px 0 8px; }
+    a.case { display: block; padding: 14px 16px; margin-bottom: 4px; background: #f3f3f3; color: inherit; text-decoration: none; }
+    a.case small { display: block; color: #666; font-size: 13px; margin-top: 2px; }
+    ul { margin: 0 0 16px; padding-left: 20px; color: #444; }
+    li { margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Native script test</h1>
+  <p>Each case opens the archive straight in the notes of a made-up quote (the other scripts: public-domain lines). Every script should be set in its Noto, sized to sit with the English beside it: Chinese, Japanese, Korean in Noto Sans; Russian and Greek in Noto Serif (italic in a book title, like English); Arabic, Hebrew, Thai, Hindi in their Noto Sans, upright. Arabic and Hebrew read right to left, each sentence keeping its own full stop.</p>
+  <h2>Look at</h2>
+  <ul>
+    <li>Words from: the author's name, and the source name under it</li>
+    <li>Kept by: the name</li>
+    <li>The context and the personal note</li>
+    <li>An underlined word in the quote: its explanation</li>
+    <li>The language button (中 日 한): the quote in its original language</li>
+  </ul>
+  <div id="cases"></div>
+  <script>
+    const CASES = [
+      [901, 'Chinese (traditional)', 'Author 龍應台 · book 目送 · kept by 小明'],
+      [902, 'Japanese', 'Author 村上春樹 · book ノルウェイの森 · kept by さくら'],
+      [903, 'Korean', 'Author 한강 · book 소년이 온다 · kept by 지은'],
+      [904, 'Mixed, a book', 'Confucius 孔子 · The Analects 論語 · kept by Bill 陳'],
+      [905, 'Mixed, a film', 'Wong Kar-wai 王家衛 · In the Mood for Love 花樣年華 · kept by 阿傑 Jay'],
+      [906, 'Russian (Cyrillic)', 'Лев Толстой · Анна Каренина · kept by Наташа'],
+      [907, 'Greek', 'Ηράκλειτος · Αποσπάσματα (Fragments) · kept by Νίκος'],
+      [908, 'Arabic (right to left)', 'جبران خليل جبران · النبي (The Prophet) · kept by ليلى'],
+      [909, 'Hebrew (right to left)', 'הלל הזקן · פרקי אבות · kept by נועה'],
+      [910, 'Thai', 'สุภาษิตไทย · kept by น้ำฝน'],
+      [911, 'Hindi (Devanagari)', 'कबीर · कबीर के दोहे · kept by प्रिया'],
+    ];
+    const link = ([id, name, what]) => `<a class="case" href="./?samples&notes#${id}">${name}<small>${what}</small></a>`;
+    document.getElementById('cases').innerHTML = '<h2>Chinese, Japanese, Korean — set in Noto</h2>' + CASES.filter((c) => c[0] < 906).map(link).join('')
+      + '<h2>Other scripts — their Noto, at 0.78 of the text</h2>' + CASES.filter((c) => c[0] >= 906).map(link).join('');
+  </script>
+</body>
+</html>

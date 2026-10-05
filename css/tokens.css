@@ -28,7 +28,8 @@
   --noto-sans: 'Noto Sans SC', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans', sans-serif;
   --font-native:    var(--noto-sans);                                     /* native-script names (sans) */
   --font-native-quote: 'Noto Serif SC', 'Songti SC', serif;               /* original-language quotes, medium */
-  --font-native-ui: var(--noto-sans);                                     /* language button: 中 日 한 / EN */
+  --font-native-ui: var(--noto-sans);
+  --script-scale: 0.78;                                                   /* other scripts' Noto beside Crimson Pro: 42.0 ÷ 53.6, their x-heights */                                     /* language button: 中 日 한 / EN */
 
   /* ---------- Fluid unit ----------
      --u is "one design pixel". It is exactly 1px up to a 1440px-wide window, then grows with
