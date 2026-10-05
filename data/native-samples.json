@@ -1,0 +1,355 @@
+[
+  {
+    "id": 901,
+    "status": "live",
+    "text": "We only watch them leave, and tell them with our silence: no need to follow.",
+    "originalLanguage": {
+      "lang": "zh",
+      "text": "我慢慢地、慢慢地瞭解到，所謂父女母子一場，只不過意味著，你和他的緣分就是今生今世不斷地在目送他的背影漸行漸遠。"
+    },
+    "categories": [
+      "community"
+    ],
+    "author": {
+      "name": "龍應台",
+      "nativeName": null,
+      "country": "TW"
+    },
+    "source": {
+      "title": "目送",
+      "year": 2008,
+      "kind": "book",
+      "link": null
+    },
+    "context": "這段話出自〈目送〉一文，寫的是母親送兒子上學、送父親最後一程的心情。",
+    "annotations": [
+      {
+        "word": "watch",
+        "explanation": "「目送」：用眼睛送別，看著一個人離開，直到看不見為止。"
+      }
+    ],
+    "reflection": "每次在機場送家人離開時都會想起這段話。It still gets me every time.",
+    "keptBy": "小明"
+  },
+  {
+    "id": 902,
+    "status": "live",
+    "text": "Death exists, not as the opposite but as a part of life.",
+    "originalLanguage": {
+      "lang": "ja",
+      "text": "死は生の対極としてではなく、その一部として存在している。"
+    },
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "name": "村上春樹",
+      "nativeName": null,
+      "country": "JP"
+    },
+    "source": {
+      "title": "ノルウェイの森",
+      "year": 1987,
+      "kind": "book",
+      "link": null
+    },
+    "context": "主人公のワタナベが、親友キズキの死のあとに気づいたこと。",
+    "annotations": [
+      {
+        "word": "opposite",
+        "explanation": "対極：正反対の位置にあるもの。"
+      }
+    ],
+    "reflection": "高校生のときに初めて読んで、ずっと心に残っている言葉です。",
+    "keptBy": "さくら"
+  },
+  {
+    "id": 903,
+    "status": "live",
+    "text": "Can the past help the present? Can the dead save the living?",
+    "originalLanguage": {
+      "lang": "ko",
+      "text": "과거가 현재를 도울 수 있는가? 죽은 자가 산 자를 구할 수 있는가?"
+    },
+    "categories": [
+      "growth"
+    ],
+    "author": {
+      "name": "한강",
+      "nativeName": null,
+      "country": "KR"
+    },
+    "source": {
+      "title": "소년이 온다",
+      "year": 2014,
+      "kind": "book",
+      "link": null
+    },
+    "context": "작가가 노벨문학상 강연에서 이 질문을 다시 꺼냈다.",
+    "annotations": [
+      {
+        "word": "living",
+        "explanation": "산 자: 살아 있는 사람."
+      }
+    ],
+    "reflection": "이 질문을 읽고 오래 생각했어요. 지금도 답을 찾는 중입니다.",
+    "keptBy": "지은"
+  },
+  {
+    "id": 904,
+    "status": "live",
+    "text": "Is it not a joy to learn, and to practise what you have learned?",
+    "originalLanguage": {
+      "lang": "zh",
+      "text": "學而時習之，不亦說乎？"
+    },
+    "categories": [
+      "growth",
+      "drive"
+    ],
+    "author": {
+      "name": "Confucius",
+      "nativeName": "孔子",
+      "country": "CN"
+    },
+    "source": {
+      "title": "The Analects 論語",
+      "year": null,
+      "kind": "book",
+      "link": null
+    },
+    "context": "The first line of the Analects 論語, Book 1 學而. 說 here reads 悅, to be pleased.",
+    "annotations": [
+      {
+        "word": "practise",
+        "explanation": "習 (xí): to rehearse, like a young bird 羽 practising its wings."
+      }
+    ],
+    "reflection": "My grandfather made me recite this — 學而時習之 — before every exam.",
+    "keptBy": "Bill 陳"
+  },
+  {
+    "id": 905,
+    "status": "live",
+    "text": "He remembers those vanished years, as though looking through a dusty window pane.",
+    "originalLanguage": {
+      "lang": "zh",
+      "text": "那些消逝了的歲月，彷彿隔著一塊積著灰塵的玻璃，看得到，抓不著。"
+    },
+    "categories": [
+      "romance"
+    ],
+    "author": {
+      "name": "Wong Kar-wai",
+      "nativeName": "王家衛",
+      "country": "HK"
+    },
+    "source": {
+      "title": "In the Mood for Love 花樣年華",
+      "year": 2000,
+      "kind": "film",
+      "link": null
+    },
+    "context": "The closing title card of 花樣年華, over Angkor Wat.",
+    "annotations": [
+      {
+        "word": "vanished",
+        "explanation": "消逝 (xiāoshì): faded away, gone for good."
+      }
+    ],
+    "reflection": "The film I watch every winter. 每年冬天都會重看一次。",
+    "keptBy": "阿傑 Jay"
+  },
+  {
+    "id": 906,
+    "status": "live",
+    "text": "All happy families are alike; each unhappy family is unhappy in its own way.",
+    "originalLanguage": {
+      "lang": "ru",
+      "text": "Все счастливые семьи похожи друг на друга, каждая несчастливая семья несчастлива по-своему."
+    },
+    "categories": [
+      "community"
+    ],
+    "author": {
+      "name": "Лев Толстой",
+      "nativeName": null,
+      "country": "RU"
+    },
+    "source": {
+      "title": "Анна Каренина",
+      "year": 1878,
+      "kind": "book",
+      "link": null
+    },
+    "context": "Первая фраза романа «Анна Каренина».",
+    "annotations": [
+      {
+        "word": "alike",
+        "explanation": "Похожи: одинаковы, сходны друг с другом."
+      }
+    ],
+    "reflection": "Моя бабушка всегда цитировала эту фразу. She said it at every family dinner.",
+    "keptBy": "Наташа"
+  },
+  {
+    "id": 907,
+    "status": "live",
+    "text": "Everything flows; you cannot step into the same river twice.",
+    "originalLanguage": {
+      "lang": "el",
+      "text": "Τα πάντα ρει· δεν μπορείς να μπεις δύο φορές στο ίδιο ποτάμι."
+    },
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "name": "Ηράκλειτος",
+      "nativeName": null,
+      "country": "GR"
+    },
+    "source": {
+      "title": "Αποσπάσματα (Fragments)",
+      "year": null,
+      "kind": "writing",
+      "link": null
+    },
+    "context": "Η φράση «τα πάντα ρει» αποδίδεται στον Ηράκλειτο από τον Πλάτωνα.",
+    "annotations": [
+      {
+        "word": "flows",
+        "explanation": "Ρει: κυλάει, όπως το νερό ενός ποταμού."
+      }
+    ],
+    "reflection": "Το διάβασα στο σχολείο. I think about it whenever I go home.",
+    "keptBy": "Νίκος"
+  },
+  {
+    "id": 908,
+    "status": "live",
+    "text": "Your children are not your children. They are the sons and daughters of Life's longing for itself.",
+    "originalLanguage": {
+      "lang": "ar",
+      "text": "أولادكم ليسوا لكم، أولادكم أبناء الحياة المشتاقة إلى نفسها."
+    },
+    "categories": [
+      "community"
+    ],
+    "author": {
+      "name": "جبران خليل جبران",
+      "nativeName": null,
+      "country": "LB"
+    },
+    "source": {
+      "title": "النبي (The Prophet)",
+      "year": 1923,
+      "kind": "book",
+      "link": null
+    },
+    "context": "من فصل «الأولاد» في كتاب النبي.",
+    "annotations": [
+      {
+        "word": "longing",
+        "explanation": "الشوق: الرغبة الشديدة والحنين."
+      }
+    ],
+    "reflection": "قرأت هذا عندما وُلدت ابنتي. It changed how I see her.",
+    "keptBy": "ليلى"
+  },
+  {
+    "id": 909,
+    "status": "live",
+    "text": "If I am not for myself, who will be for me? And if not now, when?",
+    "originalLanguage": {
+      "lang": "he",
+      "text": "אם אין אני לי, מי לי? וכשאני לעצמי, מה אני? ואם לא עכשיו, אימתי?"
+    },
+    "categories": [
+      "drive"
+    ],
+    "author": {
+      "name": "הלל הזקן",
+      "nativeName": null,
+      "country": "IL"
+    },
+    "source": {
+      "title": "פרקי אבות",
+      "year": null,
+      "kind": "writing",
+      "link": null
+    },
+    "context": "משנה, פרקי אבות, פרק א׳.",
+    "annotations": [
+      {
+        "word": "now",
+        "explanation": "עכשיו: ברגע הזה, לא מחר."
+      }
+    ],
+    "reflection": "אבא שלי היה אומר את זה כל בוקר. Every single morning.",
+    "keptBy": "נועה"
+  },
+  {
+    "id": 910,
+    "status": "live",
+    "text": "Slowly, slowly, and you will get there.",
+    "originalLanguage": {
+      "lang": "th",
+      "text": "ช้า ๆ ได้พร้าเล่มงาม"
+    },
+    "categories": [
+      "growth"
+    ],
+    "author": {
+      "name": "สุภาษิตไทย",
+      "nativeName": null,
+      "country": "TH"
+    },
+    "source": {
+      "title": "สุภาษิตไทย",
+      "year": null,
+      "kind": "other",
+      "link": null
+    },
+    "context": "สุภาษิตนี้หมายความว่า ทำอะไรอย่างค่อยเป็นค่อยไปจะได้ผลดี",
+    "annotations": [
+      {
+        "word": "Slowly",
+        "explanation": "ช้า ๆ: ไม่รีบร้อน ค่อย ๆ ทำ"
+      }
+    ],
+    "reflection": "คุณยายพูดประโยคนี้บ่อยมาก. It still calms me down.",
+    "keptBy": "น้ำฝน"
+  },
+  {
+    "id": 911,
+    "status": "live",
+    "text": "Slowly, slowly, O mind, everything happens in its own time.",
+    "originalLanguage": {
+      "lang": "hi",
+      "text": "धीरे-धीरे रे मना, धीरे सब कुछ होय।"
+    },
+    "categories": [
+      "growth"
+    ],
+    "author": {
+      "name": "कबीर",
+      "nativeName": null,
+      "country": "IN"
+    },
+    "source": {
+      "title": "कबीर के दोहे",
+      "year": null,
+      "kind": "poem",
+      "link": null
+    },
+    "context": "कबीर का यह दोहा धैर्य के बारे में है।",
+    "annotations": [
+      {
+        "word": "mind",
+        "explanation": "मना: मन, हृदय।"
+      }
+    ],
+    "reflection": "मेरी दादी यह दोहा गाती थीं। I hum it before exams.",
+    "keptBy": "प्रिया"
+  }
+]
