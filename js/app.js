@@ -1,10 +1,6 @@
 /* Words We Keep — main experience. Plain JS, renders from data/quotes.json. */
 (() => {
-  // TEMPORARY (native-test.html; remove with that page and data/native-samples.json): ?samples
-  // reads made-up quotes with Chinese, Japanese, Korean in every typed field instead of the real
-  // ones; &notes opens straight in the notes.
-  const SAMPLES = /[?&]samples\b/.test(location.search);
-  const DATA_URL = SAMPLES ? 'data/native-samples.json' : 'data/quotes.json';
+  const DATA_URL = 'data/quotes.json';
   const FACES_URL = 'data/faces.json'; // the quote faces' tuned settings (the library's Fonts tab)
 
   const CATEGORIES = [
@@ -2707,7 +2703,6 @@
       }
       state.idx = found >= 0 ? found : 0;
       renderDeck();
-      if (SAMPLES && /[?&]notes\b/.test(location.search)) { drawMark(false); showChrome(); applyMode('notes'); return; } // native-test.html
       arrive();
     })
     .catch((err) => {
