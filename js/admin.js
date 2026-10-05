@@ -349,10 +349,12 @@
                    archive: '<button type="button" data-act="revert" aria-label="Put back"><span class="icon icon-revert"></span></button><button type="button" data-act="remove" aria-label="Remove"><span class="icon icon-x16"></span></button>' }[tab];
     const swipe = { live: 'archive', pending: '', archive: 'remove' }[tab]; // touch: what a swipe to the left reveals (the archive's Put back is out in the open, in the number column)
     const swipeLabel = { archive: 'Archive', remove: 'Remove' };
+    $('rows').style.setProperty('--num-w', `${String(Math.max(0, ...items.map(numberOf))).length}ch`); // every number as wide as the longest, so the ⓘs line up
+    items.forEach(checkQuote);
     $('rows').innerHTML = items.map((q) => `
       <div class="row" data-key="${q.key}" tabindex="0">
         <div class="row-inner">
-          <p class="c-num num">${numberOf(q)}</p>
+          <p class="c-num num"><span class="num-n">${numberOf(q)}</span>${(issues.get(q.key) || []).length ? ALERT_ICON : ''}</p>
           <p class="c-date num">${tab === 'live' && q.dirty ? unpublished(q) : fmtDate(dateOf[tab](q))}</p>
           <p class="c-cat">${esc(catLabel(q.categories))}</p>
           <p class="c-quote">${esc(q.text)}</p>
@@ -673,7 +675,7 @@
     const stepping = admin.dataset.view === 'edit' && stepDir !== 0;
     const view = $('editView');
     if (stepping) { view.style.setProperty('--dir', stepDir); view.classList.add('is-stepping-out'); await new Promise((r) => setTimeout(r, ms(STEP_MS))); }
-    edit = { key, tab: f.tab, draft: toDraft(f.q), orig: null, undo: [], redo: [], mark: null };
+    edit = { key, tab: f.tab, draft: toDraft(f.q), orig: null, undo: [], redo: [], mark: null, linkWarned: new Set() }; // linkWarned: links already taken out once (js: linkFieldHealth)
     relockAnn(edit.draft);
     edit.langPicked = !!edit.draft.lang && edit.draft.lang !== 'other'; // a stored language is kept; 'other' is guessed again as the words change
     edit.orig = clone(edit.draft);
@@ -776,7 +778,8 @@
   bind('fName', (v) => { edit.draft.author.name = v; clearTimeout(drawCovers.t); drawCovers.t = setTimeout(drawCovers, 600); });
   bind('fNative', (v) => { edit.draft.author.nativeName = v; });
   bind('fTitle', (v) => { edit.draft.source.title = v; clearTimeout(drawCovers.t); drawCovers.t = setTimeout(drawCovers, 600); }); // (a book: its covers are looked for again once the typing pauses)
-  bind('fLink', (v) => { edit.draft.source.link = v; clearTimeout(drawVideo.t); drawVideo.t = setTimeout(drawVideo, 400); }); // (the preview follows once the typing pauses)
+  bind('fLink', (v) => { edit.draft.source.link = v; if ($('fLink').closest('.fw').classList.contains('is-warn')) warnLink(''); clearTimeout(drawVideo.t); drawVideo.t = setTimeout(drawVideo, 400); }); // (the preview follows once the typing pauses)
+  $('fLink').addEventListener('change', linkFieldHealth); // the check: on leaving the field
   bind('fContext', (v) => { edit.draft.context = v; });
   bind('fReflection', (v) => { edit.draft.reflection = v; });
   bind('fKeptBy', (v) => { edit.draft.keptBy = v; });
@@ -842,11 +845,13 @@
   const VIDEO = {
     youtube: {
       match: (l) => (l.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/) || [])[1],
+      lookup: (l) => `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(l)}`,
       player: (id, l) => `https://www.youtube-nocookie.com/embed/${id}?playsinline=1&rel=0${startOf(l) ? `&start=${startOf(l)}` : ''}`,
       vertical: (l) => /\/shorts\//.test(l),
     },
     vimeo: {
       match: (l) => (l.match(/vimeo\.com\/(?:video\/|channels\/[^/]+\/|groups\/[^/]+\/videos\/)?(\d+)/) || [])[1],
+      lookup: (l) => `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(l)}`,
       player: (id, l) => `https://player.vimeo.com/video/${id}?playsinline=1${startOf(l) ? `#t=${startOf(l)}s` : ''}`,
     },
     tiktok: {
@@ -862,6 +867,7 @@
     },
     spotify: {
       match: (l) => { const m = l.match(/open\.spotify\.com\/(?:intl-[\w-]+\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]+)/); return m ? `${m[1]}/${m[2]}` : null; },
+      lookup: (l) => `https://open.spotify.com/oembed?url=${encodeURIComponent(l)}`,
       player: (id) => `https://open.spotify.com/embed/${id}?theme=0`,
       bg: '#1f1f1f', // (the player's grey: the box's colour — js/app.js)
       height: (id) => (/^(track|episode)\//.test(id) ? 152 : 352),
@@ -870,6 +876,8 @@
       match: (l) => { const m = l.match(/music\.apple\.com\/[a-z]{2}\/(album|song|playlist)\/(?:[^/?#]+\/)?([\w.-]+)/); return m ? ((l.match(/[?&]i=(\d+)/) || [])[1] || m[2]) : null; },
       player: (id, l) => { const u = new URL(l), i = u.searchParams.get('i'); return `https://embed.music.apple.com${u.pathname}?${i ? `i=${i}&` : ''}theme=dark`; },
       bg: '#1c1c1e',
+      lookup: (l, id) => (/^\d+$/.test(id) ? `https://itunes.apple.com/lookup?id=${id}&country=${l.match(/music\.apple\.com\/([a-z]{2})\//)[1]}` : null), // (a playlist has none)
+      read: (d) => d.resultCount > 0,
       height: (id, l) => (/[?&]i=\d+/.test(l) || /\/song\//.test(l) ? 175 : 450),
     },
   };
@@ -919,6 +927,118 @@
       : `<p>${music ? 'Music' : 'Video'} not available.</p>`;
   }
 
+  /* ---------- What no longer works ----------
+     A quote's source link and its book cover are checked once a visit, in the background: a
+     video or music link by asking its platform (as the site does), a cover by loading it. Any
+     other link cannot be checked from here (a browser may not see whether another site's page
+     is there). A quote with something gone gets an ⓘ after its number in the list (16, info.svg;
+     the numbers kept one width so the ⓘs line up), and in its edit view the field says so. A
+     platform that cannot be reached at all is not counted as gone: when its lookup fails, a link
+     known to be there is asked too (HEALTH_CONTROL), and only if that one answers is the quote's
+     link taken to be gone (Spotify answers a dead link without the header the page needs). */
+  // A link's shape: http(s), a real domain, no bare IP address or localhost, no user name or
+  // password (workers/lib/link.js → shapeOf, which the Workers check again: keep in step).
+  function linkShapeOk(raw) {
+    let u;
+    try { u = new URL(raw.trim()); } catch (e) { return false; }
+    if (!/^https?:$/.test(u.protocol) || u.username || u.password) return false;
+    const host = u.hostname.toLowerCase();
+    return host.includes('.') && !/^\[|^\d+(\.\d+){3}$/.test(host) && !/(^|\.)(localhost|local|internal|lan|home|test|invalid|example)$/.test(host);
+  }
+  // A warning in the link field, as every warning in the form: the link goes, the warning takes
+  // the placeholder's place, with the ⓘ. '' puts the category's hint back.
+  function warnLink(text) {
+    const field = $('fLink');
+    field.closest('.fw').classList.toggle('is-warn', !!text);
+    if (!text) return linkHint(edit ? edit.draft.source.kind : '');
+    field.value = '';
+    field.placeholder = text; field.setAttribute('aria-label', text);
+  }
+  const LINK_NOTE = { shape: 'This doesn’t look like a link.', unreachable: 'We can’t reach this link.', unsafe: 'This link is flagged as unsafe.' };
+  const ALERT_ICON = '<span class="icon icon-info num-alert" role="img" aria-label="Something no longer works"></span>';
+  const HEALTH_CONTROL = {
+    youtube: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', vimeo: 'https://vimeo.com/22439234',
+    tiktok: 'https://www.tiktok.com/@scout2015/video/6718335390845095173', spotify: 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT',
+    apple: 'https://music.apple.com/us/album/moon-river/358066383?i=358066422',
+  };
+  const healthCache = new Map(); // a link or cover → Promise of 'ok' | 'gone' | 'unknown'
+  const issues = new Map();      // a quote's key → what is gone in it: ['link'] / ['cover'] / both
+  const platformOf = (link) => { for (const [name, p] of Object.entries(VIDEO)) { const id = p.match(link); if (id) return { name, id }; } return null; };
+  async function askPlatform(link) {
+    const pf = platformOf(link), p = VIDEO[pf.name], url = p.lookup && p.lookup(link, pf.id);
+    if (!url) return 'unknown';
+    const r = await fetch(url);
+    if (!r.ok) return 'gone';
+    return !p.read || p.read(await r.json()) ? 'ok' : 'gone';
+  }
+  // → 'ok' | 'gone' (can't be reached) | 'unsafe' (its site flagged) | 'shape' (not a link) | 'unknown'
+  // Any other link: the Worker opens it and asks Cloudflare's filter (/api/check-link; not in the demo).
+  async function askWorker(link) {
+    const r = await call('/check-link', 'POST', { url: link });
+    if (!r.ok) return 'unknown';
+    const d = await r.json();
+    return d.unsafe ? 'unsafe' : d.reach === 'unreachable' ? 'gone' : d.shape === 'bad' ? 'shape' : 'ok';
+  }
+  function linkHealth(link) {
+    if (!link) return Promise.resolve('ok');
+    if (healthCache.has(link)) return healthCache.get(link);
+    const pf = platformOf(link);
+    const found = !linkShapeOk(link) ? Promise.resolve('shape')
+      : !pf ? (remote ? askWorker(link).catch(() => 'unknown') : Promise.resolve('unknown'))
+      : !VIDEO[pf.name].lookup ? Promise.resolve('unknown')
+      : askPlatform(link).catch(() => askPlatform(HEALTH_CONTROL[pf.name]).then((c) => (c === 'ok' ? 'gone' : 'unknown')).catch(() => 'unknown'));
+    healthCache.set(link, found);
+    return found;
+  }
+  function coverHealth(src) {
+    if (!src) return Promise.resolve('ok');
+    const key = `cover:${src}`;
+    if (!healthCache.has(key)) healthCache.set(key, new Promise((done) => {
+      const img = new Image(), t = setTimeout(() => done('unknown'), 8000);
+      img.onload = () => { clearTimeout(t); done('ok'); };
+      img.onerror = () => { clearTimeout(t); done('gone'); };
+      img.src = src;
+    }));
+    return healthCache.get(key);
+  }
+  function checkQuote(q) {
+    const src = q.source || {};
+    Promise.all([linkHealth(src.link), src.kind === 'book' ? coverHealth(src.cover) : 'ok']).then(([link, cover]) => {
+      const now = [['gone', 'unsafe', 'shape'].includes(link) && 'link', cover === 'gone' && 'cover'].filter(Boolean);
+      const before = issues.get(q.key) || [];
+      issues.set(q.key, now);
+      if (now.length === before.length) return;
+      const cell = $('rows').querySelector(`.row[data-key="${q.key}"] .c-num`);
+      if (cell) cell.innerHTML = `<span class="num-n">${numberOf(q)}</span>${now.length ? ALERT_ICON : ''}`;
+    });
+  }
+  // The edit view: the link field and the cover field say what is wrong (the draft as it stands).
+  // The link is checked when the quote opens and when the field is left (not as it is typed); a
+  // warning takes the link out of the draft (Undo / Revert bring it back) — once per link: one
+  // brought back is the admin's choice and stays.
+  let healthWarn = false; // the cover field shows the "no longer loads" warning (not another one)
+  function linkFieldHealth() {
+    if (!edit) return;
+    const link = edit.draft.source.link.trim(), shown = !!edit.draft.source.kind && edit.draft.source.kind !== 'personal';
+    if (!link || !shown || edit.linkWarned.has(link)) return;
+    linkHealth(link).then((h) => {
+      const text = { gone: LINK_NOTE.unreachable, unsafe: LINK_NOTE.unsafe, shape: LINK_NOTE.shape }[h];
+      if (!text || !edit || edit.draft.source.link.trim() !== link || edit.linkWarned.has(link)) return;
+      edit.linkWarned.add(link);
+      mark('link'); edit.draft.source.link = '';
+      warnLink(text); drawVideo(); updateDirty();
+    });
+  }
+  function fieldHealth() {
+    if (!edit) return;
+    const cover = edit.draft.source.kind === 'book' ? edit.draft.source.cover : '';
+    coverHealth(cover).then((h) => {
+      if (!edit || (edit.draft.source.kind === 'book' ? edit.draft.source.cover : '') !== cover) return;
+      if (h === 'gone') { healthWarn = true; warnCover('The picked cover no longer loads. Pick another.'); }
+      else if (healthWarn) { healthWarn = false; warnCover(''); }
+    });
+  }
+
   /* ---------- A book's cover ----------
      A book has no link to find its cover from, so the cover is looked for by its title and author
      and picked here: Apple Books (by title and author, then by title alone — the better search for
@@ -957,7 +1077,7 @@
   }
   const coverTile = (c, picked) => `<button type="button" class="cover-pick" role="radio" aria-checked="${picked}" data-src="${esc(c.src)}" title="${esc([c.title, c.by].filter(Boolean).join(' · '))}" aria-label="${esc([c.title, c.by].filter(Boolean).join(', ') || 'Cover')}">
       <span class="chk-box" aria-hidden="true"><span class="icon icon-check"></span></span>
-      <span class="cover-img"><img src="${esc(c.small || c.src)}" alt="" loading="lazy"></span>
+      <span class="cover-img"><img src="${esc(coverPreview.get(c.src) || c.small || c.src)}" alt="" loading="lazy"></span>
     </button>`;
   // The tiles, the picked one checked (a pasted or earlier pick that is not among them comes first).
   // The cover alone, no text under it (Bill, 2026-10-05): its title and author are on hover.
@@ -1007,13 +1127,80 @@
     if (!edit || edit.draft.source.cover === src) return;
     mark('cover'); edit.draft.source.cover = src; updateDirty();
     pickCovers(drawCovers.list || []);
+    fieldHealth();
   }
   $('fCovers').addEventListener('click', (e) => { const t = e.target.closest('.cover-pick'); if (t) setCover(t.dataset.src); });
   $('fNoCover').addEventListener('click', () => setCover(''));
+  /* Pasting into "Or paste a cover image, or its address":
+     · an address is tried first: one that will not load here (a site that only shows its images
+       on its own pages, as Douban does) is not taken, and the field says to paste the image;
+     · an image (copied in the browser, or dropped from the computer) is shrunk here to COVER_W
+       wide and committed to the site (the Worker's /api/cover → assets/covers/…); until the site
+       has it, its tile shows the copy in hand (coverPreview). In the demo it stays in this browser. */
+  const COVER_W = 320, COVER_LINK_HINT = 'Or paste a cover image, or its address';
+  const coverPreview = new Map(); // a saved cover's path → the image as pasted, for its tile
+  function warnCover(text) {
+    const field = $('fCoverLink'), wrap = field.parentNode;
+    wrap.classList.toggle('is-warn', !!text);
+    field.placeholder = text || COVER_LINK_HINT;
+    if (text) field.value = '';
+  }
+  const loads = (src) => new Promise((done) => {
+    const img = new Image(), t = setTimeout(() => done(0), COVER_WAIT_MS);
+    img.onload = () => { clearTimeout(t); done(img.naturalWidth); };
+    img.onerror = () => { clearTimeout(t); done(0); };
+    img.src = src;
+  });
   $('fCoverLink').addEventListener('input', (e) => {
     const v = e.target.value.trim();
+    if (e.target.parentNode.classList.contains('is-warn')) warnCover('');
     clearTimeout(setCover.t);
-    setCover.t = setTimeout(() => setCover(/^https?:\/\/\S+$/i.test(v) ? v : ''), 400);
+    setCover.t = setTimeout(async () => {
+      if (!/^https?:\/\/\S+$/i.test(v)) return setCover('');
+      if (await loads(v)) { if ($('fCoverLink').value.trim() === v) setCover(v); return; }
+      if ($('fCoverLink').value.trim() !== v) return; // typed on meanwhile
+      setCover('');
+      warnCover('Its site blocks this. Copy the image and paste it instead.');
+    }, 400);
+  });
+  async function shrinkCover(file) {
+    const bmp = await createImageBitmap(file);
+    const w = Math.min(COVER_W, bmp.width), h = Math.round(bmp.height * w / bmp.width);
+    const canvas = Object.assign(document.createElement('canvas'), { width: w, height: h });
+    canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+    const as = (type) => new Promise((done) => canvas.toBlob(done, type, 0.85));
+    let blob = await as('image/webp');
+    if (!blob || blob.type !== 'image/webp') blob = await as('image/jpeg'); // (a browser that cannot write WebP)
+    const url = await new Promise((done) => { const r = new FileReader(); r.onload = () => done(r.result); r.readAsDataURL(blob); });
+    return { url, width: bmp.width };
+  }
+  async function pasteCover(file) {
+    warnCover('');
+    let shrunk;
+    try { shrunk = await shrinkCover(file); } catch (e) { return warnCover('That image could not be read. Try another.'); }
+    const soft = shrunk.width < COVER_W ? ` It is only ${shrunk.width} wide, so it may look soft.` : '';
+    if (!remote) { setCover(shrunk.url); if (soft) toast(soft.trim()); return; } // the demo: kept in this browser
+    $('fCoverLink').placeholder = 'Saving the cover…';
+    const send = () => call('/cover', 'PUT', { data: shrunk.url.split(',')[1] });
+    let r;
+    try { r = await send(); if (r.status === 401) { await signIn(); r = await send(); } } catch (e) { r = null; }
+    if (!r || !r.ok) return warnCover('The cover could not be saved. Try again.');
+    const { path } = await r.json();
+    coverPreview.set(path, shrunk.url);
+    warnCover('');
+    setCover(path);
+    toast(`Cover saved.${soft}`);
+  }
+  const imageIn = (list) => [...(list || [])].find((f) => f && /^image\//.test(f.type));
+  $('fCoverLink').addEventListener('paste', (e) => {
+    const file = imageIn(e.clipboardData && e.clipboardData.files);
+    if (!file) return; // text: an address, handled as it is typed
+    e.preventDefault();
+    pasteCover(file);
+  });
+  ['fCoverLink', 'fCovers'].forEach((id) => {
+    $(id).addEventListener('dragover', (e) => { if (e.dataTransfer && [...e.dataTransfer.items].some((i) => i.kind === 'file')) e.preventDefault(); });
+    $(id).addEventListener('drop', (e) => { const file = imageIn(e.dataTransfer && e.dataTransfer.files); if (!file) return; e.preventDefault(); pasteCover(file); });
   });
   // A cover that will not load is no use: its tile goes.
   $('fCovers').addEventListener('error', (e) => { const t = e.target.closest && e.target.closest('.cover-pick'); if (t && t.getAttribute('aria-checked') !== 'true') t.remove(); }, true);
@@ -1107,6 +1294,8 @@
     $('fTitle').value = d.source.title; $('fLink').value = d.source.link;
     foldNow($('fVideoWrap'), false); $('fVideo').dataset.src = ''; $('fVideo').innerHTML = ''; drawVideo(true); // (the quote's own video, if it has one)
     drawCovers(true); // (a book: its covers, the picked one checked)
+    healthWarn = false; warnCover(''); warnLink('');
+    fieldHealth(); linkFieldHealth(); // (a link or cover that no longer works: its field says so)
     $('fContext').value = d.context; $('fReflection').value = d.reflection; $('fKeptBy').value = d.keptBy;
     ['fOriginal', 'fNative', 'fText', 'fName', 'fTitle'].forEach((id) => cjkSize($(id)));
     font.set(d.font); lang.set(d.lang); drawFont();

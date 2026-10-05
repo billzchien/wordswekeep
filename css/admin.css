@@ -161,6 +161,12 @@
 .row-inner > * { min-width: 0; }
 .c-quote { grid-column: span 2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .c-cat, .c-date, .c-num { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Something gone in a quote (js: issues): an ⓘ after its number; every number one width (--num-w,
+   the longest's), so the ⓘs line up. */
+.c-num { display: flex; align-items: center; gap: calc(12 * var(--u)); }
+.num-n { flex: none; min-width: var(--num-w, auto); }
+.icon-info { --src: url(../assets/icons/info.svg); }
+.num-alert { flex: none; width: calc(16 * var(--u)); height: calc(16 * var(--u)); }
 .c-act { display: flex; justify-content: flex-end; align-items: flex-start; gap: calc(20 * var(--u)); padding-top: calc(3 * var(--u)); opacity: 0; transition: opacity var(--act-ms) var(--ease); }
 @media (hover: hover) { .row:hover .c-act, .row:focus-within .c-act { opacity: 1; } }
 .c-act button { width: calc(16 * var(--u)); height: calc(16 * var(--u)); display: grid; place-items: center; }
