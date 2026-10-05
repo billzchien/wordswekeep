@@ -428,3 +428,13 @@
   .chrome-list .cta .btn--w { min-width: 0; }
   #facesReset { display: none; }
 }
+
+/* The source's video, previewed under its link (js/admin.js → drawVideo): the platform's own
+   player, 16:9; a vertical video (TikTok, Instagram, Shorts) fits its height, with bars. */
+.video-preview { position: relative; aspect-ratio: 16 / 9; background: #000; }
+.video-preview iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-preview[data-orientation="vertical"] iframe { /* drawn at a phone's size, scaled to the box's height (js: --fit), centred */
+  inset: 0 auto auto 50%; width: 360px; height: 640px;
+  transform-origin: 0 0; transform: scale(var(--fit, 0.28)) translateX(-50%);
+}
+.video-preview p { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--white); }

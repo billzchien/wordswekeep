@@ -768,7 +768,7 @@
   bind('fName', (v) => { edit.draft.author.name = v; });
   bind('fNative', (v) => { edit.draft.author.nativeName = v; });
   bind('fTitle', (v) => { edit.draft.source.title = v; });
-  bind('fLink', (v) => { edit.draft.source.link = v; });
+  bind('fLink', (v) => { edit.draft.source.link = v; clearTimeout(drawVideo.t); drawVideo.t = setTimeout(drawVideo, 400); }); // (the preview follows once the typing pauses)
   bind('fContext', (v) => { edit.draft.context = v; });
   bind('fReflection', (v) => { edit.draft.reflection = v; });
   bind('fKeptBy', (v) => { edit.draft.keptBy = v; });
@@ -812,8 +812,70 @@
   year.input.inputMode = 'numeric';
   function showSourceFields(on) {
     clearTimeout(showSourceFields.t);
-    if (on) { fold($('fTitleWrap'), true); showSourceFields.t = setTimeout(() => fold($('fLinkWrap'), true), 50); }
-    else { fold($('fLinkWrap'), false); showSourceFields.t = setTimeout(() => fold($('fTitleWrap'), false), 50); }
+    if (on) { fold($('fTitleWrap'), true); showSourceFields.t = setTimeout(() => { fold($('fLinkWrap'), true); drawVideo(); }, 50); }
+    else { drawVideo(); fold($('fLinkWrap'), false); showSourceFields.t = setTimeout(() => fold($('fTitleWrap'), false), 50); }
+  }
+
+  /* ---------- The source's video ----------
+     A source link to YouTube, Vimeo, TikTok or Instagram gets the platform's player under it,
+     16:9, so the video can be checked before publishing. Not playing until asked; the link's own
+     start time is kept. The link patterns and players are the archive's (js/app.js → VIDEO),
+     copied: keep the two in step. A short TikTok link (vm.tiktok.com/…) has no id: TikTok's
+     lookup gives it. */
+  function startOf(link) {
+    const m = link.match(/[?&#](?:t|start|time_continue)=([\dhms]+)/);
+    if (!m) return 0;
+    if (/^\d+$/.test(m[1])) return Number(m[1]);
+    const part = (u) => Number((m[1].match(new RegExp(`(\\d+)${u}`)) || [0, 0])[1]);
+    return part('h') * 3600 + part('m') * 60 + part('s');
+  }
+  const VIDEO = {
+    youtube: {
+      match: (l) => (l.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/) || [])[1],
+      player: (id, l) => `https://www.youtube-nocookie.com/embed/${id}?playsinline=1&rel=0${startOf(l) ? `&start=${startOf(l)}` : ''}`,
+      vertical: (l) => /\/shorts\//.test(l),
+    },
+    vimeo: {
+      match: (l) => (l.match(/vimeo\.com\/(?:video\/|channels\/[^/]+\/|groups\/[^/]+\/videos\/)?(\d+)/) || [])[1],
+      player: (id, l) => `https://player.vimeo.com/video/${id}?playsinline=1${startOf(l) ? `#t=${startOf(l)}s` : ''}`,
+    },
+    tiktok: {
+      match: (l) => (/tiktok\.com\//.test(l) ? ((l.match(/\/video\/(\d+)/) || [])[1] || 'short') : null),
+      player: (id) => `https://www.tiktok.com/player/v1/${id}?rel=0`,
+      vertical: () => true,
+      lookup: (l) => `https://www.tiktok.com/oembed?url=${encodeURIComponent(l)}`,
+    },
+    instagram: {
+      match: (l) => { const m = l.match(/instagram\.com\/(?:[^/]+\/)?(p|reels?|tv)\/([\w-]+)/); return m ? `${m[1] === 'reels' ? 'reel' : m[1]}/${m[2]}` : null; },
+      player: (id) => `https://www.instagram.com/${id}/embed/`,
+      vertical: () => true,
+    },
+  };
+  // A vertical video (TikTok, Instagram, a Short, or a source marked vertical): its player is
+  // drawn at a phone's size (css: 360 × VERTICAL_H, 9:16) and scaled to the box's height
+  // (--fit), centred — Instagram's embed is a whole post and will not shrink to a sliver.
+  const VERTICAL_H = 640;
+  new ResizeObserver(() => { const b = $('fVideo'); b.style.setProperty('--fit', (b.clientHeight / VERTICAL_H).toFixed(4)); }).observe($('fVideo'));
+  async function drawVideo(instant = false) { // instant: opening a quote, the player is simply there
+    clearTimeout(drawVideo.t);
+    const box = $('fVideo'), wrap = $('fVideoWrap');
+    const d = edit && edit.draft, link = d ? d.source.link.trim() : '';
+    const shown = d && !!d.source.kind && d.source.kind !== 'personal';
+    let platform = null, id = null;
+    for (const [name, p] of Object.entries(VIDEO)) { id = p.match(link); if (id) { platform = name; break; } }
+    if (!shown || !platform) { (instant ? foldNow : fold)(wrap, false); box.dataset.src = ''; box.innerHTML = ''; return; }
+    if (id === 'short') { // a short TikTok link: ask TikTok for the video's id
+      try { const r = await fetch(VIDEO.tiktok.lookup(link)); const j = r.ok ? await r.json() : null; id = j && j.embed_product_id ? String(j.embed_product_id) : null; } catch (e) { id = null; }
+      if (!edit || edit.draft.source.link.trim() !== link) return; // the link changed meanwhile
+    }
+    const src = id ? VIDEO[platform].player(id, link) : '';
+    box.dataset.orientation = d.source.orientation === 'vertical' || (VIDEO[platform].vertical && VIDEO[platform].vertical(link)) ? 'vertical' : 'horizontal';
+    (instant ? foldNow : fold)(wrap, true);
+    if (box.dataset.src === src) return; // the same video: the player is left as it is
+    box.dataset.src = src;
+    box.innerHTML = src
+      ? `<iframe src="${esc(src)}" title="Video preview" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>`
+      : '<p>Video not available.</p>';
   }
 
   // Annotations: closed ("Annotation +") until there is one; open = the rows, "Another +" once
@@ -902,6 +964,7 @@
     const src = !!d.source.kind && d.source.kind !== 'personal';
     foldNow($('fTitleWrap'), src); foldNow($('fLinkWrap'), src);
     $('fTitle').value = d.source.title; $('fLink').value = d.source.link;
+    foldNow($('fVideoWrap'), false); $('fVideo').dataset.src = ''; $('fVideo').innerHTML = ''; drawVideo(true); // (the quote's own video, if it has one)
     $('fContext').value = d.context; $('fReflection').value = d.reflection; $('fKeptBy').value = d.keptBy;
     ['fOriginal', 'fNative', 'fText', 'fName', 'fTitle'].forEach((id) => cjkSize($(id)));
     font.set(d.font); lang.set(d.lang); drawFont();
