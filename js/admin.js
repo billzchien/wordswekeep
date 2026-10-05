@@ -27,14 +27,21 @@
   ];
   // The form's kinds, plus the ones already in quotes.json (the converter's SOURCES), so every
   // live quote shows its kind.
+  // `hint`: what the empty source link field says (the form's, js/form.js; the older kinds follow
+  // their nearest form kind). Without one: "Source link".
+  const VIDEO_HINT = 'Link to YouTube, Vimeo, or another site';
   const KINDS = [
-    { value: 'book', label: 'Book' }, { value: 'film', label: 'Film & TV' }, { value: 'series', label: 'Series' },
-    { value: 'song', label: 'Song' }, { value: 'poem', label: 'Poem' }, { value: 'speech', label: 'Speech & interview' },
-    { value: 'interview', label: 'Interview' }, { value: 'writing', label: 'Writing' }, { value: 'essay', label: 'Essay' },
+    { value: 'book', label: 'Book' }, { value: 'film', label: 'Film & TV', hint: VIDEO_HINT }, { value: 'series', label: 'Series', hint: VIDEO_HINT },
+    { value: 'song', label: 'Song', hint: 'Link to Apple Music, Spotify, or another site' }, { value: 'poem', label: 'Poem' }, { value: 'speech', label: 'Speech & interview', hint: VIDEO_HINT },
+    { value: 'interview', label: 'Interview', hint: VIDEO_HINT }, { value: 'writing', label: 'Writing' }, { value: 'essay', label: 'Essay' },
     { value: 'letter', label: 'Letter' }, { value: 'scripture', label: 'Scripture' }, { value: 'comic', label: 'Comic' },
-    { value: 'artwork', label: 'Artwork' }, { value: 'commercial', label: 'Commercial' }, { value: 'social', label: 'Social media' }, { value: 'personal', label: 'Personal' },
+    { value: 'artwork', label: 'Artwork' }, { value: 'commercial', label: 'Commercial', hint: VIDEO_HINT }, { value: 'social', label: 'Social media', hint: 'Link to TikTok, Instagram, or another site' }, { value: 'personal', label: 'Personal' },
     { value: 'other', label: 'Other' },
   ];
+  function linkHint(v) {
+    const hint = (KINDS.find((k) => k.value === v) || {}).hint || 'Source link';
+    $('fLink').placeholder = hint; $('fLink').setAttribute('aria-label', hint);
+  }
   const REGION_CODES = ('AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW').split(' ');
   const regionNames = typeof Intl.DisplayNames === 'function' ? new Intl.DisplayNames(['en'], { type: 'region' }) : null;
   // Names the browser's list gets wrong for this site: Apple's says "China mainland".
@@ -542,7 +549,7 @@
     text: q.text || '', original: q.originalLanguage ? q.originalLanguage.text : '', lang: q.originalLanguage ? q.originalLanguage.lang : '',
     categories: [...q.categories],
     author: { name: q.author?.name || '', nativeName: q.author?.nativeName || '', country: q.author?.country || '' },
-    source: { kind: q.source?.kind || '', year: q.source?.year ? String(q.source.year) : '', title: q.source?.title || '', link: q.source?.link || '' },
+    source: { kind: q.source?.kind || '', year: q.source?.year ? String(q.source.year) : '', title: q.source?.title || '', link: q.source?.link || '', cover: q.source?.cover || '' },
     context: q.context || '', annotations: q.annotations.map((a) => ({ word: a.word, explanation: a.explanation, matched: false, at: -1 })),
     reflection: q.reflection || '', keptBy: q.keptBy || '',
     font: fontFor(q.font, tier(q.text || '')), // the face the archive shows it in
@@ -558,6 +565,7 @@
     q.source = (d.source.kind || d.source.year || d.source.title || d.source.link)
       ? { title: hasSource ? (t(d.source.title) || null) : null, year: d.source.year ? Number(d.source.year) : null, kind: d.source.kind || null, link: hasSource ? (t(d.source.link) || null) : null }
       : null;
+    if (q.source && d.source.kind === 'book' && t(d.source.cover || '')) q.source.cover = t(d.source.cover); // a book's cover: only ever present when picked
     q.context = t(d.context) || null;
     q.annotations = d.annotations.filter((a) => a.matched && a.word.trim()).map((a) => ({ word: a.word.trim(), explanation: a.explanation.trim() })); // locked rows only
     q.reflection = t(d.reflection);
@@ -765,9 +773,9 @@
   bind('fText', (v) => { edit.draft.text = v; followAnn(); drawFont(); });
   // The language is guessed from the words until the admin picks one; a picked language stays.
   bind('fOriginal', (v) => { edit.draft.original = v; if (!edit.langPicked) { edit.draft.lang = v.trim() ? detectLang(v) : ''; lang.set(edit.draft.lang); } drawFont(); });
-  bind('fName', (v) => { edit.draft.author.name = v; });
+  bind('fName', (v) => { edit.draft.author.name = v; clearTimeout(drawCovers.t); drawCovers.t = setTimeout(drawCovers, 600); });
   bind('fNative', (v) => { edit.draft.author.nativeName = v; });
-  bind('fTitle', (v) => { edit.draft.source.title = v; });
+  bind('fTitle', (v) => { edit.draft.source.title = v; clearTimeout(drawCovers.t); drawCovers.t = setTimeout(drawCovers, 600); }); // (a book: its covers are looked for again once the typing pauses)
   bind('fLink', (v) => { edit.draft.source.link = v; clearTimeout(drawVideo.t); drawVideo.t = setTimeout(drawVideo, 400); }); // (the preview follows once the typing pauses)
   bind('fContext', (v) => { edit.draft.context = v; });
   bind('fReflection', (v) => { edit.draft.reflection = v; });
@@ -798,7 +806,7 @@
   });
 
   const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Country or region', onChange: (v) => { if (!edit) return; mark('country'); edit.draft.author.country = v; fold($('fNativeWrap'), NON_LATIN.has(v)); updateDirty(); } });
-  const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', onChange: (v) => { if (!edit) return; mark('kind'); edit.draft.source.kind = v; showSourceFields(!!v && v !== 'personal'); updateDirty(); } });
+  const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', onChange: (v) => { linkHint(v); if (!edit) return; mark('kind'); edit.draft.source.kind = v; showSourceFields(!!v && v !== 'personal'); updateDirty(); } });
   const lang = combo($('fLang'), { options: LANGUAGES, placeholder: 'Language', onChange: (v) => {
     if (!edit) return;
     mark('lang');
@@ -812,8 +820,8 @@
   year.input.inputMode = 'numeric';
   function showSourceFields(on) {
     clearTimeout(showSourceFields.t);
-    if (on) { fold($('fTitleWrap'), true); showSourceFields.t = setTimeout(() => { fold($('fLinkWrap'), true); drawVideo(); }, 50); }
-    else { drawVideo(); fold($('fLinkWrap'), false); showSourceFields.t = setTimeout(() => fold($('fTitleWrap'), false), 50); }
+    if (on) { fold($('fTitleWrap'), true); showSourceFields.t = setTimeout(() => { fold($('fLinkWrap'), true); drawVideo(); drawCovers(); }, 50); }
+    else { drawVideo(); drawCovers(); fold($('fLinkWrap'), false); showSourceFields.t = setTimeout(() => fold($('fTitleWrap'), false), 50); }
   }
 
   /* ---------- The source's video ----------
@@ -821,7 +829,8 @@
      16:9, so the video can be checked before publishing. Not playing until asked; the link's own
      start time is kept. The link patterns and players are the archive's (js/app.js → VIDEO),
      copied: keep the two in step. A short TikTok link (vm.tiktok.com/…) has no id: TikTok's
-     lookup gives it. */
+     lookup gives it. Music (Spotify, Apple Music; since 2026-10-05): the platform's dark player
+     at its own height, rounded up to the grid's rows. */
   function startOf(link) {
     const m = link.match(/[?&#](?:t|start|time_continue)=([\dhms]+)/);
     if (!m) return 0;
@@ -850,6 +859,18 @@
       player: (id) => `https://www.instagram.com/${id}/embed/`,
       vertical: () => true,
     },
+    spotify: {
+      match: (l) => { const m = l.match(/open\.spotify\.com\/(?:intl-[\w-]+\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]+)/); return m ? `${m[1]}/${m[2]}` : null; },
+      player: (id) => `https://open.spotify.com/embed/${id}?theme=0`,
+      bg: '#1f1f1f', // (the player's grey: the box's colour — js/app.js)
+      height: (id) => (/^(track|episode)\//.test(id) ? 152 : 352),
+    },
+    apple: {
+      match: (l) => { const m = l.match(/music\.apple\.com\/[a-z]{2}\/(album|song|playlist)\/(?:[^/?#]+\/)?([\w.-]+)/); return m ? ((l.match(/[?&]i=(\d+)/) || [])[1] || m[2]) : null; },
+      player: (id, l) => { const u = new URL(l), i = u.searchParams.get('i'); return `https://embed.music.apple.com${u.pathname}?${i ? `i=${i}&` : ''}theme=dark`; },
+      bg: '#1c1c1e',
+      height: (id, l) => (/[?&]i=\d+/.test(l) || /\/song\//.test(l) ? 175 : 450),
+    },
   };
   // A vertical video (TikTok, Instagram, a Short, or a source marked vertical): its player is
   // drawn at a phone's size (css: 360 × VERTICAL_H, 9:16) and scaled to the box's height
@@ -858,15 +879,18 @@
   // The box is as near 16:9 as the edit view's grid allows: a whole number of rows (a row is a
   // field, --fh, and its 1px gap; --u is the page's unit, tokens.css), so what follows stays on
   // the grid. The player fits itself inside.
-  new ResizeObserver(() => {
+  // Music: the player's own height and the black round it, rounded up to whole rows.
+  function sizeVideo() {
     const box = $('fVideo'), w = box.clientWidth;
     if (!w) return;
     const u = Math.min(1.5, Math.max(1, innerWidth / 1440)), row = 41 * u, gap = u; // (--fh 40 × --u, and the 1px gap)
-    const rows = Math.max(1, Math.round((w * 9 / 16 + gap) / row));
+    const music = box.dataset.orientation === 'music';
+    const rows = Math.max(1, (music ? Math.ceil : Math.round)(((music ? Number(box.dataset.h) : w * 9 / 16) + gap) / row));
     box.style.aspectRatio = 'auto'; // the height is set: the width is the column's alone (with the ratio kept, a box in the fold took its width from the height)
     box.style.height = `${(rows * row - gap).toFixed(2)}px`;
     box.style.setProperty('--fit', ((rows * row - gap) / VERTICAL_H).toFixed(4));
-  }).observe($('fVideo'));
+  }
+  new ResizeObserver(sizeVideo).observe($('fVideo'));
   async function drawVideo(instant = false) { // instant: opening a quote, the player is simply there
     clearTimeout(drawVideo.t);
     const box = $('fVideo'), wrap = $('fVideoWrap');
@@ -880,14 +904,99 @@
       if (!edit || edit.draft.source.link.trim() !== link) return; // the link changed meanwhile
     }
     const src = id ? VIDEO[platform].player(id, link) : '';
-    box.dataset.orientation = d.source.orientation === 'vertical' || (VIDEO[platform].vertical && VIDEO[platform].vertical(link)) ? 'vertical' : 'horizontal';
+    const music = !!VIDEO[platform].height;
+    box.dataset.orientation = music ? 'music' : d.source.orientation === 'vertical' || (VIDEO[platform].vertical && VIDEO[platform].vertical(link)) ? 'vertical' : 'horizontal';
+    box.dataset.h = music ? VIDEO[platform].height(id, link) + 16 : ''; // (8 of black round the player)
+    box.style.setProperty('--player-h', music ? `${VIDEO[platform].height(id, link)}px` : '');
+    box.style.backgroundColor = music ? VIDEO[platform].bg : '';
+    sizeVideo();
     (instant ? foldNow : fold)(wrap, true);
     if (box.dataset.src === src) return; // the same video: the player is left as it is
     box.dataset.src = src;
     box.innerHTML = src
-      ? `<iframe src="${esc(src)}" title="Video preview" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>`
-      : '<p>Video not available.</p>';
+      ? `<iframe src="${esc(src)}" title="${music ? 'Music' : 'Video'} preview" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>`
+      : `<p>${music ? 'Music' : 'Video'} not available.</p>`;
   }
+
+  /* ---------- A book's cover ----------
+     A book has no link to find its cover from, so the cover is looked for by its title and author
+     and picked here: Apple Books (by title and author, then by title alone — the better search for
+     Chinese and Japanese books), then Open Library; up to COVER_MAX. Nothing is picked for you
+     ("No cover" until a tile is chosen): a wrong cover is worse than none. An image address can be
+     pasted for a book neither has. The pick is stored as source.cover; the site shows it as is. */
+  const COVER_MAX = 8;
+  // Too small to keep: the site shows a cover 160 wide, so under twice that it would be soft on a
+  // sharp screen. Each cover is loaded at the size the site would use and measured; one that is
+  // narrower, or will not load in COVER_WAIT_MS, is left out (Bill, 2026-10-05).
+  const COVER_MIN_W = 320, COVER_WAIT_MS = 6000;
+  const sharpEnough = (c) => new Promise((done) => {
+    const img = new Image(), t = setTimeout(() => done(false), COVER_WAIT_MS);
+    img.onload = () => { clearTimeout(t); done(img.naturalWidth >= COVER_MIN_W); };
+    img.onerror = () => { clearTimeout(t); done(false); };
+    img.src = c.src;
+  });
+  const coverCache = new Map(); // "title|author" → Promise of [{ src, small, title, by, from }]
+  function findCovers(title, author) {
+    const key = `${title}|${author}`;
+    if (coverCache.has(key)) return coverCache.get(key);
+    const get = (url) => fetch(url).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const apple = (term) => get(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=ebook&limit=${COVER_MAX}&country=us`)
+      .then((d) => (d && d.results || []).filter((x) => x.artworkUrl100).map((x) => ({
+        src: x.artworkUrl100.replace(/100x100bb/, '600x600bb'), small: x.artworkUrl100.replace(/100x100bb/, '200x200bb'), title: x.trackName, by: x.artistName, from: 'Apple Books' })));
+    const library = get(`https://openlibrary.org/search.json?title=${encodeURIComponent(title)}${author ? `&author=${encodeURIComponent(author)}` : ''}&limit=${COVER_MAX}&fields=title,author_name,cover_i`)
+      .then((d) => (d && d.docs || []).filter((x) => x.cover_i).map((x) => ({
+        src: `https://covers.openlibrary.org/b/id/${x.cover_i}-L.jpg`, small: `https://covers.openlibrary.org/b/id/${x.cover_i}-M.jpg`, title: x.title, by: (x.author_name || [])[0] || '', from: 'Open Library' })));
+    const found = Promise.all([author ? apple(`${title} ${author}`) : [], apple(title), library]).then(([both, byTitle, lib]) => {
+      const seen = new Set(); // Apple's best five, Open Library's three, then the rest — the sharp ones
+      const all = [...both.slice(0, 5), ...lib.slice(0, 3), ...both.slice(5), ...byTitle, ...lib.slice(3)].filter((c) => !seen.has(c.src) && seen.add(c.src));
+      return Promise.all(all.map(sharpEnough)).then((ok) => all.filter((c, i) => ok[i]).slice(0, COVER_MAX));
+    });
+    coverCache.set(key, found);
+    return found;
+  }
+  const coverTile = (c, picked) => `<button type="button" class="cover-pick" role="radio" aria-checked="${picked}" data-src="${esc(c.src)}" title="${esc([c.title, c.by].filter(Boolean).join(' · '))}" aria-label="${esc([c.title, c.by].filter(Boolean).join(', ') || 'Cover')}">
+      <span class="chk-box" aria-hidden="true"><span class="icon icon-check"></span></span>
+      <span class="cover-img"><img src="${esc(c.small || c.src)}" alt="" loading="lazy"></span>
+    </button>`;
+  // The tiles, the picked one checked (a pasted or earlier pick that is not among them comes first).
+  // The cover alone, no text under it (Bill, 2026-10-05): its title and author are on hover.
+  function pickCovers(list) {
+    const cover = edit ? edit.draft.source.cover : '';
+    const tiles = cover && !list.some((c) => c.src === cover) ? [{ src: cover, title: 'Picked' }, ...list] : list;
+    $('fCovers').innerHTML = tiles.length ? tiles.map((c) => coverTile(c, c.src === cover)).join('') : `<p class="cover-note">${drawCovers.busy ? 'Looking for covers…' : 'No covers found.'}</p>`;
+    $('fNoCover').setAttribute('aria-checked', String(!cover));
+    if (cover !== $('fCoverLink').value.trim()) $('fCoverLink').value = ''; // the field holds only what was pasted, while it is the pick
+  }
+  async function drawCovers(instant = false) {
+    clearTimeout(drawCovers.t);
+    const d = edit && edit.draft, wrap = $('fCoverWrap');
+    const book = !!d && d.source.kind === 'book';
+    (instant ? foldNow : fold)(wrap, book);
+    if (!book) return;
+    const title = d.source.title.trim(), author = d.author.name.trim();
+    if (!title) { drawCovers.list = []; drawCovers.busy = false; return pickCovers([]); }
+    const key = `${title}|${author}`;
+    drawCovers.key = key; drawCovers.busy = true;
+    pickCovers(drawCovers.list && drawCovers.listKey === key ? drawCovers.list : []);
+    const list = await findCovers(title, author);
+    if (drawCovers.key !== key || !edit) return; // the title changed meanwhile
+    drawCovers.busy = false; drawCovers.list = list; drawCovers.listKey = key;
+    pickCovers(list);
+  }
+  function setCover(src) {
+    if (!edit || edit.draft.source.cover === src) return;
+    mark('cover'); edit.draft.source.cover = src; updateDirty();
+    pickCovers(drawCovers.list || []);
+  }
+  $('fCovers').addEventListener('click', (e) => { const t = e.target.closest('.cover-pick'); if (t) setCover(t.dataset.src); });
+  $('fNoCover').addEventListener('click', () => setCover(''));
+  $('fCoverLink').addEventListener('input', (e) => {
+    const v = e.target.value.trim();
+    clearTimeout(setCover.t);
+    setCover.t = setTimeout(() => setCover(/^https?:\/\/\S+$/i.test(v) ? v : ''), 400);
+  });
+  // A cover that will not load is no use: its tile goes.
+  $('fCovers').addEventListener('error', (e) => { const t = e.target.closest && e.target.closest('.cover-pick'); if (t && t.getAttribute('aria-checked') !== 'true') t.remove(); }, true);
 
   // Annotations: closed ("Annotation +") until there is one; open = the rows, "Another +" once
   // every row is matched, and a × on the title line that drops them all (hidden once there are
@@ -972,11 +1081,12 @@
     $('fNotFirst').setAttribute('aria-checked', String(!!d.notFirst));
     $('fName').value = d.author.name; $('fNative').value = d.author.nativeName;
     country.set(d.author.country); foldNow($('fNativeWrap'), NON_LATIN.has(d.author.country));
-    kind.set(d.source.kind); year.set(d.source.year);
+    kind.set(d.source.kind); year.set(d.source.year); linkHint(d.source.kind);
     const src = !!d.source.kind && d.source.kind !== 'personal';
     foldNow($('fTitleWrap'), src); foldNow($('fLinkWrap'), src);
     $('fTitle').value = d.source.title; $('fLink').value = d.source.link;
     foldNow($('fVideoWrap'), false); $('fVideo').dataset.src = ''; $('fVideo').innerHTML = ''; drawVideo(true); // (the quote's own video, if it has one)
+    drawCovers(true); // (a book: its covers, the picked one checked)
     $('fContext').value = d.context; $('fReflection').value = d.reflection; $('fKeptBy').value = d.keptBy;
     ['fOriginal', 'fNative', 'fText', 'fName', 'fTitle'].forEach((id) => cjkSize($(id)));
     font.set(d.font); lang.set(d.lang); drawFont();

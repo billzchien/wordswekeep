@@ -440,4 +440,24 @@
   inset: 0 auto auto 50%; width: 360px; height: 640px;
   transform-origin: 0 0; transform: scale(var(--fit, 0.28)) translateX(-50%);
 }
+.video-preview[data-orientation="music"] iframe { /* the player untouched, at its own height (js: --player-h), centred in a box of its own grey (js: bg), at least 8 round it (css/app.css → --music-pad) */
+  inset: calc((100% - var(--player-h)) / 2) 8px auto; width: calc(100% - 16px); height: var(--player-h);
+}
+/* A book's cover, picked under its source (js/admin.js → drawCovers): the covers found, four to a
+   row, each a tile like a checkbox row — the field's grey, its box at the top left (over the cover
+   is fine: Bill), checked when picked — the cover whole on it (contain), no text (the title and author on hover). */
+.cover-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap-1); }
+.cover-pick {
+  position: relative; display: flex; flex-direction: column; padding: var(--fpad);
+  background: var(--field); color: var(--placeholder); text-align: left; min-width: 0;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+@media (hover: hover) { .cover-pick:hover { background: var(--field-hover); } }
+.cover-pick[aria-checked="true"] { color: var(--ink); background: var(--field-hover); }
+.cover-pick > .chk-box { position: absolute; top: var(--fpad); left: var(--fpad); z-index: 1; background: var(--field); }
+.cover-pick[aria-checked="true"] .chk-box { background: var(--ink); box-shadow: none; }
+.cover-pick[aria-checked="true"] .icon-check { display: block; }
+.cover-img { position: relative; display: block; aspect-ratio: 2 / 3; } /* every tile the same: the cover sits on its foot */
+.cover-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; }
+.cover-note { grid-column: 1 / -1; display: flex; align-items: center; height: var(--fh); padding: 0 var(--fpad); background: var(--field); color: var(--placeholder); }
 .video-preview p { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--white); }

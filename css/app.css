@@ -496,6 +496,16 @@ ul { list-style: none; }
 .thumb--logo[data-platform="youtube"]   { --logo-w: 28.55%; }  /* 45.7 */
 .thumb--logo[data-platform="vimeo"]     { --logo-w: 25.31%; }  /* 40.5 */
 .thumb--logo[data-platform="instagram"] { --logo-w: 22.5%; }   /* 36 */
+.thumb--logo[data-platform="apple"]     { --logo-w: 24.66%; }  /* 39.5 (music, Figma 430:2543) */
+.thumb--logo[data-platform="spotify"]   { --logo-w: 26.25%; }  /* 42 (Figma 430:2603) */
+/* Music (Figma 430:2508): the cover, square, with the video thumbnail's play box. */
+.thumb[data-orientation="music"] { aspect-ratio: 1; }
+/* A book's cover (picked in the library): as wide as a thumbnail, its own height, no shade, no
+   play mark — a picture, not a button, so no hover lift either. */
+.thumb--cover { aspect-ratio: auto; }
+.thumb--cover::after { content: none; }
+.thumb--cover img { position: static; height: auto; }
+@media (hover: hover) and (pointer: fine) { .thumb--cover:hover { scale: none; } }
 .thumb-play--sm { left: 7.5px; bottom: 7.5px; border: 0; }
 .thumb-play--sm .icon { --src: url(../assets/icons/video-play.svg); width: 10.34px; height: 11.94px; color: var(--fg); }
 
@@ -591,6 +601,11 @@ ul { list-style: none; }
 .video-box { position: relative; max-width: 100%; }
 .video-box[data-orientation="horizontal"] { width: min(1030px, 100% - 100px, calc((100vh - 140px) * 16 / 9)); aspect-ratio: 16 / 9; }
 .video-box[data-orientation="vertical"]   { height: min(711px, calc(100vh - 120px)); aspect-ratio: 9 / 16; }
+/* Music: the platform's own player (dark), untouched — its own rounded corners — in a straight
+   container of the player's own grey (js: VIDEO[…].bg), --music-pad of it round the player, no
+   outline. As wide as a video; the player at its own height (js: --player-h). */
+.video-box[data-orientation="music"] { --music-pad: 8px; width: min(1030px, 100% - 100px, calc((100vh - 140px) * 16 / 9)); height: calc(var(--player-h, 152px) + 2 * var(--music-pad)); }
+.video-box[data-orientation="music"] .video-frame iframe { inset: var(--music-pad); width: calc(100% - 2 * var(--music-pad)); height: var(--player-h, 152px); background: transparent; }
 /* The X sits on the diagonal out of the video's top-right corner: its centre is the same
    distance (20px) to the right of the video as it is above it. 32px box → 16px to centre. */
 .video-close { left: calc(100% + 4px); bottom: calc(100% + 4px); }
@@ -729,7 +744,7 @@ ul { list-style: none; }
 
 @media (max-width: 599px) {
   /* No room beside the video on a phone: Close goes above its right edge. */
-  .video-box[data-orientation="horizontal"] { width: 100%; }
+  .video-box[data-orientation="horizontal"], .video-box[data-orientation="music"] { width: 100%; }
   .video-close { left: auto; right: -9px; bottom: 100%; }
 }
 
