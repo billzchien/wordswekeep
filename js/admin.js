@@ -855,7 +855,18 @@
   // drawn at a phone's size (css: 360 × VERTICAL_H, 9:16) and scaled to the box's height
   // (--fit), centred — Instagram's embed is a whole post and will not shrink to a sliver.
   const VERTICAL_H = 640;
-  new ResizeObserver(() => { const b = $('fVideo'); b.style.setProperty('--fit', (b.clientHeight / VERTICAL_H).toFixed(4)); }).observe($('fVideo'));
+  // The box is as near 16:9 as the edit view's grid allows: a whole number of rows (a row is a
+  // field, --fh, and its 1px gap; --u is the page's unit, tokens.css), so what follows stays on
+  // the grid. The player fits itself inside.
+  new ResizeObserver(() => {
+    const box = $('fVideo'), w = box.clientWidth;
+    if (!w) return;
+    const u = Math.min(1.5, Math.max(1, innerWidth / 1440)), row = 41 * u, gap = u; // (--fh 40 × --u, and the 1px gap)
+    const rows = Math.max(1, Math.round((w * 9 / 16 + gap) / row));
+    box.style.aspectRatio = 'auto'; // the height is set: the width is the column's alone (with the ratio kept, a box in the fold took its width from the height)
+    box.style.height = `${(rows * row - gap).toFixed(2)}px`;
+    box.style.setProperty('--fit', ((rows * row - gap) / VERTICAL_H).toFixed(4));
+  }).observe($('fVideo'));
   async function drawVideo(instant = false) { // instant: opening a quote, the player is simply there
     clearTimeout(drawVideo.t);
     const box = $('fVideo'), wrap = $('fVideoWrap');
@@ -917,8 +928,9 @@
     mark();
     if (m.at < 0) { a.matched = false; a.at = -1; renderAnn(); row.querySelector('input').focus({ preventScroll: true }); updateDirty(); return; } // warning state, → stays to try again
     a.word = m.text; a.at = m.at; a.matched = true;
+    const i = [...row.parentElement.children].indexOf(row); // before renderAnn, which builds the rows anew (this one is then gone)
     renderAnn(); updateDirty();
-    const r = $('annRows').querySelector(`.ann-pair[data-i="${[...row.parentElement.children].indexOf(row)}"]`);
+    const r = $('annRows').querySelector(`.ann-pair[data-i="${i}"]`);
     setTimeout(() => r?.querySelector('textarea')?.focus({ preventScroll: true }), 200);
   }
   $('annRows').addEventListener('input', (e) => {
