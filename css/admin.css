@@ -458,4 +458,10 @@
 .cover-img { position: relative; display: block; aspect-ratio: 2 / 3; } /* every tile the same: the cover sits on its foot */
 .cover-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; }
 .cover-note { grid-column: 1 / -1; display: flex; align-items: center; height: var(--fh); padding: 0 var(--fpad); background: var(--field); color: var(--placeholder); }
+.icon-refresh { --src: url(../assets/icons/refresh.svg); }
+.cover-ground { color: var(--ink); } /* "Note background": steps the tiles' colour (js: coverGround) */
+.cover-ground .icon { width: var(--box); height: var(--box); color: var(--ink); transition: rotate 500ms var(--ease); } /* Figma 434:2673 (12, filled); a full turn each click (js) */
+.cover-ground[aria-disabled="true"] { color: var(--placeholder); cursor: default; }
+.cover-ground[aria-disabled="true"] .icon { color: var(--placeholder); }
+@media (hover: hover) { .cover-ground[aria-disabled="true"]:hover { background: var(--field); } }
 .video-preview p { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--white); }

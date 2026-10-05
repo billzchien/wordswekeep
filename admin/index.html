@@ -80,9 +80,13 @@
                      author (Apple Books, Open Library), "No cover", or an image address pasted. Stored as source.cover. -->
                 <div class="fold" id="fCoverWrap" hidden><div class="stack">
                   <div class="cover-grid" id="fCovers" role="radiogroup" aria-label="Cover"></div>
-                  <button type="button" class="chk" role="radio" aria-checked="true" id="fNoCover">
-                    <span class="chk-box" aria-hidden="true"><span class="icon icon-check"></span></span><span>No cover</span>
-                  </button>
+                  <div class="row2">
+                    <button type="button" class="chk" role="radio" aria-checked="true" id="fNoCover">
+                      <span class="chk-box" aria-hidden="true"><span class="icon icon-check"></span></span><span>No cover</span>
+                    </button>
+                    <!-- The tiles' colour: the next of the quote's categories' notes backgrounds (only for looking; not stored). -->
+                    <button type="button" class="chk cover-ground" id="fCoverBg"><span class="icon icon-refresh" aria-hidden="true"></span><span>Note background</span></button>
+                  </div>
                   <div class="fw"><input class="field" id="fCoverLink" type="url" placeholder="Or paste a cover image address" autocomplete="off" inputmode="url" aria-label="Cover image address"></div>
                 </div></div>
               </div>
