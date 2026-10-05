@@ -133,7 +133,9 @@
         <div class="sec edit-font">
           <p class="sec-title">Font</p>
           <div class="font-box">
-            <div class="fw" id="fFont"></div>
+            <!-- One checkbox row per face, one chosen at a time (js/admin.js → fontPicker): all one width, as wide as the longest name needs, in as few even rows as the width allows. -->
+            <div class="chk-grid font-grid" id="fFont" role="radiogroup" aria-label="Font"></div>
+            <div class="fw font-drop" id="fFontDrop"></div><!-- a phone: the dropdown instead (css) -->
             <div class="font-view" id="fontView" aria-hidden="true"><div class="font-stage" id="fontStage"></div></div>
             <div class="font-view" id="fontViewNative" aria-hidden="true" hidden><div class="font-stage" id="fontStageNative"></div></div>
           </div>

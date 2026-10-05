@@ -353,6 +353,12 @@
    otherwise. Tablet: 768, 512; the quote from col2 to a column short of the right edge.
    Phone: 375, 334; the quote margin to margin (a short one 40 less). */
 .edit-font { margin-top: calc(40 * var(--u)); }
+/* The faces as checkbox rows (js: layoutFonts sets the columns: all one width, nothing cut). */
+.font-grid .chk { white-space: nowrap; }
+.font-grid .chk:last-child:nth-child(odd) { grid-column: auto; } /* (not the categories' full-width last row) */
+.font-drop { display: none; } /* a phone: the dropdown, not the rows */
+@media (max-width: 599px) { .font-grid { display: none; } .font-drop { display: block; } }
+.font-grid .chk[aria-disabled="true"] { opacity: 0.4; cursor: default; }
 .font-box { display: flex; flex-direction: column; gap: 1px; }
 .font-view { position: relative; height: 230px; overflow: hidden; background: var(--field); }
 .font-stage {

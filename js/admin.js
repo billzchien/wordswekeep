@@ -819,7 +819,51 @@
     if (!v && edit.draft.lang) setTimeout(() => { if (edit && !edit.langPicked && document.activeElement !== lang.input) lang.set(edit.draft.lang); }, 0);
     updateDirty();
   } });
-  const font = combo($('fFont'), { options: () => FONTS.filter((f) => !edit || !f.not.includes(tier(edit.draft.text))), placeholder: 'Font', keep: true, onChange: (v) => { if (!edit || !v) return; mark('font'); edit.draft.font = v; drawFont(); updateDirty(); } });
+  /* The quote's face: a checkbox row per face (in the Fonts tab's order of FONTS), one chosen at a
+     time (Bill, 2026-10-05: a dropdown was hard to choose from while watching the preview). Every
+     row is one width — the longest name's, with its box and padding — and the rows fill as few
+     even lines as the width allows (13 faces: 7 + 6 on a desktop). A face not drawn for this
+     length (`not`) is greyed out. */
+  $('fFont').innerHTML = FONTS.map((f) => `
+    <button type="button" class="chk" role="radio" aria-checked="false" data-key="${f.value}">
+      <span class="chk-box" aria-hidden="true"><span class="icon icon-check"></span></span><span>${esc(f.label)}</span>
+    </button>`).join('');
+  function layoutFonts() {
+    const grid = $('fFont'), opts = [...grid.querySelectorAll('.chk')];
+    if (!grid.clientWidth || !opts.length) return;
+    const cs = getComputedStyle(opts[0]), ctx = (layoutFonts.c = layoutFonts.c || document.createElement('canvas').getContext('2d'));
+    ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const name = Math.max(...FONTS.map((f) => ctx.measureText(f.label).width));
+    const box = opts[0].querySelector('.chk-box').offsetWidth, gap = parseFloat(cs.columnGap) || parseFloat(cs.gap) || 10;
+    const need = Math.ceil(name + box + gap + 2 * parseFloat(cs.paddingLeft) + 2); // one row, nothing cut
+    const between = parseFloat(getComputedStyle(grid).columnGap) || 1;
+    const fit = Math.max(1, Math.floor((grid.clientWidth + between) / (need + between)));
+    const rows = Math.ceil(opts.length / fit), cols = Math.ceil(opts.length / rows); // even lines
+    grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+    opts.forEach((b) => { b.style.gridColumn = ''; });
+    const empty = rows * cols - opts.length; // the last line's empty places: the last face stretches over them (Bill), so the block stays whole
+    if (empty) opts[opts.length - 1].style.gridColumn = `span ${empty + 1}`;
+  }
+  new ResizeObserver(layoutFonts).observe($('fFont'));
+  if (document.fonts) document.fonts.ready.then(layoutFonts);
+  // A phone (under 600): the dropdown it was, in place of the rows (Bill, 2026-10-05); the two
+  // are kept in step.
+  const fontDrop = combo($('fFontDrop'), { options: () => FONTS.filter((f) => !edit || !f.not.includes(tier(edit.draft.text))), placeholder: 'Font', keep: true, onChange: (v) => { if (!edit || !v || edit.draft.font === v) return; mark('font'); edit.draft.font = v; font.set(v); drawFont(); updateDirty(); } });
+  const font = {
+    set(v) {
+      fontDrop.set(v);
+      const t = edit ? tier(edit.draft.text) : 'm';
+      $('fFont').querySelectorAll('.chk').forEach((b) => {
+        b.setAttribute('aria-checked', String(b.dataset.key === v));
+        b.setAttribute('aria-disabled', String(FONTS.find((f) => f.value === b.dataset.key).not.includes(t)));
+      });
+    },
+  };
+  $('fFont').addEventListener('click', (e) => {
+    const b = e.target.closest('.chk');
+    if (!b || !edit || b.getAttribute('aria-disabled') === 'true' || edit.draft.font === b.dataset.key) return;
+    mark('font'); edit.draft.font = b.dataset.key; font.set(b.dataset.key); drawFont(); updateDirty();
+  });
   const year = combo($('fYear'), { options: YEARS, placeholder: 'Year', free: true, onChange: (v) => { if (!edit) return; mark('year'); edit.draft.source.year = /^\d{1,4}$/.test(v) ? v : ''; updateDirty(); } });
   year.input.inputMode = 'numeric';
   function showSourceFields(on) {
@@ -991,7 +1035,7 @@
     return found;
   }
   function coverHealth(src) {
-    if (!src) return Promise.resolve('ok');
+    if (!src || coverPreview.has(src)) return Promise.resolve('ok'); // (one just pasted: the site has it a minute or so later — it is not "gone")
     const key = `cover:${src}`;
     if (!healthCache.has(key)) healthCache.set(key, new Promise((done) => {
       const img = new Image(), t = setTimeout(() => done('unknown'), 8000);
@@ -1338,7 +1382,7 @@
   function drawFont() {
     if (!edit) return;
     const key = edit.draft.font, original = edit.draft.original.trim();
-    $('fFont').classList.toggle('is-warn', !fontFits(key, tier(edit.draft.text)));
+    font.set(key); // (the checked row, and which faces this length allows)
     $('fontStage').innerHTML = quoteIn(edit.draft.text, key, false);
     $('fontViewNative').hidden = !original;
     $('fontStageNative').innerHTML = original ? quoteIn(original, key, true) : '';
