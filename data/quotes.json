@@ -442,7 +442,8 @@
       "title": "Smile and Keep Living",
       "year": 2018,
       "kind": "book",
-      "link": null
+      "link": null,
+      "cover": "assets/covers/2493bc6e5a7b1aae8a22.webp"
     },
     "context": "《笑着活下去》is a sharp, distinctly voiced essay collection by Gao Jiacheng — who first gained attention in 2017 for his savage wit on the show 奇葩大会 (Qipa Dahui), later transitioning from a casting director at Mi Wei Media to a signed talent there. The book gathers 27 personal essays — some about childhood absurdities, some about the fickleness of human relationships, some about the tearing pain of growing up.",
     "annotations": [],
@@ -599,5 +600,34 @@
     "submittedAt": "2026-08-02T15:44:54",
     "approvedAt": "2026-08-02T15:44:54",
     "font": "author"
+  },
+  {
+    "status": "live",
+    "text": "Closed mouths don’t get fed.",
+    "originalLanguage": null,
+    "categories": [
+      "growth",
+      "drive",
+      "community"
+    ],
+    "author": {
+      "name": "A friend",
+      "nativeName": null,
+      "country": "US"
+    },
+    "source": {
+      "title": null,
+      "year": null,
+      "kind": "other",
+      "link": null
+    },
+    "context": "In Yellowstone, we just missed the chance to see a geyser erupt by 5 minutes. My friend approached a random stranger asking him if he took a photo of it.\n\n“Excuse me sir— did you see the geyser? Did you take photos? WOW that looks GORGEOUS. Could you send it to me? Here, I’ll give you my phone number.”\n\nIt was a hilarious exchange. She was so shameless and brave. Now, we all have a beautiful photo of Old Faithful Geyser.",
+    "annotations": [],
+    "reflection": "Speak up. Advocate for yourself. Only you know what you need, and sometimes you need to lean on others. Don’t be ashamed to ask for help. When we ask for help, we open ourselves up to connect with others.",
+    "keptBy": "Tracy",
+    "approvedAt": "2026-10-05T19:40:09.584Z",
+    "submittedAt": "2026-10-05T19:24:12.581Z",
+    "font": "round",
+    "id": 23
   }
 ]
