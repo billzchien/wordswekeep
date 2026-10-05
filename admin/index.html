@@ -60,18 +60,14 @@
               <div class="chk-grid" id="catList" role="group" aria-label="Categories"></div>
             </div>
             <div class="sec">
-              <p class="sec-title">Author</p>
+              <p class="sec-title">Source</p>
+              <!-- Who said it and where it comes from, one group (the author had a title of its own until 2026-10-04). -->
               <div class="stack">
                 <div class="row2">
-                  <div class="fw"><input class="field" id="fName" type="text" placeholder="Name" autocomplete="off" aria-label="Name"></div>
+                  <div class="fw"><input class="field" id="fName" type="text" placeholder="Author" autocomplete="off" aria-label="Author"></div>
                   <div class="fw" id="fCountry"></div>
                 </div>
-                <div class="fold" id="fNativeWrap" hidden><div class="fw"><input class="field" id="fNative" type="text" placeholder="Name in original language" autocomplete="off" aria-label="Name in original language"></div></div>
-              </div>
-            </div>
-            <div class="sec">
-              <p class="sec-title">Source</p>
-              <div class="stack">
+                <div class="fold" id="fNativeWrap" hidden><div class="fw"><input class="field" id="fNative" type="text" placeholder="Name in original language" autocomplete="off" aria-label="Author's name in original language"></div></div>
                 <div class="row2">
                   <div class="fw" id="fKind"></div>
                   <div class="fw" id="fYear"></div>
@@ -110,11 +106,11 @@
             </div>
             <div class="sec">
               <p class="sec-title">Personal note</p>
-              <div class="fw"><textarea class="field" id="fReflection" placeholder="Notes" rows="3" aria-label="Personal note"></textarea></div>
-            </div>
-            <div class="sec">
-              <p class="sec-title">Name</p>
-              <div class="fw"><input class="field" id="fKeptBy" type="text" placeholder="Name" autocomplete="off" aria-label="Name"></div>
+              <!-- The note and who wrote it, one group (no label of its own for the name). -->
+              <div class="stack">
+                <div class="fw"><textarea class="field" id="fReflection" placeholder="Notes" rows="3" aria-label="Personal note"></textarea></div>
+                <div class="fw"><input class="field" id="fKeptBy" type="text" placeholder="Name" autocomplete="off" aria-label="Name of who keeps the words"></div>
+              </div>
             </div>
           </div>
         </div>
