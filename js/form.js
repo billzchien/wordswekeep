@@ -201,10 +201,20 @@
   }
 
   let sliding = false;
+  // The step with the source link: going on waits for its check (LINK_WAIT_MS at most; no answer
+  // = no warning). A warning keeps the visitor here; the next Next goes on (the link is gone).
+  const LINK_STEP = 2, LINK_WAIT_MS = 5000;
+  let linkGate = false;
   function go(i, { force = false } = {}) {
     if (i < 0 || i > STEPS || i === cur || sliding) return;
     if (i > cur && !force) {
       if (!valid[cur]()) { warn(cur); return; }
+      if (cur === LINK_STEP && !linkGate && !$('fSourceLinkWrap').hidden && $('fSourceLink').value.trim()) {
+        linkGate = true;
+        Promise.race([checkSourceLink(), new Promise((done) => setTimeout(() => done(false), LINK_WAIT_MS))])
+          .then((warned) => { if (!warned) go(i); linkGate = false; });
+        return;
+      }
       i = cur + 1; // one step at a time going forward: each gate in turn
     }
     if (i >= STEPS && !force) return; // the done screen is reached by submit() only
@@ -514,7 +524,54 @@
   $('fName').addEventListener('input', (e) => { data.author.name = e.target.value; refresh(); });
   $('fNative').addEventListener('input', (e) => { data.author.nativeName = e.target.value; });
   $('fTitle').addEventListener('input', (e) => { data.source.title = e.target.value; });
-  $('fSourceLink').addEventListener('input', (e) => { data.source.link = e.target.value; });
+  // A link's shape: http(s), a real domain, no bare IP address or localhost, no user name or
+  // password (workers/lib/link.js → shapeOf, which the Workers check again: keep in step).
+  function linkShapeOk(raw) {
+    let u;
+    try { u = new URL(raw.trim()); } catch (e) { return false; }
+    if (!/^https?:$/.test(u.protocol) || u.username || u.password) return false;
+    const host = u.hostname.toLowerCase();
+    return host.includes('.') && !/^\[|^\d+(\.\d+){3}$/.test(host) && !/(^|\.)(localhost|local|internal|lan|home|test|invalid|example)$/.test(host);
+  }
+  const LINK_NOTE = { shape: 'This doesn’t look like a link.', unreachable: 'We can’t reach this link.', unsafe: 'This link is flagged as unsafe.' };
+  // A warning in the link field, as every warning in the form (Bill, 2026-10-05): the link goes,
+  // the warning takes the placeholder's place, with the ⓘ. '' puts the category's hint back.
+  function warnLink(text) {
+    const field = $('fSourceLink');
+    field.closest('.fw').classList.toggle('is-warn', !!text);
+    if (!text) return linkHint(data.source.kind);
+    field.value = ''; data.source.link = '';
+    field.placeholder = text; field.setAttribute('aria-label', text);
+  }
+  // The source link is checked when the visitor leaves the field, and on Next (not as it is
+  // typed): its shape here, then whether it can be reached and whether its site is flagged, by
+  // the Worker (/check). A warning holds the step once; Next again goes on, without the link.
+  const linkNotes = new Map(); // a link → Promise of its warning ('' = none)
+  function noteFor(v) {
+    if (!linkNotes.has(v)) linkNotes.set(v, (async () => {
+      if (!linkShapeOk(v)) return LINK_NOTE.shape;
+      if (!SUBMIT_URL) return ''; // a local preview: no Worker to ask
+      try {
+        const r = await (await fetch(`${SUBMIT_URL}check`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: v }) })).json();
+        return r.unsafe ? LINK_NOTE.unsafe : r.reach === 'unreachable' ? LINK_NOTE.unreachable : r.shape === 'bad' ? LINK_NOTE.shape : '';
+      } catch (e) { linkNotes.delete(v); return ''; } // no answer: no warning (asked again next time)
+    })());
+    return linkNotes.get(v);
+  }
+  // → true when it warned (and the link is gone)
+  async function checkSourceLink() {
+    const field = $('fSourceLink'), v = field.value.trim();
+    if (!v) return false;
+    const note = await noteFor(v);
+    if (!note || field.value.trim() !== v) return false; // fine, or typed on meanwhile
+    warnLink(note);
+    return true;
+  }
+  $('fSourceLink').addEventListener('input', (e) => {
+    data.source.link = e.target.value;
+    if (e.target.closest('.fw').classList.contains('is-warn')) warnLink('');
+  });
+  $('fSourceLink').addEventListener('change', checkSourceLink); // on leaving the field
   const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Country or region', label: 'Country or region', onChange: (v) => { data.author.country = v; fold($('fNativeWrap'), NON_LATIN.has(v)); refresh(); } });
   // Source name and link appear once a kind other than Personal is chosen, one after the other.
   const SOURCE_STAGGER_MS = 50;
@@ -748,6 +805,7 @@
     fold($('fOriginalWrap'), false); fold($('origToggleWrap'), true); fold($('fNativeWrap'), false); showSourceFields(false);
     document.querySelectorAll('.cat').forEach((b) => b.setAttribute('aria-checked', 'false'));
     document.querySelectorAll('.fw.is-warn').forEach((w) => w.classList.remove('is-warn'));
+    warnLink('');
     country.set(''); kind.set(''); year.set(''); linkHint('');
     // From "Words submitted", a fresh step 1 comes in from below (one slide down, like every
     // other step), not by rewinding up through all five. Step 1 is parked under the done screen
