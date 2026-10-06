@@ -1356,11 +1356,11 @@
   // The archive's line-breaking rules (js/app.js → noOrphans, copied: change both), so the
   // preview breaks where the archive does: the last two words stay together (CJK: the last
   // four characters), a sentence's opener — one or two letters, or a pronoun — stays with
-  // the word after it, and so do "a", "an", "the", "of", "from" and "is".
+  // the word after it, and so do "a", "an", "of" and "from" ("the" and "is" are looser: SOFT_END).
   const NBSP = '\u00a0', WJ = '\u2060', CJK_CHAR = /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\uff00-\uffef\u3000-\u303f]/;
   const OPENERS = 'I|we|you|he|she|it|they|my|our|your|his|her|its|their|me|us|them';
   const OPENER = new RegExp(`([.!?…:;][”’)\\]]*\\s+[“‘(\\[]*(?:[^\\s\\u00a0]{1,2}|(?:${OPENERS})(?:[’'][a-z]+)?)) (?=\\S)`, 'gi');
-  const TIED_WORD = /(^|[\s“‘(\[—–])(a|an|the|of|from|is) (?=\S)/gi; // "a", "an", "the", "of", "from", "is" never end a line
+  const TIED_WORD = /(^|[\s“‘(\[—–])(a|an|of|from) (?=\S)/gi; // "a", "an", "of", "from" never end a line
   const tieWords = (line) => { for (let was; was !== line;) { was = line; line = line.replace(TIED_WORD, `$1$2${NBSP}`); } return line; };
   function noOrphans(text) {
     return text.split('\n').map((line) => {
@@ -1430,7 +1430,7 @@
   // of the box. The breaks are written into the text as newlines; the text as it was is kept
   // on the element (`_plain`) and put back before each new measuring. Not here: the archive's
   // fallback for CJK and for a word group wider than the box (those stay as the browser breaks them).
-  const RAG_LAST = 0.5, RAG_LAST_MIN = 0.33;
+  const RAG_LAST = 1, RAG_LAST_MIN = 0.33; // js/app.js → RAG_LAST
   function plainLines(q) {
     if (q._plain != null && q.firstChild && q.childNodes.length === 1) q.firstChild.data = q._plain;
     q._plain = null;
@@ -1447,7 +1447,7 @@
       range.setStart(node, m.index); range.setEnd(node, m.index + m[0].length);
       const rects = [...range.getClientRects()].filter((r) => r.width > 0);
       if (rects.length !== 1) return; // a word broken at its hyphen: left alone
-      words.push({ left: rects[0].left, right: rects[0].right, top: rects[0].top, height: rects[0].height, start: m.index, end: m.index + m[0].length });
+      words.push({ text: m[0], left: rects[0].left, right: rects[0].right, top: rects[0].top, height: rects[0].height, start: m.index, end: m.index + m[0].length });
     }
     const sameLine = (a, b) => Math.abs(a.top - b.top) < a.height / 2;
     const count = () => { // lines as rendered now
@@ -1466,7 +1466,7 @@
     let from = 0;
     for (let k = 1; k <= words.length; k++) {
       if (k < words.length && !before[k].includes('\n')) continue;
-      const cut = ragBreaks(width.slice(from, k), before.slice(from, k).map((b, i) => i > 0 && b === ' '), space, box);
+      const cut = ragBreaks(width.slice(from, k), before.slice(from, k).map((b, i) => i > 0 && b === ' '), space, box, words.slice(from, k).map((w) => stackKey(w.text)));
       if (!cut) return;
       cut.forEach((c) => breaks.push(from + c));
       from = k;
@@ -1478,7 +1478,18 @@
     q._plain = text;
     if (count() !== before.filter((b) => b.includes('\n')).length + breaks.length) plainLines(q); // the browser must agree line for line
   }
-  function ragBreaks(width, open, space, box) {
+  // No stacks (Bill, 2026-10-06): two lines in a row should not start with the same word
+  // ("you … / you …", "the person … / the person …") — the eye can lose its place, and the left
+  // edge shows the repeat. Bill's order (2026-10-06): no repeats first, then even lines, then
+  // "the" / "is" at a line end. A repeat costs RAG_STACK² boxes² — more than any unevenness — so
+  // it happens only when nothing else fits. Words are compared without capitals or punctuation.
+  const RAG_STACK = 10;
+  // Last in that order: a line avoids ending on "the" or "is" — it costs as much as a line left
+  // RAG_SOFT of the box short — which decides between ways that are about as even, and gives way
+  // to evenness otherwise. ("a", "an", "of", "from" are tied to the next word and never end a line.)
+  const SOFT_END = new Set(['the', 'is']), RAG_SOFT = 0.15;
+  const stackKey = (text) => text.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+  function ragBreaks(width, open, space, box, keys = []) {
     const n = width.length;
     const span = (i, j) => { let w = 0; for (let k = i; k < j; k++) w += width[k]; return w + (j - i - 1) * space; }; // words i…j-1 on one line
     // best[j] per line count: least cost of setting the first j words in exactly `l` lines.
@@ -1494,7 +1505,10 @@
           if (w > box) break;
           if (prev[i] === Infinity) continue;
           const short = box - w, last = j === n;
-          const cost = prev[i] + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+          const above = l > 1 ? trail[l - 2][i] : -1; // where the line before this one starts
+          const stack = above >= 0 && keys[i] && keys[i] === keys[above] ? (RAG_STACK * box) ** 2 : 0;
+          const soft = !last && SOFT_END.has(keys[j - 1]) ? (RAG_SOFT * box) ** 2 : 0;
+          const cost = prev[i] + stack + soft + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
           if (cost < cur[j]) { cur[j] = cost; back[j] = i; }
         }
       }
