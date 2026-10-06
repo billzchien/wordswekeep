@@ -287,23 +287,18 @@ ul { list-style: none; }
 .quote[data-tier="xs"] { --q-size: var(--quote-xs); --q-width: calc(26.88em / var(--qf-scale, 1)); --q-ratio: 1.1429; }  /* 860 / 32 · 32/28 */
 .slide .quote { max-width: min(100%, calc((4 * var(--colw) + 3 * var(--g)) * var(--q-ratio))); }
 /* Desktop (Figma: Type 310:3916): the main quote is boxed by the four columns from col2 with 40
-   kept clear on the right (780 at 1280) — medium and longer quotes fill that, a short one is
-   held inside it — so its right edge follows the grid at every window width. The notes quote
-   keeps the main quote's line breaks (js → lockLines); they are shorter than its four columns. */
+   kept clear on the right (780 at 1280) — quotes of every length fill that, a short one too
+   (Bill, 2026-10-06: a short quote held in its own narrower box broke onto two lines with the
+   room for one beside it) — so its right edge follows the grid at every window width. The notes
+   quote keeps the main quote's line breaks (js → lockLines); they are shorter than its four columns. */
 @media (min-width: 1024px) {
   .quote { --q-measure: calc(4 * var(--colw) + 3 * var(--g) - 40 * var(--u)); }
-  .slide .quote { max-width: min(100%, var(--q-measure)); }
-  .slide .quote[data-tier="m"],
-  .slide .quote[data-tier="s"],
-  .slide .quote[data-tier="xs"] { --q-width: var(--q-measure); }
+  .slide .quote { --q-width: var(--q-measure); max-width: min(100%, var(--q-measure)); }
   /* The notes quote takes the same measure in em as the main one, at every length: the main
-     one's box and cap divided by the size ratio. Past the width where the type stops growing
+     one's box divided by the size ratio. Past the width where the type stops growing
      (--u's cap) the columns still widen, so a fixed em box in notes would hold less than the
      main line and break it again (Bill, 2026-10-06). */
-  .notes .quote { max-width: min(100%, calc(var(--q-measure) / var(--q-ratio))); }
-  .notes .quote[data-tier="m"],
-  .notes .quote[data-tier="s"],
-  .notes .quote[data-tier="xs"] { --q-width: calc(var(--q-measure) / var(--q-ratio)); }
+  .notes .quote { --q-width: calc(var(--q-measure) / var(--q-ratio)); max-width: min(100%, var(--q-width)); }
 }
 
 .quote[data-native] {
