@@ -32,7 +32,7 @@
     { value: 'poem', label: 'Poem' },
     { value: 'speech', label: 'Speech / Interview', hint: 'Link to YouTube, Vimeo, or another site' },
     { value: 'writing', label: 'Writing' },
-    { value: 'social', label: 'Social media', hint: 'Link to TikTok, Instagram, or another site' },
+    { value: 'social', label: 'Social media', hint: 'Link to YouTube, TikTok, Instagram, or other' },
     { value: 'personal', label: 'Personal' },
     { value: 'other', label: 'Other' },
   ];

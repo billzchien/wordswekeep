@@ -35,7 +35,7 @@
     { value: 'song', label: 'Song', hint: 'Link to Apple Music, Spotify, or another site' }, { value: 'poem', label: 'Poem' }, { value: 'speech', label: 'Speech & interview', hint: VIDEO_HINT },
     { value: 'interview', label: 'Interview', hint: VIDEO_HINT }, { value: 'writing', label: 'Writing' }, { value: 'essay', label: 'Essay' },
     { value: 'letter', label: 'Letter' }, { value: 'scripture', label: 'Scripture' }, { value: 'comic', label: 'Comic' },
-    { value: 'artwork', label: 'Artwork' }, { value: 'commercial', label: 'Commercial', hint: VIDEO_HINT }, { value: 'social', label: 'Social media', hint: 'Link to TikTok, Instagram, or another site' }, { value: 'personal', label: 'Personal' },
+    { value: 'artwork', label: 'Artwork' }, { value: 'commercial', label: 'Commercial', hint: VIDEO_HINT }, { value: 'social', label: 'Social media', hint: 'Link to YouTube, TikTok, Instagram, or other' }, { value: 'personal', label: 'Personal' },
     { value: 'other', label: 'Other' },
   ];
   function linkHint(v) {
