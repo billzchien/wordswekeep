@@ -368,8 +368,7 @@
   --u: 1px; --quote-l: 64px; --quote-m: 52px; --quote-s: 40px; --quote-xs: 32px;
   color: var(--ink);
 }
-.font-stage .quote { flex: none; width: 780px; max-width: none; margin: 0; -webkit-user-select: none; user-select: none; }
-.font-stage .quote[data-tier="l"] { width: 700px; }
+.font-stage .quote { flex: none; width: 780px; max-width: none; margin: 0; -webkit-user-select: none; user-select: none; } /* every length, a short quote too, as in the archive since 2026-10-06 */
 @media (max-width: 1023px) {
   .font-stage { width: 768px; min-height: 512px; padding: 64px 0 64px 145px; --quote-l: 48px; --quote-m: 40px; --quote-s: 32px; --quote-xs: 26px; }
   .font-stage .quote, .font-stage .quote[data-tier="l"] { width: 478px; }
@@ -428,7 +427,6 @@
   border-bottom: var(--hairline) solid var(--rule);
 }
 .face-board .quote { width: calc(4 * var(--colw) + 3 * var(--g) - 40 * var(--u)); max-width: 100%; margin: 0; }
-.face-board .quote[data-tier="l"] { width: calc(700 * var(--u)); }
 .face-board .quote.is-ref { opacity: 0.35; }
 .face-board .quote[contenteditable] { outline: none; cursor: text; caret-color: var(--ink); -webkit-user-select: text; user-select: text; } /* the words are edited in place; Instrument follows */
 .face-cap { position: absolute; left: 0; top: var(--row-pad); right: 0; color: var(--head); font-feature-settings: var(--numeral-features); }
