@@ -1,4 +1,31 @@
 {
+  "fig": {
+    "scale": {
+      "l": 1,
+      "m": 0.85,
+      "s": 0.9
+    },
+    "leading": 1.22,
+    "tracking": -2
+  },
+  "grotesk": {
+    "scale": {
+      "l": 1.05,
+      "m": 0.875,
+      "s": 0.85
+    },
+    "leading": 1.2,
+    "tracking": -1
+  },
+  "instrument": {
+    "scale": {
+      "l": 1.1,
+      "m": 1,
+      "s": 1
+    },
+    "leading": 1.15,
+    "tracking": 0
+  },
   "poet": {
     "scale": {
       "l": 1.6,
@@ -7,5 +34,14 @@
     },
     "leading": 1.1,
     "tracking": 5
+  },
+  "round": {
+    "scale": {
+      "l": 1,
+      "m": 0.875,
+      "s": 0.85
+    },
+    "leading": 1.3,
+    "tracking": 0
   }
 }
