@@ -262,6 +262,17 @@ textarea.field::-webkit-scrollbar { display: none; }
 .btn .cell { display: inline-block; } /* one letter of the label; the typewriter hover (js/form.js) fades these */
 @media (hover: hover) { .btn--primary:not(:disabled):hover { box-shadow: none; } }
 .btn--primary:disabled { background: var(--btn-off); border-color: var(--btn-off); color: var(--white); }
+/* Sending (js: submit): black as ever, the label hidden, a white wheel in its place — a 1px ring,
+   a quarter of it open, square ends, turning. */
+.btn.is-busy { position: relative; pointer-events: none; }
+.btn.is-busy .label { visibility: hidden; }
+.btn.is-busy::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: calc(16 * var(--u)); height: calc(16 * var(--u)); margin: calc(-8 * var(--u)) 0 0 calc(-8 * var(--u));
+  border: 1px solid currentColor; border-top-color: transparent; border-radius: 50%;
+  animation: btn-spin 0.8s linear infinite;
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .btn.is-busy::after { animation-duration: 2.4s; } }
 
 /* ---------- Guards: the page colour over a progressive blur, top and bottom ----------
    Content scrolling under the chrome dissolves into the background (--guard-bg: the paper on
