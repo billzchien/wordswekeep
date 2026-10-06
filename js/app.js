@@ -22,10 +22,35 @@
   // Titles are set in italics for a book or a film / TV work only; everything else stays upright.
   // (Form kinds: book · film · song · poem · speech · writing · personal · other.)
   const ITALIC_KINDS = new Set(['book', 'film']);
-  const LANG_GLYPH = { zh: '中', ja: '日', ko: '한' };
-  // The language button: a glyph for Chinese, Japanese and Korean; for any other language its
-  // two-letter code in capitals (ES, FR…), set like "EN"; "Aa" when the language is not known.
-  const langLabel = (code) => LANG_GLYPH[code] || (/^[a-z]{2}$/i.test(code || '') ? code.toUpperCase() : 'Aa');
+  // The language button (tuned by Bill on a temporary page, 2026-10-06): for each language not in
+  // Latin letters, the short label its own sites use, in a font of its script; size in px,
+  // tracking in % of the size, nudge in tenths of a px (− up, + down: scripts sit differently in
+  // the box). EN — the way back — and any Latin-script language's two-letter code (ES, FR…) are
+  // set alike, by `en`; "Aa" when the language is not known. Its fonts are in index.html's links.
+  const LANG_BUTTON = {
+    en: { label: 'EN', font: 'Inter', weight: 500, size: 10, tracking: 4, nudge: 0 },
+    zh: { label: '中', font: 'Noto Sans SC', weight: 500, size: 12, tracking: 0, nudge: -3 },
+    ja: { label: 'JP', font: 'Inter', weight: 500, size: 10.5, tracking: 1.5, nudge: -1 },
+    ko: { label: '한', font: 'Noto Sans KR', weight: 500, size: 13, tracking: 0, nudge: -7 },
+    el: { label: 'ΕΛ', font: 'Inter', weight: 500, size: 10, tracking: 4, nudge: 0 },
+    ru: { label: 'РУ', font: 'Manrope', weight: 600, size: 11, tracking: 2.5, nudge: 2 },
+    uk: { label: 'УКР', font: 'Inter', weight: 500, size: 9.5, tracking: 0.5, nudge: 0 },
+    ar: { label: 'عربي', font: 'Noto Sans Arabic', weight: 500, size: 9.5, tracking: 0, nudge: -17 },
+    fa: { label: 'فا', font: 'IBM Plex Sans Arabic', weight: 400, size: 13.5, tracking: 0, nudge: 7 },
+    ur: { label: 'اردو', font: 'Noto Sans Arabic', weight: 500, size: 11.5, tracking: 0, nudge: -5 },
+    he: { label: 'עב', font: 'IBM Plex Sans Hebrew', weight: 400, size: 13, tracking: 2, nudge: -8 },
+    th: { label: 'ไทย', font: 'Bai Jamjuree', weight: 500, size: 11, tracking: 0, nudge: 0 },
+    hi: { label: 'हिं', font: 'Poppins', weight: 400, size: 12.5, tracking: 0, nudge: 11 },
+    bn: { label: 'বাং', font: 'Hind Siliguri', weight: 400, size: 13.5, tracking: 0, nudge: 6 },
+    ta: { label: 'த', font: 'Noto Sans Tamil', weight: 400, size: 13, tracking: 0, nudge: 0 },
+  };
+  const langLabel = (code) => (LANG_BUTTON[code] ? LANG_BUTTON[code].label : /^[a-z]{2}$/i.test(code || '') ? code.toUpperCase() : 'Aa');
+  // The button's face (css .lang reads these), and its label inside a span that takes the nudge.
+  function langButtonInner(code) {
+    const b = LANG_BUTTON[code] || { ...LANG_BUTTON.en, label: langLabel(code) };
+    const style = `--lb-font: '${b.font}'; --lb-weight: ${b.weight}; --lb-size: ${b.size}px; --lb-track: ${b.tracking / 100}em; --lb-nudge: ${b.nudge / 10}px`;
+    return { style, html: `<span>${esc(b.label)}</span>` };
+  }
 
   // The quote faces (css/fonts.css; Figma: Type 310:3916). A quote names one in `font`.
   // `not`: the length tiers the face is not drawn for (Figma's boards at 20%).
@@ -75,6 +100,36 @@
     const has = faceChars.get(key);
     return [...text].every((ch) => { const c = ch.codePointAt(0); return /\s/.test(ch) || (c >= 0x20 && c <= 0x7e) || has.has(c) || (ch === '…' && key === 'poet'); });
   }
+  // The script an original-language quote is written in (css/fonts.css sets each in its own Noto,
+  // at its own size): the one most of its letters are in. Chinese characters with any kana are
+  // Japanese; with any hangul, Korean. Latin text set in Noto (a letter the face lacks) is 'latn'.
+  // The same function is in js/admin.js: change both.
+  const QUOTE_SCRIPTS = [['kana', /[\u3040-\u30ff]/g], ['hang', /[\uac00-\ud7af\u1100-\u11ff]/g], ['hani', /[\u3400-\u9fff]/g],
+    ['cyrl', /[\u0400-\u052f]/g], ['grek', /[\u0370-\u03ff\u1f00-\u1fff]/g], ['arab', /[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\ufb50-\ufdff\ufe70-\ufeff]/g],
+    ['hebr', /[\u0590-\u05ff\ufb1d-\ufb4f]/g], ['thai', /[\u0e00-\u0e7f]/g], ['deva', /[\u0900-\u097f\ua8e0-\ua8ff]/g]];
+  // Traditional or simplified Chinese, told apart by characters that exist in one form only
+  // (說/说, 這/这, 們/们…); a tie goes by the author's country (Taiwan, Hong Kong, Macau:
+  // traditional). Set in Noto TC or SC (css/fonts.css, .n-hant).
+  const HANT_ONLY = /[說這們過時會來個為與學國對開關麼見現發經長點無還將當動從實後問進間頭東車門書話認樣電種總體歲氣讓應議處覺親邊雖萬誰聽廣際隊陽燈愛歡飛龍風馬鳥魚謂緣遠漸塊積塵習樂淚夢聲憶戀讀寫語衛華葉燒紅綠線給結終錯鐘難歷戰爭張紀記許該誤調請謝識變義藝劇嗎麗歐傳價優億盡屬歸斷雙舊雜響顏顯驗滿漢灣熱爾獨環畫盤確禮離筆節糧級細網練織臉興舉藥虛蘭術補視觀計訴詩詞試誠論證讚貝負財貨貴買費賣質輕載輪農運達遲選遺郵鄉醫釋鐵錢閉陳隨險雞靜韓頁順須預領題願類飯館驚齊齒]/g;
+  const HANS_ONLY = /[说这们过时会来个为与学国对开关么见现发经长点无还将当动从实后问进间头东车门书话认样电种总体岁气让应议处觉亲边虽万谁听广际队阳灯爱欢飞龙风马鸟鱼谓缘远渐块积尘习乐泪梦声忆恋读写语卫华叶烧红绿线给结终错钟难历战争张纪记许该误调请谢识变义艺剧吗丽欧传价优亿尽属归断双旧杂响颜显验满汉湾热尔独环画盘确礼离笔节粮级细网练织脸兴举药虚兰术补视观计诉诗词试诚论证赞贝负财货贵买费卖质轻载轮农运达迟选遗邮乡医释铁钱闭陈随险鸡静韩页顺须预领题愿类饭馆惊齐齿]/g;
+  const isHant = (text, country, otherwise) => {
+    const t = (text.match(HANT_ONLY) || []).length, s = (text.match(HANS_ONLY) || []).length;
+    return t !== s ? t > s : otherwise != null ? otherwise : ['TW', 'HK', 'MO'].includes(country);
+  };
+  // A typed run that does not tell (目送, a name) follows the quote it belongs to: every field
+  // and the original together (set as the notes are drawn).
+  let quoteHant = false;
+  const quoteIsHant = (q) => isHant([q.originalLanguage && q.originalLanguage.text, q.author && q.author.name, q.author && q.author.nativeName,
+    q.source && q.source.title, q.context, q.reflection, q.keptBy, ...(q.annotations || []).map((a) => a.explanation)].filter(Boolean).join(' '), q.author && q.author.country);
+  function quoteScript(text, country) {
+    const n = Object.fromEntries(QUOTE_SCRIPTS.map(([k, re]) => [k, (text.match(re) || []).length]));
+    if (n.kana) return 'jpan';
+    if (n.hang) return 'kore';
+    const [best, count] = Object.entries(n).sort((a, b) => b[1] - a[1])[0];
+    if (best === 'hani' && count) return isHant(text, country) ? 'hant' : 'hans';
+    return count ? best : 'latn';
+  }
+  const RTL_SCRIPTS = new Set(['arab', 'hebr']);
   const DEFAULT_FONT = 'instrument', LONG_FONT = 'goudy'; // a quote with no face of its own: Instrument, or Goudy when it is long
   const FONT_FILES = ['story', 'print', 'grotesk', 'poet', 'sketch', 'rose', 'author', 'fig', 'stone', 'rondeau']; // served by the fonts Worker; the rest come from Google
 
@@ -149,9 +204,12 @@
     flush();
   }
 
-  function tier(text) {
+  // `cjkWeight`: what a CJK character counts as — 4 for the English words and the form's limits
+  // (it carries about as much as a short word); 2 when sizing the original language, where it
+  // is about as wide as two letters (Bill, 2026-10-06: a short original is set bigger).
+  function tier(text, cjkWeight = 4) {
     const cjk = (text.match(/[぀-ヿ㐀-鿿가-힯]/g) || []).length;
-    const weight = text.length + cjk * 3; // a CJK character carries about as much as a short word
+    const weight = text.length + cjk * (cjkWeight - 1);
     if (weight <= 64) return 'l';
     if (weight <= 160) return 'm';
     if (weight <= 260) return 's';
@@ -183,7 +241,7 @@
   const rtlFirst = (text) => /^[^A-Za-z\u00c0-\u024f\u0370-\u052f\u0900-\u0e7f\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufeff]*[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufeff]/.test(text);
   const nativeRuns = (escapedHtml) => SCRIPTS.reduce(
     (html, [cls, rtl, re]) => html.replace(re, (run) => `<span class="n-script n-${cls}"${rtl ? ' dir="rtl"' : ''}>${run}</span>`),
-    escapedHtml.replace(CJK_RUN, (run) => `<span class="n-native">${run}</span>`));
+    escapedHtml.replace(CJK_RUN, (run) => `<span class="n-native${!/[\u3040-\u30ff\uac00-\ud7af]/.test(run) && isHant(run, null, quoteHant) ? ' n-hant' : ''}">${run}</span>`)); // (traditional Chinese in Noto Sans TC)
 
   function paragraphs(text) {
     return text.split(/\n\s*\n/).map((p) => p.replace(/[​\s]+$/g, '').trim()).filter(Boolean)
@@ -492,7 +550,7 @@
     // there), or anything else — a no-break space, nothing at all — which ties it to the word before.
     const before = words.map((w, k) => (k ? text.slice(words[k - 1].end, w.start) : '\n'));
     const gapAt = words.findIndex((w, k) => k && before[k] === ' ' && Math.abs(w.top - words[k - 1].top) < 4);
-    const space = gapAt > 0 ? words[gapAt].left - words[gapAt - 1].right : parseFloat(getComputedStyle(quoteEl).fontSize) * 0.25;
+    const space = gapAt > 0 ? Math.max(words[gapAt].left - words[gapAt - 1].right, words[gapAt - 1].left - words[gapAt].right) : parseFloat(getComputedStyle(quoteEl).fontSize) * 0.25; // (right to left, the word before is to the right)
     const width = words.map((w) => w.right - w.left);
     const breaks = []; // indices of the words that start a new line
     let from = 0;
@@ -583,7 +641,7 @@
   function quoteHTML(q, { original = false, withAnnotations = false, keepLines = false, tierAs = null } = {}) {
     const orig = q.originalLanguage;
     const showOrig = original && orig;
-    const size = tier(showOrig ? orig.text : q.text);
+    const size = showOrig ? tier(orig.text, 2) : tier(q.text);
     const font = fontOf(q, tier(q.text)); // the face goes by the English words' length, in either language
     // Poet has no ellipsis: three periods instead.
     const shown = showOrig ? orig.text : q.text;
@@ -595,9 +653,10 @@
     const body = withAnnotations && !showOrig && q.annotations && q.annotations.length
       ? annotate(text, q.annotations) : esc(text);
     const langBtn = orig
-      ? `<button class="lang" data-lang${showOrig || LANG_GLYPH[orig.lang] ? '' : ' data-code'} aria-pressed="${showOrig ? 'true' : 'false'}" aria-label="${showOrig ? 'Show English' : 'Show original language'}">${showOrig ? 'EN' : esc(langLabel(orig.lang))}</button>`
+      ? (() => { const b = langButtonInner(showOrig ? 'en' : orig.lang); return `<button class="lang" data-lang style="${b.style}" aria-pressed="${showOrig ? 'true' : 'false'}" aria-label="${showOrig ? 'Show English' : 'Show original language'}">${b.html}</button>`; })()
       : '';
-    const nativeAttr = showOrig ? `${inFace ? '' : ' data-native'} lang="${esc(orig.lang)}"` : ''; // data-native = set in Noto (css)
+    const script = showOrig && !inFace ? quoteScript(orig.text, q.author && q.author.country) : '';
+    const nativeAttr = showOrig ? `${inFace ? '' : ` data-native data-script="${script}"`}${RTL_SCRIPTS.has(script) ? ' dir="rtl"' : ''} lang="${esc(orig.lang)}"` : ''; // data-native = set in Noto, in its script's (css/fonts.css); Arabic and Hebrew read right to left
     return `${langBtn}<blockquote class="quote${locked ? ' quote--locked' : ''}" data-tier="${tierAs || size}"${size === 'l' ? ' data-short' : ''} data-font="${font}"${nativeAttr}>${body}</blockquote>`;
   }
 
@@ -885,6 +944,7 @@
   const lastTheme = new Map(); // quote id → the palette notes last opened with
   function renderNotes() {
     const q = current();
+    quoteHant = quoteIsHant(q);
     const cats = q.categories.length ? q.categories : ['perspective'];
     // The palette is one of the quote's categories, drawn at random each time notes open, and
     // never the same as the previous time for this quote — so a second look gets another colour.
@@ -901,10 +961,15 @@
 
     const a = q.author;
     const country = a.country ? regionName(a.country) : '';
-    const native = a.nativeName ? ` <span class="n-native">${esc(a.nativeName)}</span>` : '';
-    // Row 1 author · row 2 country · row 3 source ("Title, Year")
-    let from = `${nativeRuns(esc(a.name))}${native}`; // (anything typed: its Chinese, Japanese, Korean in Noto — nativeRuns)
-    if (country) from += `<br>${esc(country)}`;
+    // Row 1 author · its native name under it · the country · the source ("Title, Year"). The
+    // native name always has its own row (Bill, 2026-10-06), so it sits in the same place at every
+    // width and an Arabic or Hebrew one never shares a line with the English; each row wraps like
+    // the source's when a name is too long for it. The native name goes through nativeRuns like
+    // anything typed: its script's Noto, Arabic and Hebrew right to left (until 2026-10-06 it was
+    // always the CJK sans, beside the English, on one line that never wrapped).
+    let from = `<span class="n-source">${nativeRuns(esc(a.name))}</span>`;
+    if (a.nativeName) from += `<span class="n-source n-native-name">${nativeRuns(esc(a.nativeName))}</span>`;
+    if (country) from += `<span class="n-row">${esc(country)}</span>`;
     const src = q.source || {}, link = videoLink(q);
     if (src.title) {
       let label = ITALIC_KINDS.has(src.kind) ? `<i>${nativeRuns(esc(src.title))}</i>` : nativeRuns(esc(src.title)); // (Noto upright inside the italics: css .n-native)
@@ -1752,16 +1817,20 @@
   let langBusy = false;
 
   // Wrap every visible character of the quote in a span (keeps annotation buttons intact).
+  const WORD_SWEEP = new Set(['arab', 'hebr', 'thai', 'deva']);
   function spanify(quoteEl) {
     const chars = [];
     const walker = document.createTreeWalker(quoteEl, NodeFilter.SHOW_TEXT);
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
+    // Arabic, Hebrew, Thai and Devanagari sweep a word at a time: their letters join, or carry
+    // marks, and a letter alone in its own span would fall apart for the length of the sweep.
+    const byWord = WORD_SWEEP.has(quoteEl.dataset.script);
     nodes.forEach((node) => {
       const frag = document.createDocumentFragment();
       const plain = plainLetters(quoteEl, node.data);
       let at = 0;
-      [...node.data].forEach((ch) => {
+      (byWord ? node.data.match(/\s|\S+/g) || [] : [...node.data]).forEach((ch) => {
         const i = at; at += ch.length;
         if (/\s/.test(ch)) { frag.appendChild(document.createTextNode(ch)); return; }
         const span = document.createElement('span');

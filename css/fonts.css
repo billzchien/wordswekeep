@@ -40,12 +40,12 @@
 [data-font="print"][data-tier="s"],
 [data-font="print"][data-tier="xs"] { --qf-scale: 0.9; }
 
-[data-font="grotesk"] { --qf-family: 'Grotesk', var(--native-sans);  --qf-style: normal; --qf-leading: 1.2; --qf-tracking: -0.01em; --qf-native: var(--native-sans); }
+[data-font="grotesk"] { --qf-family: 'Grotesk', var(--native-sans);  --qf-style: normal; --qf-leading: 1.2; --qf-tracking: -0.01em; --qf-native: var(--qn-sans, var(--native-sans)); --qf-native-scale: var(--qn-sans-scale); --qf-native-leading: var(--qn-sans-leading); --qf-native-tracking: var(--qn-sans-tracking); --qf-native-weight: var(--qn-sans-weight); }
 [data-font="grotesk"][data-tier="m"]  { --qf-scale: 0.875; }  /* 42 / 48 */
 [data-font="grotesk"][data-tier="s"],
 [data-font="grotesk"][data-tier="xs"] { --qf-scale: 0.85; }   /* 34 / 40 */
 
-[data-font="round"]   { --qf-family: 'Cal Sans', var(--native-sans); --qf-style: normal; --qf-leading: 1.3; --qf-native: var(--native-sans); }
+[data-font="round"]   { --qf-family: 'Cal Sans', var(--native-sans); --qf-style: normal; --qf-leading: 1.3; --qf-native: var(--qn-sans, var(--native-sans)); --qf-native-scale: var(--qn-sans-scale); --qf-native-leading: var(--qn-sans-leading); --qf-native-tracking: var(--qn-sans-tracking); --qf-native-weight: var(--qn-sans-weight); }
 [data-font="round"][data-tier="l"]  { --qf-scale: 0.9375; --qf-leading: 1.15; }   /* 60 / 64; the one exception to "one leading per face": a short quote in Round is tighter (Bill, 2026-09-27) */
 [data-font="round"][data-tier="m"]  { --qf-scale: 0.875; }
 [data-font="round"][data-tier="s"],
@@ -62,7 +62,7 @@
 [data-font="goudy"][data-tier="s"],
 [data-font="goudy"][data-tier="xs"] { --qf-scale: 0.9; }
 
-[data-font="sketch"]  { --qf-family: 'Sketch', var(--native-sans);   --qf-style: normal; --qf-leading: 1.25; --qf-tracking: -0.01em; --qf-native: var(--native-sans); }
+[data-font="sketch"]  { --qf-family: 'Sketch', var(--native-sans);   --qf-style: normal; --qf-leading: 1.25; --qf-tracking: -0.01em; --qf-native: var(--qn-sans, var(--native-sans)); --qf-native-scale: var(--qn-sans-scale); --qf-native-leading: var(--qn-sans-leading); --qf-native-tracking: var(--qn-sans-tracking); --qf-native-weight: var(--qn-sans-weight); }
 [data-font="sketch"][data-tier="m"]  { --qf-scale: 0.875; }
 [data-font="sketch"][data-tier="s"],
 [data-font="sketch"][data-tier="xs"] { --qf-scale: 0.8; }     /* 32 / 40 */
@@ -77,7 +77,7 @@
 [data-font="author"][data-tier="m"]  { --qf-scale: 1.125; }
 
 /* Fig, Stone, Rondeau: Figma Type 404:720 (Instrument on those boards: 64 / 48 / 40). */
-[data-font="fig"]     { --qf-family: 'Fig', var(--native-sans);      --qf-style: normal; --qf-leading: 1.22; --qf-tracking: -0.02em; --qf-features: "liga" 1, "clig" 1, "ss01" 1; --qf-native: var(--native-sans); } /* ss01 = the alternate a and y */
+[data-font="fig"]     { --qf-family: 'Fig', var(--native-sans);      --qf-style: normal; --qf-leading: 1.22; --qf-tracking: -0.02em; --qf-features: "liga" 1, "clig" 1, "ss01" 1; --qf-native: var(--qn-sans, var(--native-sans)); --qf-native-scale: var(--qn-sans-scale); --qf-native-leading: var(--qn-sans-leading); --qf-native-tracking: var(--qn-sans-tracking); --qf-native-weight: var(--qn-sans-weight); } /* ss01 = the alternate a and y */
 [data-font="fig"][data-tier="l"]  { --qf-scale: 0.88; }       /* scales, leading and tracking tuned by Bill, 2026-10-03 (the boards drew 0.9688 / 0.8333 / 0.8, 1.3, -1.5%) */
 [data-font="fig"][data-tier="m"]  { --qf-scale: 0.85; }
 [data-font="fig"][data-tier="s"],
@@ -98,3 +98,46 @@
 /* The original-language version is set in Noto (serif or sans, by the face's character) at the
    site's own native size: the face's scale does not apply to it. */
 .quote[data-native][data-font] { --qf-scale: 1; }
+
+/* ---------- The original language, in its script's font ----------
+   A quote's original words that the face cannot set (another script, or a letter it lacks) are
+   set in a Google font chosen per script: its serif for a serif face, its sans for the sans faces
+   (above: --qf-native and --qf-native-*, which pick the sans ones). Each script has, for each, its
+   size against the tier's (--qn-scale / --qn-sans-scale), leading, tracking and weight —
+   tuned by Bill on a temporary page (2026-10-06). js/app.js → quoteScript sets data-script;
+   Arabic and Hebrew also read right to left (dir="rtl"). Without a script: the CJK values in
+   tokens.css (--quote-native-*). */
+[data-native][data-script="hant"] { --qn-serif: 'Noto Serif TC', serif;        --qn-sans: 'Noto Sans TC', sans-serif; }
+[data-native][data-script="hans"] { --qn-serif: 'Noto Serif SC', serif;        --qn-sans: 'Noto Sans SC', sans-serif; }
+[data-native][data-script="jpan"] { --qn-serif: 'BIZ UDPMincho', serif;        --qn-sans: 'Murecho', sans-serif; }
+[data-native][data-script="kore"] { --qn-serif: 'Gowun Batang', serif;         --qn-sans: 'IBM Plex Sans KR', sans-serif; }
+[data-native][data-script="cyrl"] { --qn-serif: 'Cormorant Garamond', serif;   --qn-sans: 'Golos Text', sans-serif; }
+[data-native][data-script="grek"] { --qn-serif: 'GFS Didot', serif;            --qn-sans: 'Commissioner', sans-serif; }
+[data-native][data-script="arab"] { --qn-serif: 'Scheherazade New', serif;     --qn-sans: 'Alexandria', sans-serif; }
+[data-native][data-script="hebr"] { --qn-serif: 'Noto Serif Hebrew', serif;    --qn-sans: 'IBM Plex Sans Hebrew', sans-serif; }
+[data-native][data-script="thai"] { --qn-serif: 'Noto Serif Thai', serif;      --qn-sans: 'Bai Jamjuree', sans-serif; }
+[data-native][data-script="deva"] { --qn-serif: 'Noto Serif Devanagari', serif; --qn-sans: 'Poppins', sans-serif; }
+[data-native][data-script="latn"] { --qn-serif: 'Noto Serif', serif;              --qn-sans: 'Noto Sans', sans-serif; }
+/* The serif's sizes, then the sans' (Bill, 2026-10-06) */
+[data-native][data-script="hant"] { --qn-scale: 0.85; --qn-leading: 1.45; --qn-tracking: 0.02em; --qn-weight: 500; }
+[data-native][data-script="hans"] { --qn-scale: 0.85; --qn-leading: 1.45; --qn-tracking: 0.02em; --qn-weight: 500; }
+[data-native][data-script="jpan"] { --qn-scale: 0.88; --qn-leading: 1.4; --qn-tracking: 0.02em; --qn-weight: 400; }
+[data-native][data-script="kore"] { --qn-scale: 0.95; --qn-leading: 1.4; --qn-tracking: 0em; --qn-weight: 400; }
+[data-native][data-script="cyrl"] { --qn-scale: 1.25; --qn-leading: 0.85; --qn-tracking: -0.02em; --qn-weight: 400; }
+[data-native][data-script="grek"] { --qn-scale: 1.08; --qn-leading: 1.15; --qn-tracking: -0.02em; --qn-weight: 400; }
+[data-native][data-script="arab"] { --qn-scale: 1.07; --qn-leading: 1.55; --qn-tracking: -0.03em; --qn-weight: 400; }
+[data-native][data-script="hebr"] { --qn-scale: 1.03; --qn-leading: 1.3; --qn-tracking: -0.005em; --qn-weight: 400; }
+[data-native][data-script="thai"] { --qn-scale: 1.2; --qn-leading: 1.45; --qn-tracking: -0.035em; --qn-weight: 400; }
+[data-native][data-script="deva"] { --qn-scale: 1.06; --qn-leading: 1.4; --qn-tracking: -0.015em; --qn-weight: 400; }
+[data-native][data-script="latn"] { --qn-scale: 0.95; --qn-leading: 1.25; --qn-tracking: 0em; --qn-weight: 400; }
+[data-native][data-script="hant"] { --qn-sans-scale: 0.9; --qn-sans-leading: 1.45; --qn-sans-tracking: 0.01em; --qn-sans-weight: 700; }
+[data-native][data-script="hans"] { --qn-sans-scale: 0.9; --qn-sans-leading: 1.45; --qn-sans-tracking: 0.01em; --qn-sans-weight: 700; }
+[data-native][data-script="jpan"] { --qn-sans-scale: 0.9; --qn-sans-leading: 1.4; --qn-sans-tracking: 0.02em; --qn-sans-weight: 700; }
+[data-native][data-script="kore"] { --qn-sans-scale: 1.02; --qn-sans-leading: 1.4; --qn-sans-tracking: 0em; --qn-sans-weight: 700; }
+[data-native][data-script="cyrl"] { --qn-sans-scale: 1.15; --qn-sans-leading: 1; --qn-sans-tracking: -0.02em; --qn-sans-weight: 600; }
+[data-native][data-script="grek"] { --qn-sans-scale: 1.11; --qn-sans-leading: 1.1; --qn-sans-tracking: -0.025em; --qn-sans-weight: 700; }
+[data-native][data-script="arab"] { --qn-sans-scale: 0.96; --qn-sans-leading: 1.55; --qn-sans-tracking: -0.02em; --qn-sans-weight: 700; }
+[data-native][data-script="hebr"] { --qn-sans-scale: 1.12; --qn-sans-leading: 1.2; --qn-sans-tracking: -0.01em; --qn-sans-weight: 600; }
+[data-native][data-script="thai"] { --qn-sans-scale: 1.32; --qn-sans-leading: 1.35; --qn-sans-tracking: -0.025em; --qn-sans-weight: 600; }
+[data-native][data-script="deva"] { --qn-sans-scale: 0.97; --qn-sans-leading: 1.45; --qn-sans-tracking: -0.01em; --qn-sans-weight: 700; }
+[data-native][data-script="latn"] { --qn-sans-scale: 0.95; --qn-sans-leading: 1.25; --qn-sans-tracking: 0em; --qn-sans-weight: 400; }
