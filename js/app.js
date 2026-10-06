@@ -2762,12 +2762,12 @@
     .then((quotes) => {
       state.all = quotes.filter((q) => q.status === 'live').sort((a, b) => a.id - b.id);
       state.list = shuffle(state.all); // the deck is dealt at random: no. 1 is not first, and the next is not no. 2
-      // A quote's own address (#8) opens it, then the number leaves the address; without one, a
-      // reload comes back to the quote this tab was on (renderDeck keeps it).
+      // A reload comes back to the quote this tab was on (renderDeck keeps it), and a quote's own
+      // address — wordswekeep.org/8 — opens it: 404.html leaves the number in the same place.
+      // (Until 2026-10-06 the address was #8.)
       let kept = null;
       try { kept = sessionStorage.getItem('wwk-quote'); } catch (e) {}
-      const wanted = parseInt(location.hash.slice(1) || kept, 10);
-      if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+      const wanted = parseInt(kept, 10);
       const found = state.list.findIndex((q) => q.id === wanted);
       // A quote marked "Don't show as the first quote" in the library (`notFirst`) is never the
       // one a visitor lands on — unless its own address was opened. It trades places with the
