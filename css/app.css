@@ -301,13 +301,14 @@ ul { list-style: none; }
   .notes .quote { --q-width: calc(var(--q-measure) / var(--q-ratio)); max-width: min(100%, var(--q-width)); }
 }
 
+/* The original words in Noto: each script's own font, size, leading, tracking, weight (css/fonts.css). */
 .quote[data-native] {
-  font-size: calc(var(--q-size) * var(--quote-native-scale));
-  font-family: var(--qf-native, var(--font-native-quote));
-  font-weight: 500;
+  font-size: calc(var(--q-size) * var(--qf-native-scale, var(--qn-scale, var(--quote-native-scale))));
+  font-family: var(--qf-native, var(--qn-serif, var(--font-native-quote)));
+  font-weight: var(--qf-native-weight, var(--qn-weight, 500));
   font-style: normal;
-  line-height: var(--quote-native-leading);
-  letter-spacing: 0.02em;
+  line-height: var(--qf-native-leading, var(--qn-leading, var(--quote-native-leading)));
+  letter-spacing: var(--qf-native-tracking, var(--qn-tracking, 0.02em));
   font-feature-settings: normal;
 }
 
@@ -320,15 +321,16 @@ ul { list-style: none; }
   display: grid;
   place-items: center;
   border: var(--hairline) solid currentColor;
-  font-family: var(--font-native-ui);
-  font-weight: 500;
-  font-size: var(--glyph-size);
+  /* Each language's label, font, size, tracking and nudge (js/app.js → LANG_BUTTON, set inline). */
+  font-family: var(--lb-font, var(--font-native-ui)), var(--font-native-ui);
+  font-weight: var(--lb-weight, 500);
+  font-size: var(--lb-size, var(--glyph-size));
   line-height: 1;
-  letter-spacing: 0;
+  letter-spacing: var(--lb-track, 0);
   font-feature-settings: normal;
+  white-space: nowrap;
 }
-/* Showing the original: the button offers the way back, "EN". */
-.lang[aria-pressed="true"], .lang[data-code] { font-size: 10px; letter-spacing: 0.04em; } /* two capitals: EN, and a language's code (ES, FR…) */
+.lang > span { display: block; transform: translateY(var(--lb-nudge, 0px)); }
 /* After the quote has typed itself in (js/app.js → arrive) the button fades up into place. */
 .lang.is-in { animation: lang-in 0.3s var(--ease) both; }
 @keyframes lang-in { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
@@ -405,6 +407,7 @@ ul { list-style: none; }
 .n-indent--from { padding-left: 2.667em; } /* 40 / 15 */
 .n-indent--kept { padding-left: 2em; }     /* 30 / 15 */
 .n-native { font-family: var(--font-native); font-size: var(--text-native-size); letter-spacing: 0; font-style: normal; } /* any typed field's Chinese, Japanese, Korean (js: nativeRuns) — upright, even in an italic title */
+.n-native.n-hant { font-family: var(--noto-sans-tc); }
 /* Any other script Crimson Pro lacks (js: nativeRuns): its Noto, at --script-scale of the text so
    the x-heights meet, upright; a right-to-left run kept whole inside a left-to-right line. */
 .n-script { font-size: calc(var(--script-scale) * 1em); letter-spacing: 0; font-style: normal; }
@@ -422,6 +425,7 @@ ul { list-style: none; }
   max-width: calc(100vw - var(--col3) - 2.667em - var(--m) - 5em);
 }
 
+.n-row { display: block; }
 .n-from { position: absolute; top: calc(20px - var(--cap-offset)); left: var(--col3); } /* its capitals on the top line, with Close and the category's name (it sat at 22px: 8 too low) */
 
 .notes .q-wrap {

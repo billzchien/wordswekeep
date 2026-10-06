@@ -98,9 +98,9 @@
     const has = faceChars.get(key);
     return [...text].every((ch) => { const c = ch.codePointAt(0); return /\s/.test(ch) || (c >= 0x20 && c <= 0x7e) || has.has(c) || (ch === '…' && key === 'poet'); });
   }
-  function tier(text) { // js/app.js → tier
+  function tier(text, cjkWeight = 4) { // js/app.js → tier (2 when sizing the original language)
     const cjk = (text.match(/[぀-ヿ㐀-鿿가-힯]/g) || []).length;
-    const weight = text.length + cjk * 3;
+    const weight = text.length + cjk * (cjkWeight - 1);
     return weight <= 64 ? 'l' : weight <= 160 ? 'm' : weight <= 260 ? 's' : 'xs';
   }
   const fontFits = (key, t) => { const f = FONTS.find((x) => x.value === key); return !!f && !f.not.includes(t); };
@@ -1376,10 +1376,33 @@
   // Two panels: the English words, and under them the original-language ones when there are
   // any — in the quote's own face if it is Latin script the face can set (nativeInFace), else
   // in Noto, as the archive does (css: .quote[data-native]).
+  // The script of an original-language quote set in Noto (js/app.js → quoteScript, copied: change both).
+  const QUOTE_SCRIPTS = [['kana', /[\u3040-\u30ff]/g], ['hang', /[\uac00-\ud7af\u1100-\u11ff]/g], ['hani', /[\u3400-\u9fff]/g],
+    ['cyrl', /[\u0400-\u052f]/g], ['grek', /[\u0370-\u03ff\u1f00-\u1fff]/g], ['arab', /[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\ufb50-\ufdff\ufe70-\ufeff]/g],
+    ['hebr', /[\u0590-\u05ff\ufb1d-\ufb4f]/g], ['thai', /[\u0e00-\u0e7f]/g], ['deva', /[\u0900-\u097f\ua8e0-\ua8ff]/g]];
+  // Traditional or simplified Chinese, told apart by characters that exist in one form only
+  // (說/说, 這/这, 們/们…); a tie goes by the author's country (Taiwan, Hong Kong, Macau:
+  // traditional). Set in Noto TC or SC (css/fonts.css, .n-hant).
+  const HANT_ONLY = /[說這們過時會來個為與學國對開關麼見現發經長點無還將當動從實後問進間頭東車門書話認樣電種總體歲氣讓應議處覺親邊雖萬誰聽廣際隊陽燈愛歡飛龍風馬鳥魚謂緣遠漸塊積塵習樂淚夢聲憶戀讀寫語衛華葉燒紅綠線給結終錯鐘難歷戰爭張紀記許該誤調請謝識變義藝劇嗎麗歐傳價優億盡屬歸斷雙舊雜響顏顯驗滿漢灣熱爾獨環畫盤確禮離筆節糧級細網練織臉興舉藥虛蘭術補視觀計訴詩詞試誠論證讚貝負財貨貴買費賣質輕載輪農運達遲選遺郵鄉醫釋鐵錢閉陳隨險雞靜韓頁順須預領題願類飯館驚齊齒]/g;
+  const HANS_ONLY = /[说这们过时会来个为与学国对开关么见现发经长点无还将当动从实后问进间头东车门书话认样电种总体岁气让应议处觉亲边虽万谁听广际队阳灯爱欢飞龙风马鸟鱼谓缘远渐块积尘习乐泪梦声忆恋读写语卫华叶烧红绿线给结终错钟难历战争张纪记许该误调请谢识变义艺剧吗丽欧传价优亿尽属归断双旧杂响颜显验满汉湾热尔独环画盘确礼离笔节粮级细网练织脸兴举药虚兰术补视观计诉诗词试诚论证赞贝负财货贵买费卖质轻载轮农运达迟选遗邮乡医释铁钱闭陈随险鸡静韩页顺须预领题愿类饭馆惊齐齿]/g;
+  const isHant = (text, country) => {
+    const t = (text.match(HANT_ONLY) || []).length, s = (text.match(HANS_ONLY) || []).length;
+    return t !== s ? t > s : ['TW', 'HK', 'MO'].includes(country);
+  };
+  function quoteScript(text, country) {
+    const n = Object.fromEntries(QUOTE_SCRIPTS.map(([k, re]) => [k, (text.match(re) || []).length]));
+    if (n.kana) return 'jpan';
+    if (n.hang) return 'kore';
+    const [best, count] = Object.entries(n).sort((a, b) => b[1] - a[1])[0];
+    if (best === 'hani' && count) return isHant(text, country) ? 'hant' : 'hans';
+    return count ? best : 'latn';
+  }
   const quoteIn = (text, key, native) => {
-    const t = tier(text), inFace = !native || nativeInFace(text, key);
+    const t = native ? tier(text, 2) : tier(text), inFace = !native || nativeInFace(text, key);
     const shown = inFace && key === 'poet' ? text.replace(/…/g, '...') : text; // Poet has no ellipsis
-    return `<blockquote class="quote" data-tier="${t}"${t === 'l' ? ' data-short' : ''} data-font="${esc(key)}"${inFace ? '' : ' data-native'}>${esc(noOrphans(shown.trim()))}</blockquote>`;
+    const script = inFace ? '' : quoteScript(text, edit && edit.draft.author && edit.draft.author.country);
+    const attrs = inFace ? '' : ` data-native data-script="${script}"${script === 'arab' || script === 'hebr' ? ' dir="rtl"' : ''}`;
+    return `<blockquote class="quote" data-tier="${t}"${t === 'l' ? ' data-short' : ''} data-font="${esc(key)}"${attrs}>${esc(noOrphans(shown.trim()))}</blockquote>`;
   };
   function drawFont() {
     if (!edit) return;
@@ -1437,7 +1460,7 @@
     const box = q.getBoundingClientRect().width - 1;
     const before = words.map((w, k) => (k ? text.slice(words[k - 1].end, w.start) : '\n'));
     const gapAt = words.findIndex((w, k) => k && before[k] === ' ' && sameLine(w, words[k - 1]));
-    const space = gapAt > 0 ? words[gapAt].left - words[gapAt - 1].right : parseFloat(getComputedStyle(q).fontSize) * 0.25;
+    const space = gapAt > 0 ? Math.max(words[gapAt].left - words[gapAt - 1].right, words[gapAt - 1].left - words[gapAt].right) : parseFloat(getComputedStyle(q).fontSize) * 0.25; // (right to left, the word before is to the right)
     const width = words.map((w) => w.right - w.left);
     const breaks = [];
     let from = 0;
