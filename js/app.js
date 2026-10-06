@@ -303,11 +303,17 @@
 
   // No orphans — for every piece of running text on the site (quotes, notes, context, menu
   // descriptions, annotation notes): the last line (and each line of a poem) never holds a single
-  // word, and a new sentence never starts with a single word left at the end of a line. Latin: the last two words are tied with a no-break space. CJK: the last four
+  // word, a new sentence never starts with a single word left at the end of a line, and no line
+  // ends on "a", "an", "the", "of", "from" or "is". Latin: the last two words are tied with a no-break space. CJK: the last four
   // characters are tied with word joiners. Applied at render time; the data stays clean.
   const NBSP = '\u00a0', WJ = '\u2060';
   const OPENERS = 'I|we|you|he|she|it|they|my|our|your|his|her|its|their|me|us|them';
   const OPENER = new RegExp(`([.!?…:;][”’)\\]]*\\s+[“‘(\\[]*(?:[^\\s\\u00a0]{1,2}|(?:${OPENERS})(?:[’'][a-z]+)?)) (?=\\S)`, 'gi');
+  // "a", "an", "the", "of", "from" and "is" never end a line: each is tied to the word after it
+  // (Bill, 2026-10-06). Run until nothing changes, so a run of them ("is the", "from a star")
+  // is tied all the way through.
+  const TIED_WORD = /(^|[\s“‘(\[—–])(a|an|the|of|from|is) (?=\S)/gi;
+  const tieWords = (line) => { for (let was; was !== line;) { was = line; line = line.replace(TIED_WORD, `$1$2${NBSP}`); } return line; };
   function noOrphans(text) {
     return text.split('\n').map((line) => {
       const chars = [...line];
@@ -316,8 +322,8 @@
         if (chars.length < 8) return line;
         return chars.slice(0, -4).join('') + chars.slice(-4).join(WJ);
       }
-      const words = line.trimEnd().split(' ');
-      if (words.length < 4) return line;
+      if (line.trim().split(/\s+/).length < 4) return tieWords(line);
+      const words = tieWords(line).trimEnd().split(' ');
       const last = words.pop();
       const tied = `${words.join(' ')}${NBSP}${last}`;
       // …and no sentence may leave its opener stranded at the end of a line when the opener is

@@ -1355,17 +1355,19 @@
      the .quote rules of css/app.css). */
   // The archive's line-breaking rules (js/app.js → noOrphans, copied: change both), so the
   // preview breaks where the archive does: the last two words stay together (CJK: the last
-  // four characters), and a sentence's opener — one or two letters, or a pronoun — stays with
-  // the word after it.
+  // four characters), a sentence's opener — one or two letters, or a pronoun — stays with
+  // the word after it, and so do "a", "an", "the", "of", "from" and "is".
   const NBSP = '\u00a0', WJ = '\u2060', CJK_CHAR = /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\uff00-\uffef\u3000-\u303f]/;
   const OPENERS = 'I|we|you|he|she|it|they|my|our|your|his|her|its|their|me|us|them';
   const OPENER = new RegExp(`([.!?…:;][”’)\\]]*\\s+[“‘(\\[]*(?:[^\\s\\u00a0]{1,2}|(?:${OPENERS})(?:[’'][a-z]+)?)) (?=\\S)`, 'gi');
+  const TIED_WORD = /(^|[\s“‘(\[—–])(a|an|the|of|from|is) (?=\S)/gi; // "a", "an", "the", "of", "from", "is" never end a line
+  const tieWords = (line) => { for (let was; was !== line;) { was = line; line = line.replace(TIED_WORD, `$1$2${NBSP}`); } return line; };
   function noOrphans(text) {
     return text.split('\n').map((line) => {
       const chars = [...line];
       if (chars.filter((ch) => CJK_CHAR.test(ch)).length > chars.length / 2) return chars.length < 8 ? line : chars.slice(0, -4).join('') + chars.slice(-4).join(WJ);
-      const words = line.trimEnd().split(' ');
-      if (words.length < 4) return line;
+      if (line.trim().split(/\s+/).length < 4) return tieWords(line);
+      const words = tieWords(line).trimEnd().split(' ');
       const last = words.pop();
       return `${words.join(' ')}${NBSP}${last}`.replace(OPENER, `$1${NBSP}`);
     }).join('\n');

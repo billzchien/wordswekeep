@@ -291,10 +291,19 @@ ul { list-style: none; }
    held inside it — so its right edge follows the grid at every window width. The notes quote
    keeps the main quote's line breaks (js → lockLines); they are shorter than its four columns. */
 @media (min-width: 1024px) {
-  .slide .quote { --q-measure: calc(4 * var(--colw) + 3 * var(--g) - 40 * var(--u)); max-width: min(100%, var(--q-measure)); }
+  .quote { --q-measure: calc(4 * var(--colw) + 3 * var(--g) - 40 * var(--u)); }
+  .slide .quote { max-width: min(100%, var(--q-measure)); }
   .slide .quote[data-tier="m"],
   .slide .quote[data-tier="s"],
   .slide .quote[data-tier="xs"] { --q-width: var(--q-measure); }
+  /* The notes quote takes the same measure in em as the main one, at every length: the main
+     one's box and cap divided by the size ratio. Past the width where the type stops growing
+     (--u's cap) the columns still widen, so a fixed em box in notes would hold less than the
+     main line and break it again (Bill, 2026-10-06). */
+  .notes .quote { max-width: min(100%, calc(var(--q-measure) / var(--q-ratio))); }
+  .notes .quote[data-tier="m"],
+  .notes .quote[data-tier="s"],
+  .notes .quote[data-tier="xs"] { --q-width: calc(var(--q-measure) / var(--q-ratio)); }
 }
 
 .quote[data-native] {
