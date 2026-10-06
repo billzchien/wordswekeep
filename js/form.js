@@ -278,7 +278,7 @@
 
   // A step that can still scroll in the wheel's direction scrolls; otherwise the wheel turns the
   // page — one step per gesture (same de-bounce idea as the archive: js/app.js).
-  const WHEEL_MIN = 40, WHEEL_COOLDOWN_MS = 700;
+  const WHEEL_MIN = 100, WHEEL_COOLDOWN_MS = 700; // (100, not 40, since 2026-10-05: a light trackpad touch turned the page — Bill)
   let wheelAcc = 0, wheelLock = 0, wheelTimer = 0;
   function canScroll(el, dir) {
     if (!el) return false;
@@ -288,10 +288,19 @@
   // has rested at its edge for SCROLL_REST_MS (trackpad inertia otherwise runs straight through).
   const SCROLL_REST_MS = 400;
   let lastScrollAt = 0;
-  steps.forEach((st) => st.addEventListener('scroll', () => { lastScrollAt = performance.now(); }, { passive: true }));
+  // Any scrolling in the form counts — a step, a textarea, a dropdown's list — so a gesture's
+  // inertia that runs out of a field never turns the page. (scroll does not bubble: caught on the way down.)
+  form.addEventListener('scroll', () => { lastScrollAt = performance.now(); }, { passive: true, capture: true });
   document.addEventListener('wheel', (e) => {
     if (!sheet.hidden || cur >= STEPS || e.ctrlKey) return;
     if (e.target.closest('.combo.is-open')) return; // an open dropdown owns the wheel, even at the end of its list (a page turn would close it)
+    // A field that scrolls (a long textarea) owns the wheel, even at its top or bottom: scrolling in
+    // a field never turns the page (Bill, 2026-10-05). A field too short to scroll is the page's.
+    const fieldEl = e.target.closest('.fw') && e.target.closest('textarea, .combo-list');
+    if (fieldEl && fieldEl.scrollHeight > fieldEl.clientHeight + 1) {
+      if (!canScroll(fieldEl, Math.sign(e.deltaY))) e.preventDefault(); // at its end: stays put (no page scroll, no page turn)
+      return;
+    }
     const dir = Math.sign(e.deltaY);
     if (!dir) return;
     // Anything scrollable under the pointer (a full textarea, the dropdown list, the step itself)
@@ -313,17 +322,44 @@
     }
   }, { passive: false });
 
-  let touchY = null, touchT = 0;
-  document.addEventListener('touchstart', (e) => { touchY = e.touches[0].clientY; touchT = performance.now(); }, { passive: true });
+  let touchY = null, touchT = 0, touchInField = false;
+  document.addEventListener('touchstart', (e) => {
+    touchY = e.touches[0].clientY; touchT = performance.now();
+    const f = e.target.closest && e.target.closest('.fw') && e.target.closest('textarea, .combo-list');
+    touchInField = !!f && f.scrollHeight > f.clientHeight + 1; // a swipe in a field that scrolls never turns the page
+  }, { passive: true });
   document.addEventListener('touchend', (e) => {
     if (touchY === null || !sheet.hidden || cur >= STEPS) return;
     const dy = touchY - e.changedTouches[0].clientY;
     touchY = null;
     const dir = Math.sign(dy);
     if (Math.abs(dy) < 60 || performance.now() - touchT > 600) return;
-    if (canScroll(steps[cur], dir) || isTyping(document.activeElement)) return;
+    if (touchInField || canScroll(steps[cur], dir) || isTyping(document.activeElement)) return;
     go(cur + dir);
   }, { passive: true });
+
+  /* ---------- Curly quotes, as typed ----------
+     A straight ' or " typed or pasted into a text field becomes a curly one (Bill, 2026-10-05),
+     by the library's Auto cleanup rule (js/admin.js → cleanup): after the start, a space, an
+     opening bracket or another opening quote it opens (“ ‘); anywhere else it closes (” ’ — an
+     apostrophe too). A ' before a digit is an apostrophe: ’90s. Not in the link, nor in a
+     dropdown's search (it would no longer match "Côte d'Ivoire"), nor mid-composition (an IME).
+     One character for one, so the caret stays where it was. Caught first (capture), so the
+     field's own handler reads the curly text. */
+  function curlyQuotes(t) {
+    return t
+      .replace(/(^|[\s(\[“‘—–-])'(?=\d)/g, '$1’')
+      .replace(/(^|[\s(\[“‘—–-])"/g, '$1“').replace(/"/g, '”')
+      .replace(/(^|[\s(\[“‘—–-])'/g, '$1‘').replace(/'/g, '’');
+  }
+  document.addEventListener('input', (e) => {
+    const el = e.target;
+    if (e.isComposing || !el.matches || !el.matches('textarea.field, input.field[type="text"]') || el.closest('.combo') || el.id === 'fWebsite') return;
+    if (!/['"]/.test(el.value)) return;
+    const a = el.selectionStart, b = el.selectionEnd;
+    el.value = curlyQuotes(el.value);
+    el.setSelectionRange(a, b);
+  }, true);
 
   /* ---------- Textareas: the dropdown's 2px overlay scrollbar ---------- */
   // Same bar as the combobox list: the native one is hidden (css), a 2px black bar over the
@@ -772,11 +808,16 @@
   $('fReflection').addEventListener('input', (e) => { data.reflection = e.target.value; refresh(); });
   $('fKeptBy').addEventListener('input', (e) => { data.keptBy = e.target.value; });
 
+  // While the words are on their way (a moment to a couple of seconds), the button stays black
+  // and a white spinner takes its label's place (Bill, 2026-10-05: the grey disabled button read
+  // as the form fading out). It cannot be pressed twice meanwhile.
+  let sending = false;
   async function submit() {
-    if (!valid.every((v) => v())) return;
+    if (sending || !valid.every((v) => v())) return;
     const entry = payload();
     const btn = $('submitBtn');
-    btn.disabled = true;
+    sending = true;
+    btn.classList.add('is-busy'); btn.setAttribute('aria-busy', 'true'); btn.setAttribute('aria-label', 'Sending your words');
     try {
       if (SUBMIT_URL) {
         const r = await fetch(SUBMIT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
@@ -793,8 +834,10 @@
       showDone();
     } catch (err) {
       console.error(err);
-      btn.disabled = false;
       alert('Something went wrong sending your words. Please try again.');
+    } finally {
+      sending = false;
+      btn.classList.remove('is-busy'); btn.removeAttribute('aria-busy'); btn.removeAttribute('aria-label');
     }
   }
   $('submitBtn').addEventListener('click', submit);
