@@ -362,15 +362,16 @@
   // No orphans — for every piece of running text on the site (quotes, notes, context, menu
   // descriptions, annotation notes): the last line (and each line of a poem) never holds a single
   // word, a new sentence never starts with a single word left at the end of a line, and no line
-  // ends on "a", "an", "the", "of", "from" or "is". Latin: the last two words are tied with a no-break space. CJK: the last four
+  // ends on "a", "an", "of" or "from" ("the" and "is" only if the lines need it: ragBreaks). Latin: the last two words are tied with a no-break space. CJK: the last four
   // characters are tied with word joiners. Applied at render time; the data stays clean.
   const NBSP = '\u00a0', WJ = '\u2060';
   const OPENERS = 'I|we|you|he|she|it|they|my|our|your|his|her|its|their|me|us|them';
   const OPENER = new RegExp(`([.!?…:;][”’)\\]]*\\s+[“‘(\\[]*(?:[^\\s\\u00a0]{1,2}|(?:${OPENERS})(?:[’'][a-z]+)?)) (?=\\S)`, 'gi');
-  // "a", "an", "the", "of", "from" and "is" never end a line: each is tied to the word after it
-  // (Bill, 2026-10-06). Run until nothing changes, so a run of them ("is the", "from a star")
-  // is tied all the way through.
-  const TIED_WORD = /(^|[\s“‘(\[—–])(a|an|the|of|from|is) (?=\S)/gi;
+  // "a", "an", "of" and "from" never end a line: each is tied to the word after it (Bill,
+  // 2026-10-06). Run until nothing changes, so a run of them ("of a", "from a star") is tied all
+  // the way through. "the" and "is" were tied too, the same day; they are looser now (ragBreaks →
+  // SOFT_END: a line avoids ending on them, unless the lines would be clearly worse).
+  const TIED_WORD = /(^|[\s“‘(\[—–])(a|an|of|from) (?=\S)/gi;
   const tieWords = (line) => { for (let was; was !== line;) { was = line; line = line.replace(TIED_WORD, `$1$2${NBSP}`); } return line; };
   function noOrphans(text) {
     return text.split('\n').map((line) => {
@@ -531,7 +532,7 @@
     if (quoteEl._plain != null && quoteEl.firstChild && quoteEl.childNodes.length === 1) quoteEl.firstChild.data = quoteEl._plain;
     quoteEl._plain = null;
   };
-  const RAG_LAST = 0.5;      // how much the last line's shortfall counts (0 = it may be any length, 1 = like the others)
+  const RAG_LAST = 1;        // how much the last line's shortfall counts (0 = it may be any length, 1 = like the others; 0.5 until 2026-10-06, when a short last line left "the person" stranded on the line above)
   const RAG_LAST_MIN = 0.33; // …but a last line under this share of the box counts in full
   function evenLines(quoteEl) {
     if (!quoteEl) return;
@@ -556,7 +557,7 @@
     let from = 0;
     for (let k = 1; k <= words.length; k++) {
       if (k < words.length && !before[k].includes('\n')) continue;
-      const cut = ragBreaks(width.slice(from, k), before.slice(from, k).map((b, i) => i > 0 && b === ' '), space, box);
+      const cut = ragBreaks(width.slice(from, k), before.slice(from, k).map((b, i) => i > 0 && b === ' '), space, box, words.slice(from, k).map((w) => stackKey(w.text)));
       if (!cut) return narrowBox(quoteEl);
       cut.forEach((c) => breaks.push(from + c));
       from = k;
@@ -575,7 +576,18 @@
   // One paragraph: `width` of each word, `open[i]` whether a line may start at word i. Returns
   // the words that start lines 2…n for the fewest lines that fit and the least raggedness, or
   // null when a word group is wider than the box (left to the browser).
-  function ragBreaks(width, open, space, box) {
+  // No stacks (Bill, 2026-10-06): two lines in a row should not start with the same word
+  // ("you … / you …", "the person … / the person …") — the eye can lose its place, and the left
+  // edge shows the repeat. Bill's order (2026-10-06): no repeats first, then even lines, then
+  // "the" / "is" at a line end. A repeat costs RAG_STACK² boxes² — more than any unevenness — so
+  // it happens only when nothing else fits. Words are compared without capitals or punctuation.
+  const RAG_STACK = 10;
+  // Last in that order: a line avoids ending on "the" or "is" — it costs as much as a line left
+  // RAG_SOFT of the box short — which decides between ways that are about as even, and gives way
+  // to evenness otherwise. ("a", "an", "of", "from" are tied to the next word and never end a line.)
+  const SOFT_END = new Set(['the', 'is']), RAG_SOFT = 0.15;
+  const stackKey = (text) => text.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+  function ragBreaks(width, open, space, box, keys = []) {
     const n = width.length;
     const span = (i, j) => { let w = 0; for (let k = i; k < j; k++) w += width[k]; return w + (j - i - 1) * space; }; // words i…j-1 on one line
     // best[j] per line count: least cost of setting the first j words in exactly `l` lines.
@@ -591,7 +603,10 @@
           if (w > box) break;
           if (prev[i] === Infinity) continue;
           const short = box - w, last = j === n;
-          const cost = prev[i] + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+          const above = l > 1 ? trail[l - 2][i] : -1; // where the line before this one starts
+          const stack = above >= 0 && keys[i] && keys[i] === keys[above] ? (RAG_STACK * box) ** 2 : 0;
+          const soft = !last && SOFT_END.has(keys[j - 1]) ? (RAG_SOFT * box) ** 2 : 0;
+          const cost = prev[i] + stack + soft + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
           if (cost < cur[j]) { cur[j] = cost; back[j] = i; }
         }
       }
