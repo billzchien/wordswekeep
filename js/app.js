@@ -991,11 +991,11 @@
     $('nVideoPin').innerHTML = $('nVideoCol').innerHTML = video ? thumbHTML(video) : coverHTML(q);
 
     $('nKept').innerHTML = q.keptBy ? nativeRuns(esc(q.keptBy)) : 'a fellow human';
-    // The context first, then the personal note (the other way round until 2026-10-04).
-    let body = q.context ? `<div class="n-context"><p>/Context/</p><div>${paragraphs(q.context)}</div></div>` : '';
-    // With a context above it the personal note gets a title of its own, "/Note/" (set like
-    // "/Context/"), so it still reads as the keeper's; alone under "Kept by" it needs none.
-    if (q.reflection) body += q.context ? `<div class="n-context"><p>/Note/</p><div>${paragraphs(q.reflection)}</div></div>` : `<div>${paragraphs(q.reflection)}</div>`;
+    // The personal note first, under "Kept by" and with no title of its own — it reads as the
+    // keeper's — then the context, titled "/Context/" (Bill, 2026-10-06; the other way round,
+    // with the note titled "/Note/", from 2026-10-04).
+    let body = q.reflection ? `<div>${paragraphs(q.reflection)}</div>` : '';
+    if (q.context) body += `<div class="n-context"><p>/Context/</p><div>${paragraphs(q.context)}</div></div>`;
     $('nBody').innerHTML = body;
   }
 
