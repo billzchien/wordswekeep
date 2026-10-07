@@ -9,15 +9,18 @@
       "community"
     ],
     "author": {
+      "kind": "person",
       "name": "Lawrence Krauss",
       "nativeName": null,
-      "country": "US"
+      "country": "US",
+      "origin": null
     },
     "source": {
       "title": "A Universe from Nothing",
       "year": null,
       "kind": "book",
-      "link": null
+      "link": null,
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Publication1/v4/59/c0/8e/59c08e32-dad8-0c8b-9bda-f8323f809252/9781451624472.jpg/600x600bb.jpg"
     },
     "context": null,
     "annotations": [],
@@ -138,18 +141,25 @@
   {
     "id": 6,
     "status": "live",
-    "text": "Horses don’t stop. They keep going.",
+    "text": "Hustlers don’t stop. They keep going.",
     "originalLanguage": null,
     "categories": [
       "growth",
       "drive"
     ],
     "author": {
+      "kind": "person",
       "name": "Young Thug",
       "nativeName": null,
-      "country": "US"
+      "country": "US",
+      "origin": null
     },
-    "source": null,
+    "source": {
+      "title": "Digits",
+      "year": null,
+      "kind": "song",
+      "link": "https://open.spotify.com/track/4cg1yakyRSIOjxKM2I7J1q?si=a8d4f82dad46419f"
+    },
     "context": null,
     "annotations": [],
     "reflection": "To me it represents the need to stay resilient and continue to press forward.",
@@ -461,9 +471,11 @@
       "perspective"
     ],
     "author": {
+      "kind": "self",
       "name": "Jess",
       "nativeName": null,
-      "country": "TW"
+      "country": "TW",
+      "origin": null
     },
     "source": null,
     "context": "As we are busy glued to our computers and screens, “let your dog take you on a walk” is a good reminder to myself that - instead of it feels like a responsibility / chore, it is an invitation, a gift to go outside an breathing fresh air.",
