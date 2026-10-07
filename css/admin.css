@@ -59,7 +59,6 @@
 @media (max-resolution: 1.5dppx) { .tab { --line: 1px; } }
 .tab.is-active { background-position: left bottom; background-size: 100% var(--line); }
 @media (hover: hover) { .tab:hover { background-position: left bottom; background-size: 100% var(--line); } }
-.tab-dot { --src: url(../assets/icons/asterisk-small.svg); width: calc(4 * var(--u)); height: calc(4 * var(--u)); margin-top: calc(7 * var(--u)); } /* Figma 299:1235: the tiny asterisk = new items to review */
 
 .cta { top: var(--line-top); right: var(--btn-inset); display: flex; align-items: flex-start; gap: calc(4 * var(--u)); }
 :root { --btn-inset: calc(var(--line-c) - var(--btn-h) / 2); } /* a top-line button's distance from the top edge — and from the right edge, so the corner is square */
