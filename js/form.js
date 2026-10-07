@@ -47,6 +47,26 @@
   // Regions whose everyday script is not Latin: only there does "Name in original language" show
   // (elsewhere the Latin name is the original). Edit freely.
   const NON_LATIN = new Set(('CN TW HK MO JP KR KP MN RU UA BY KZ KG TJ BG MK RS ME BA GE AM GR CY IL IR IQ SA AE KW QA BH OM YE JO SY LB EG LY TN DZ MA MR SD PS AF PK IN BD NP LK BT MM TH LA KH ET ER').split(' '));
+  // Who said or wrote it (Bill, 2026-10-06). `person` — a known person — is the default and what
+  // every quote from before has. Each kind asks for its own fields (WHO_FIELDS); "Words from"
+  // shows them as js/app.js → whoRows. The same list is in js/admin.js and workers/lib/entry.js.
+  const WHO = [
+    { value: 'person', label: 'A known person', name: 'Name' },
+    { value: 'acquaintance', label: 'Someone I know', name: 'A friend' },
+    { value: 'self', label: 'Myself', name: 'Your first name' },
+    { value: 'saying', label: 'A saying or proverb' },
+    { value: 'unknown', label: 'Not sure' },
+  ];
+  // Where a saying is from: a culture, a people, a language or a tradition, as it reads before
+  // "proverb" ("Chinese proverb"). One not on the list can be typed. (js/admin.js has the same list.)
+  const ORIGINS = ['African', 'Afghan', 'Albanian', 'American', 'Arabic', 'Armenian', 'Aboriginal Australian', 'Bengali', 'Brazilian', 'Buddhist',
+    'Bulgarian', 'Burmese', 'Cambodian', 'Chinese', 'Croatian', 'Czech', 'Danish', 'Dutch', 'English', 'Estonian', 'Ethiopian', 'Filipino',
+    'Finnish', 'French', 'Georgian', 'German', 'Ghanaian', 'Greek', 'Hawaiian', 'Hebrew', 'Hungarian', 'Icelandic', 'Igbo', 'Indian',
+    'Indonesian', 'Irish', 'Italian', 'Jamaican', 'Japanese', 'Jewish', 'Kenyan', 'Korean', 'Kurdish', 'Latin', 'Latvian', 'Lithuanian',
+    'Malay', 'Māori', 'Mexican', 'Mongolian', 'Native American', 'Nepali', 'Nigerian', 'Norwegian', 'Persian', 'Polish', 'Portuguese',
+    'Punjabi', 'Romanian', 'Russian', 'Sanskrit', 'Scottish', 'Serbian', 'Slovak', 'Somali', 'Spanish', 'Sufi', 'Swahili', 'Swedish',
+    'Tamil', 'Thai', 'Tibetan', 'Turkish', 'Ukrainian', 'Vietnamese', 'Welsh', 'Yiddish', 'Yoruba', 'Zen', 'Zulu']
+    .sort((a, b) => a.localeCompare(b)).map((o) => ({ value: o, label: o }));
   const THIS_YEAR = new Date().getFullYear();
   const YEARS = Array.from({ length: THIS_YEAR - 999 }, (_, i) => ({ value: String(THIS_YEAR - i), label: String(THIS_YEAR - i) }));
 
@@ -63,7 +83,7 @@
 
   const blank = () => ({
     text: '', original: '', categories: [],
-    author: { name: '', nativeName: '', country: '' },
+    author: { kind: 'person', name: '', nativeName: '', country: '', origin: '' },
     source: { kind: '', year: '', title: '', link: '' },
     context: '', annotations: [], reflection: '', keptBy: '',
   });
@@ -102,6 +122,29 @@
     return scores[0][1] >= 2 && scores[0][1] > scores[1][1] ? scores[0][0] : 'other';
   }
 
+  // What is sent of the author: only the fields its kind asks for.
+  function authorOut() {
+    const a = data.author, t = (s) => s.trim(), kind = a.kind;
+    const named = kind === 'person' || kind === 'acquaintance' || kind === 'self';
+    return {
+      kind,
+      name: named ? t(a.name) || null : null,
+      nativeName: kind === 'person' && NON_LATIN.has(a.country) ? (t(a.nativeName) || null) : null,
+      country: named ? a.country || null : null,
+      origin: kind === 'saying' ? t(a.origin) || null : null,
+    };
+  }
+  // Each kind's own check: a known person needs a name — the English or the one in its original
+  // language, either will do — and a country; someone known and oneself, a name and a country;
+  // a saying, where it is from; "Not sure", nothing.
+  function authorOk() {
+    const a = data.author;
+    if (a.kind === 'saying') return !!a.origin.trim();
+    if (a.kind === 'unknown') return true;
+    const name = !!a.name.trim() || (a.kind === 'person' && NON_LATIN.has(a.country) && !!a.nativeName.trim());
+    return name && !!a.country;
+  }
+
   // House style: every paragraph of a note starts with a capital letter.
   const capParas = (s) => s.replace(/(^|\n\s*\n)(\s*)(\p{Ll})/gu, (m, br, sp, ch) => br + sp + ch.toUpperCase());
   function payload() {
@@ -113,7 +156,7 @@
       text: t(data.text),
       originalLanguage: original ? { lang: detectLang(original), text: original } : null,
       categories: CATEGORIES.map((c) => c.key).filter((k) => data.categories.includes(k)),
-      author: { name: t(data.author.name), nativeName: NON_LATIN.has(data.author.country) ? (t(data.author.nativeName) || null) : null, country: data.author.country || null },
+      author: authorOut(),
       // One link: the site plays it if it is a video (YouTube), otherwise links the source title to it.
       source: (data.source.title || data.source.kind || data.source.year || data.source.link)
         ? { title: hasSource ? (t(data.source.title) || null) : null, year: data.source.year ? Number(data.source.year) : null, kind: data.source.kind || null, link: hasSource ? (t(data.source.link) || null) : null }
@@ -133,7 +176,7 @@
   const valid = [
     () => data.text.trim().length > 0,
     () => data.categories.length > 0,
-    () => data.author.name.trim().length > 0 && !!data.author.country,
+    authorOk,
     () => true,
     () => data.reflection.trim().length > 0,
   ];
@@ -141,7 +184,13 @@
   const required = [
     () => [$('fText')],
     () => [],
-    () => [$('fName'), $('fCountry').querySelector('.field')],
+    () => { // (with neither name, the warning goes on the English one)
+      const a = data.author;
+      if (a.kind === 'saying') return [$('fOrigin').querySelector('.field')];
+      if (a.kind === 'unknown') return [];
+      const native = a.kind === 'person' && NON_LATIN.has(a.country) && a.nativeName.trim();
+      return [native ? null : $('fName'), $('fCountry').querySelector('.field')];
+    },
     () => [],
     () => [$('fReflection')],
   ];
@@ -389,14 +438,17 @@
   const foldTimers = new WeakMap();
   function fold(el, open) {
     clearTimeout(foldTimers.get(el));
+    // is-settled (css): once open, what is inside may reach out of the fold — the country's list,
+    // under the name row that folds with "Who said or wrote it?", would be cut at its edge.
     if (open) {
       if (!el.hidden && el.classList.contains('is-open')) return;
       el.hidden = false;
       void el.offsetHeight; // commit the folded state, then unfold
       el.classList.add('is-open');
+      foldTimers.set(el, setTimeout(() => el.classList.add('is-settled'), reduceMotion.matches ? 0 : FOLD_MS));
     } else {
       if (el.hidden) return;
-      el.classList.remove('is-open');
+      el.classList.remove('is-open', 'is-settled');
       foldTimers.set(el, setTimeout(() => { el.hidden = true; }, reduceMotion.matches ? 0 : FOLD_MS));
     }
   }
@@ -443,12 +495,14 @@
 
   // A text field that filters a list. Typing narrows it; Enter / click picks; the × clears.
   // `free` lets a typed value that is on no row stand (the year).
-  function combo(host, { options, placeholder, free = false, onChange, label }) {
+  // `keep`: a choice that is never empty (who said it): no ×, the arrow stays, and a field left
+  // blank goes back to what was chosen.
+  function combo(host, { options, placeholder, free = false, keep = false, onChange, label }) {
     host.classList.add('combo');
     host.innerHTML = `<input class="field" type="text" placeholder="${placeholder}" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-label="${label || placeholder}">
       <button type="button" class="combo-btn" tabindex="-1" aria-label="Open"><span class="icon icon-chevron"></span></button>`;
     const input = host.querySelector('input'), btn = host.querySelector('.combo-btn'), icon = btn.querySelector('.icon');
-    let list = null, bar = null, value = '', hover = -1, shown = [];
+    let list = null, bar = null, value = '', kept = '', hover = -1, shown = [];
     // iOS: a tap on a row can blur the input before the tap's click arrives; blur closes the
     // list, and the click (and the focus that comes with it) then lands on whatever field sits
     // under the finger. So a list closed within a moment of a touch stays in place, invisible,
@@ -469,11 +523,11 @@
     };
 
     const setValue = (v, lbl) => {
-      value = v; input.value = lbl || '';
+      value = v; if (v) kept = v; input.value = lbl || '';
       host.classList.toggle('has-value', !!v);
       if (v) host.classList.remove('is-warn');
-      icon.className = 'icon ' + (v ? 'icon-x' : 'icon-chevron');
-      btn.setAttribute('aria-label', v ? 'Clear' : 'Open');
+      icon.className = 'icon ' + (v && !keep ? 'icon-x' : 'icon-chevron');
+      btn.setAttribute('aria-label', v && !keep ? 'Clear' : 'Open');
       onChange(v);
     };
     const close = () => {
@@ -528,6 +582,7 @@
       const exact = options.find((o) => o.label.toLowerCase() === t.toLowerCase());
       if (exact) setValue(exact.value, exact.label);
       else if (free && t) setValue(t, t);
+      else if (keep && (!t || !value)) setValue(kept, options.find((o) => o.value === kept)?.label || '');
       else if (!t) setValue('', '');
       else setValue(value, options.find((o) => o.value === value)?.label || (free ? value : ''));
       close();
@@ -535,7 +590,7 @@
 
     input.addEventListener('focus', () => { host.classList.remove('is-warn'); render(value ? '' : input.value); });
     input.addEventListener('click', () => { if (!list) render(value ? '' : input.value); });
-    input.addEventListener('input', () => { if (value) { value = ''; host.classList.remove('has-value'); icon.className = 'icon icon-chevron'; onChange(''); } render(input.value); });
+    input.addEventListener('input', () => { if (value) { value = ''; host.classList.remove('has-value'); icon.className = 'icon icon-chevron'; if (!keep) onChange(''); } render(input.value); });
     input.addEventListener('blur', settle);
     input.addEventListener('keydown', (e) => {
       if (composing(e)) return;
@@ -548,7 +603,7 @@
     });
     btn.addEventListener('pointerdown', (e) => e.preventDefault());
     btn.addEventListener('click', () => {
-      if (value) { setValue('', ''); input.focus(); render(''); }
+      if (value && !keep) { setValue('', ''); input.focus(); render(''); }
       else if (list) close();
       else { input.focus(); }
     });
@@ -558,7 +613,7 @@
   /* ---------- Step 3 ---------- */
 
   $('fName').addEventListener('input', (e) => { data.author.name = e.target.value; refresh(); });
-  $('fNative').addEventListener('input', (e) => { data.author.nativeName = e.target.value; });
+  $('fNative').addEventListener('input', (e) => { data.author.nativeName = e.target.value; if (e.target.value.trim()) $('fName').closest('.fw').classList.remove('is-warn'); refresh(); });
   $('fTitle').addEventListener('input', (e) => { data.source.title = e.target.value; });
   // A link's shape: http(s), a real domain, no bare IP address or localhost, no user name or
   // password (workers/lib/link.js → shapeOf, which the Workers check again: keep in step).
@@ -608,7 +663,21 @@
     if (e.target.closest('.fw').classList.contains('is-warn')) warnLink('');
   });
   $('fSourceLink').addEventListener('change', checkSourceLink); // on leaving the field
-  const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Country or region', label: 'Country or region', onChange: (v) => { data.author.country = v; fold($('fNativeWrap'), NON_LATIN.has(v)); refresh(); } });
+  const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Country or region', label: 'Country or region', onChange: (v) => { data.author.country = v; fold($('fNativeWrap'), data.author.kind === 'person' && NON_LATIN.has(v)); refresh(); } });
+  // Who said it: the fields follow the kind. A name and a country for a person (the native name
+  // too, for a known person from a country not written in Latin letters); where it is from for a
+  // saying; nothing for "Not sure". What was typed stays, should the kind be changed back.
+  const origin = combo($('fOrigin'), { options: ORIGINS, placeholder: 'Where is it from', label: 'Where is it from', free: true, onChange: (v) => { data.author.origin = v; refresh(); } });
+  function showWho(kind) {
+    const w = WHO.find((x) => x.value === kind) || WHO[0], named = !!w.name;
+    $('fName').placeholder = w.name || 'Name'; $('fName').setAttribute('aria-label', w.name || 'Name');
+    fold($('fNameRowWrap'), named);
+    fold($('fNativeWrap'), kind === 'person' && NON_LATIN.has(data.author.country));
+    fold($('fOriginWrap'), kind === 'saying');
+    document.querySelectorAll('#fNameRowWrap .fw, #fOriginWrap .fw').forEach((f) => f.classList.remove('is-warn'));
+  }
+  const who = combo($('fWho'), { options: WHO, placeholder: 'Who said or wrote it', label: 'Who said or wrote it', keep: true, onChange: (v) => { if (!v || v === data.author.kind && who) return; data.author.kind = v; showWho(v); refresh(); } });
+  who.set('person');
   // Source name and link appear once a kind other than Personal is chosen, one after the other.
   const SOURCE_STAGGER_MS = 50;
   function showSourceFields(on) {
@@ -846,6 +915,7 @@
     data = blank();
     ['fText', 'fOriginal', 'fName', 'fNative', 'fTitle', 'fSourceLink', 'fContext', 'fReflection', 'fKeptBy', 'fWebsite'].forEach((id) => { $(id).value = ''; });
     fold($('fOriginalWrap'), false); fold($('origToggleWrap'), true); fold($('fNativeWrap'), false); showSourceFields(false);
+    who.set('person'); origin.set(''); showWho('person');
     document.querySelectorAll('.cat').forEach((b) => b.setAttribute('aria-checked', 'false'));
     document.querySelectorAll('.fw.is-warn').forEach((w) => w.classList.remove('is-warn'));
     warnLink('');

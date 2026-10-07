@@ -162,6 +162,8 @@ textarea.field::-webkit-scrollbar { display: none; }
 }
 .fold > * { min-height: 0; overflow: hidden; }
 .fold.is-open { grid-template-rows: 1fr; opacity: 1; translate: 0 0; margin-top: 0; }
+.fold.is-settled { translate: none; } /* opened and still: no layer of its own (a translate makes one), so a dropdown's list inside rises above what comes after the fold */
+.fold.is-settled > * { overflow: visible; } /* opened: a dropdown's list may reach out of it (js: fold) */
 .group > .fold { --fold-gap: var(--gap-12); }
 .group--16 > .fold { --fold-gap: var(--gap-16); }
 .group--24 > .fold { --fold-gap: var(--gap-24); }

@@ -74,11 +74,13 @@
           <div class="group">
             <div class="q"><div class="q-title"><p>Who said or wrote it?</p><span class="icon req" aria-hidden="true"></span></div></div>
             <div class="stack">
-              <div class="row">
-                <div class="fw"><input class="field" id="fName" type="text" placeholder="Name" autocomplete="off" required aria-label="Name"></div>
+              <div class="fw" id="fWho"></div>
+              <div class="fold is-open is-settled" id="fNameRowWrap"><div class="row">
+                <div class="fw"><input class="field" id="fName" type="text" placeholder="Name" autocomplete="off" aria-label="Name"></div>
                 <div class="fw" id="fCountry"></div>
-              </div>
+              </div></div>
               <div class="fold" id="fNativeWrap" hidden><div class="fw"><input class="field" id="fNative" type="text" placeholder="Name in original language" autocomplete="off" aria-label="Name in original language"></div></div>
+              <div class="fold" id="fOriginWrap" hidden><div class="fw" id="fOrigin"></div></div>
             </div>
           </div>
           <div class="group">

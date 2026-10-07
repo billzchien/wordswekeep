@@ -957,6 +957,28 @@
   }, true);
 
   const lastTheme = new Map(); // quote id → the palette notes last opened with
+  // "Words from": who said it — as its kind asks (the form's "Who said or wrote it?", 2026-10-06;
+  // a quote from before has no kind and is a known person) — then the source, added by renderNotes.
+  // · A known person: the name · the native name · the country. The native name always has its
+  //   own row, so it sits in the same place at every width and an Arabic or Hebrew one never shares
+  //   a line with the English; with no English name, it is the first row.
+  // · Someone known, oneself: the name as typed ("My grandmother", "Bill") · the country.
+  // · A saying: where it is from, "Chinese proverb". · Not sure: "Unknown".
+  // Every row wraps like the source's when it is too long; names go through nativeRuns like
+  // anything typed (their script's Noto; Arabic and Hebrew right to left).
+  function whoRows(a) {
+    const row = (html, cls = 'n-source') => `<span class="${cls}">${html}</span>`;
+    const kind = a.kind || 'person', country = a.country ? regionName(a.country) : '';
+    if (kind === 'unknown') return row('Unknown');
+    if (kind === 'saying') return row(`${esc(a.origin || 'A')} proverb`);
+    const name = (a.name || '').trim(), native = kind === 'person' ? (a.nativeName || '').trim() : '';
+    let html = name ? row(nativeRuns(esc(kind === 'acquaintance' ? name.charAt(0).toUpperCase() + name.slice(1) : name))) : '';
+    if (native) html += row(nativeRuns(esc(native)), `n-source${name ? ' n-native-name' : ''}`);
+    if (!html) html = row('Unknown'); // (a person with no name at all: not let through by the form)
+    if (country) html += row(esc(country), 'n-row');
+    return html;
+  }
+
   function renderNotes() {
     const q = current();
     quoteHant = quoteIsHant(q);
@@ -974,17 +996,7 @@
       `<li><svg class="sym" viewBox="0 0 60 60" data-sym="${k}" aria-hidden="true"></svg><span>${esc(CAT_BY_KEY[k].name)}</span></li>`).join('');
     noteSyms();
 
-    const a = q.author;
-    const country = a.country ? regionName(a.country) : '';
-    // Row 1 author · its native name under it · the country · the source ("Title, Year"). The
-    // native name always has its own row (Bill, 2026-10-06), so it sits in the same place at every
-    // width and an Arabic or Hebrew one never shares a line with the English; each row wraps like
-    // the source's when a name is too long for it. The native name goes through nativeRuns like
-    // anything typed: its script's Noto, Arabic and Hebrew right to left (until 2026-10-06 it was
-    // always the CJK sans, beside the English, on one line that never wrapped).
-    let from = `<span class="n-source">${nativeRuns(esc(a.name))}</span>`;
-    if (a.nativeName) from += `<span class="n-source n-native-name">${nativeRuns(esc(a.nativeName))}</span>`;
-    if (country) from += `<span class="n-row">${esc(country)}</span>`;
+    let from = whoRows(q.author || {});
     const src = q.source || {}, link = videoLink(q);
     if (src.title) {
       let label = ITALIC_KINDS.has(src.kind) ? `<i>${nativeRuns(esc(src.title))}</i>` : nativeRuns(esc(src.title)); // (Noto upright inside the italics: css .n-native)

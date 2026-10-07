@@ -63,11 +63,13 @@
               <p class="sec-title">Source</p>
               <!-- Who said it and where it comes from, one group (the author had a title of its own until 2026-10-04). -->
               <div class="stack">
-                <div class="row2">
+                <div class="fw" id="fWho"></div>
+                <div class="fold is-open is-settled" id="fNameRowWrap"><div class="row2">
                   <div class="fw"><input class="field" id="fName" type="text" placeholder="Author" autocomplete="off" aria-label="Author"></div>
                   <div class="fw" id="fCountry"></div>
-                </div>
+                </div></div>
                 <div class="fold" id="fNativeWrap" hidden><div class="fw"><input class="field" id="fNative" type="text" placeholder="Name in original language" autocomplete="off" aria-label="Author's name in original language"></div></div>
+                <div class="fold" id="fOriginWrap" hidden><div class="fw" id="fOrigin"></div></div>
                 <div class="row2">
                   <div class="fw" id="fKind"></div>
                   <div class="fw" id="fYear"></div>
