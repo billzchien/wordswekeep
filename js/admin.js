@@ -795,8 +795,9 @@
   // Greek and Cyrillic in Noto Serif (ahead of Crimson Pro, as the archive sets them), Arabic,
   // Hebrew, Thai, Devanagari, and the Notos of the other scripts someone may type (fetched here:
   // the pages don't load them). Only each script's own letters are copied — Latin stays Crimson
-  // Pro at full size. Nothing changes size while typing. Until they load (or if Google can't be read), the full-size Notos stand in
-  // (css: --font-field). The same copies are made in js/form.js: change both.
+  // Pro at full size. Nothing changes size while typing: while a piece of one loads, its letter
+  // shows in a system font at the same scale (form.css: Field Local), never at full size; those
+  // stand in for good if Google can't be read. The same copies are made in js/form.js: change both.
   (function fieldFonts() {
     const CJK = ['Noto Sans SC', 'Noto Sans TC', 'Noto Sans JP', 'Noto Sans KR'];
     const SCRIPT = ['Noto Serif', 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Noto Sans Thai', 'Noto Sans Devanagari', // (as the archive: nativeRuns)

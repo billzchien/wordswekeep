@@ -5,6 +5,20 @@
    Every size here is N * --u (tokens.css: 1px up to a 1440px window, 1.5px at 2160), so the
    fields, icons, checkboxes and the spacing grow with the type. Tablet/mobile: --u is 1px. */
 
+/* Stand-ins for the field fonts (Bill, 2026-10-07): the "Field Noto …" copies (js: fieldFonts)
+   load piece by piece as new letters are typed; while a piece loads, the letter shows in one of
+   these system fonts — already at the field scale, nothing to download — never at full size (it
+   flashed big, then small). They stand in for good if Google can't be reached. Greek and Cyrillic (serif) go before Crimson Pro, the rest after the
+   Notos (css: --font-field). */
+@font-face { font-family: 'Field Local Serif'; src: local('TimesNewRomanPSMT'), local('Times New Roman'); size-adjust: 78%; unicode-range: U+0370-03FF, U+1F00-1FFF, U+0400-052F; }
+@font-face { font-family: 'Field Local'; src: local('PingFangSC-Regular'), local('PingFang SC'), local('Microsoft YaHei'), local('Noto Sans CJK SC'), local('Source Han Sans SC'); size-adjust: 80%; unicode-range: U+2E80-2FFF, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF; }
+@font-face { font-family: 'Field Local'; src: local('HiraginoSans-W3'), local('Hiragino Sans'), local('Yu Gothic'), local('Noto Sans CJK JP'); size-adjust: 80%; unicode-range: U+3040-30FF, U+31F0-31FF; }
+@font-face { font-family: 'Field Local'; src: local('AppleSDGothicNeo-Regular'), local('Apple SD Gothic Neo'), local('Malgun Gothic'), local('Noto Sans CJK KR'); size-adjust: 80%; unicode-range: U+1100-11FF, U+3130-318F, U+AC00-D7AF; }
+@font-face { font-family: 'Field Local'; src: local('GeezaPro'), local('Geeza Pro'), local('Segoe UI'); size-adjust: 78%; unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF; }
+@font-face { font-family: 'Field Local'; src: local('ArialHebrew'), local('Arial Hebrew'), local('Segoe UI'); size-adjust: 78%; unicode-range: U+0590-05FF, U+FB1D-FB4F; }
+@font-face { font-family: 'Field Local'; src: local('Thonburi'), local('Leelawadee UI'), local('Tahoma'); size-adjust: 78%; unicode-range: U+0E00-0E7F; }
+@font-face { font-family: 'Field Local'; src: local('KohinoorDevanagari-Regular'), local('Kohinoor Devanagari'), local('Nirmala UI'); size-adjust: 78%; unicode-range: U+0900-097F, U+A8E0-A8FF; }
+
 :root {
   /* Form surfaces (Figma values; not in tokens.css because only the form uses them) */
   --field:        #f3f3f3;   /* input at rest */
@@ -138,9 +152,9 @@ textarea.field::-webkit-scrollbar { display: none; }
    script's Noto, drawn at the archive's scale letter by letter — the "Field Noto …" copies with
    size-adjust (js: fieldFonts). (Until then only the native name was Noto.) */
 .field { font-family: var(--font-field); }
-.field[data-cjk="hant"] { font-family: 'Field Noto Serif', 'Crimson Pro', 'Field Noto Sans TC', 'Noto Sans TC', var(--font-field); }
-.field[data-cjk="jpan"] { font-family: 'Field Noto Serif', 'Crimson Pro', 'Field Noto Sans JP', 'Noto Sans JP', var(--font-field); }
-.field[data-cjk="kore"] { font-family: 'Field Noto Serif', 'Crimson Pro', 'Field Noto Sans KR', 'Noto Sans KR', var(--font-field); }
+.field[data-cjk="hant"] { font-family: 'Field Noto Serif', 'Field Local Serif', 'Crimson Pro', 'Field Noto Sans TC', var(--font-field); }
+.field[data-cjk="jpan"] { font-family: 'Field Noto Serif', 'Field Local Serif', 'Crimson Pro', 'Field Noto Sans JP', var(--font-field); }
+.field[data-cjk="kore"] { font-family: 'Field Noto Serif', 'Field Local Serif', 'Crimson Pro', 'Field Noto Sans KR', var(--font-field); }
 @media (hover: hover) { .field:hover { background: var(--field-hover); } }
 .field:focus { background: var(--field-hover); }
 .field:focus-visible { outline: none; }
