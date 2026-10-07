@@ -468,6 +468,7 @@ html.is-arriving .step:first-child .content > .group > *, html.is-arriving .step
   .cat-box { top: 8px; right: 8px; } /* 8px in from the row's corner on a phone (12 elsewhere) */
   .cat-blurb { max-width: none; } /* a phone's rows are narrow: the description takes the whole row, so every one fits in two lines */
   .content { width: auto; margin-left: var(--m); margin-right: var(--m); padding-top: calc(60px + 2 * var(--dy)); padding-bottom: 96px; }
+  .req { right: auto; left: 0; --req-gap: 12px; } /* on a phone the asterisk sits above the question, flush with its left edge, 12px over its capitals (Bill, 2026-10-07; 6 was tried first) */
 }
 
 @media (prefers-reduced-motion: reduce) {
