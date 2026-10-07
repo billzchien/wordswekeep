@@ -9,11 +9,11 @@
   --white: #ffffff;   /* text on ink (menu button, video play) */
 
   /* ---------- Color: category palettes (notes mode) ---------- */
-  --perspective-bg: #05071f;  --perspective-fg: #dba5ff;
-  --growth-bg:      #1e1212;  --growth-fg:      #f9cd49;
-  --drive-bg:       #000238;  --drive-fg:       #ccdf70;
+  --perspective-bg: #05071f;  --perspective-fg: #d28fff;
+  --growth-bg:      #1e090d;  --growth-fg:      #c5e363;
+  --drive-bg:       #000242;  --drive-fg:       #ffd249;
   --community-bg:   #141f00;  --community-fg:   #ff859d;
-  --romance-bg:     #3c0001;  --romance-fg:     #ced5ff;
+  --romance-bg:     #490001;  --romance-fg:     #ced5ff;
 
   /* ---------- Color: semantic (what components use) ---------- */
   --bg: var(--paper);
