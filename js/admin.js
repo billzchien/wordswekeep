@@ -330,7 +330,7 @@
   const fold_ = (s) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').toLowerCase().trim();
   function hit(q, t, w) {
     const date = t === 'live' && q.dirty ? '' : fmtDate(dateOf[t](q));
-    const words = fold_([q.text, q.originalLanguage && q.originalLanguage.text, q.author && q.author.name, q.author && q.author.nativeName, q.source && q.source.title, catLabel(q.categories), q.keptBy, t === 'live' ? unpublished(q) : ''].filter(Boolean).join(' \n '));
+    const words = fold_([q.text, q.originalLanguage && q.originalLanguage.text, q.author && q.author.name, q.author && q.author.nativeName, q.author && q.author.origin && `${q.author.origin} proverb`, q.source && q.source.title, catLabel(q.categories), q.keptBy, t === 'live' ? unpublished(q) : ''].filter(Boolean).join(' \n '));
     if (/^\d+$/.test(w)) return String(numberOf(q)).startsWith(w) || date.split('/').some((p) => Number(p) === Number(w)) || new RegExp(`(^|[^\\d])${w}`).test(words);
     if (w.includes('/')) return date.includes(w) || date.replace(/(^|\/)0/g, '$1').includes(w);
     return words.includes(w);
@@ -550,7 +550,7 @@
   const toDraft = (q) => ({
     text: q.text || '', original: q.originalLanguage ? q.originalLanguage.text : '', lang: q.originalLanguage ? q.originalLanguage.lang : '',
     categories: [...q.categories],
-    author: { name: q.author?.name || '', nativeName: q.author?.nativeName || '', country: q.author?.country || '' },
+    author: { kind: q.author?.kind || 'person', name: q.author?.name || '', nativeName: q.author?.nativeName || '', country: q.author?.country || '', origin: q.author?.origin || '' },
     source: { kind: q.source?.kind || '', year: q.source?.year ? String(q.source.year) : '', title: q.source?.title || '', link: q.source?.link || '', cover: q.source?.cover || '' },
     context: q.context || '', annotations: q.annotations.map((a) => ({ word: a.word, explanation: a.explanation, matched: false, at: -1 })),
     reflection: q.reflection || '', keptBy: q.keptBy || '',
@@ -563,7 +563,9 @@
     q.text = t(d.text);
     q.originalLanguage = t(d.original) ? { lang: d.lang || detectLang(d.original), text: t(d.original) } : null;
     q.categories = CATEGORIES.map((c) => c.key).filter((k) => d.categories.includes(k));
-    q.author = { name: t(d.author.name), nativeName: NON_LATIN.has(d.author.country) ? (t(d.author.nativeName) || null) : null, country: d.author.country || null };
+    const named = ['person', 'acquaintance', 'self'].includes(d.author.kind); // who said it: only the fields its kind has (as the form sends)
+    q.author = { kind: d.author.kind || 'person', name: named ? t(d.author.name) || null : null, nativeName: d.author.kind === 'person' && NON_LATIN.has(d.author.country) ? (t(d.author.nativeName) || null) : null,
+      country: named ? d.author.country || null : null, origin: d.author.kind === 'saying' ? t(d.author.origin) || null : null };
     q.source = (d.source.kind || d.source.year || d.source.title || d.source.link)
       ? { title: hasSource ? (t(d.source.title) || null) : null, year: d.source.year ? Number(d.source.year) : null, kind: d.source.kind || null, link: hasSource ? (t(d.source.link) || null) : null }
       : null;
@@ -809,7 +811,28 @@
     updateDirty();
   });
 
-  const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Country or region', onChange: (v) => { if (!edit) return; mark('country'); edit.draft.author.country = v; fold($('fNativeWrap'), NON_LATIN.has(v)); updateDirty(); } });
+  const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Country or region', onChange: (v) => { if (!edit) return; mark('country'); edit.draft.author.country = v; fold($('fNativeWrap'), edit.draft.author.kind === 'person' && NON_LATIN.has(v)); updateDirty(); } });
+  // Who said it, as on the form (js/form.js → WHO, ORIGINS: keep the lists in step): the fields
+  // follow the kind; a saying is where it is from ("Chinese" → "Chinese proverb" on the site).
+  const WHO = [{ value: 'person', label: 'A known person', name: 'Author' }, { value: 'acquaintance', label: 'Someone I know', name: 'A friend' },
+    { value: 'self', label: 'Myself', name: 'First name' }, { value: 'saying', label: 'A saying or proverb' }, { value: 'unknown', label: 'Not sure' }];
+  const ORIGINS = ['African', 'Afghan', 'Albanian', 'American', 'Arabic', 'Armenian', 'Aboriginal Australian', 'Bengali', 'Brazilian', 'Buddhist',
+    'Bulgarian', 'Burmese', 'Cambodian', 'Chinese', 'Croatian', 'Czech', 'Danish', 'Dutch', 'English', 'Estonian', 'Ethiopian', 'Filipino',
+    'Finnish', 'French', 'Georgian', 'German', 'Ghanaian', 'Greek', 'Hawaiian', 'Hebrew', 'Hungarian', 'Icelandic', 'Igbo', 'Indian',
+    'Indonesian', 'Irish', 'Italian', 'Jamaican', 'Japanese', 'Jewish', 'Kenyan', 'Korean', 'Kurdish', 'Latin', 'Latvian', 'Lithuanian',
+    'Malay', 'Māori', 'Mexican', 'Mongolian', 'Native American', 'Nepali', 'Nigerian', 'Norwegian', 'Persian', 'Polish', 'Portuguese',
+    'Punjabi', 'Romanian', 'Russian', 'Sanskrit', 'Scottish', 'Serbian', 'Slovak', 'Somali', 'Spanish', 'Sufi', 'Swahili', 'Swedish',
+    'Tamil', 'Thai', 'Tibetan', 'Turkish', 'Ukrainian', 'Vietnamese', 'Welsh', 'Yiddish', 'Yoruba', 'Zen', 'Zulu']
+    .sort((a, b) => a.localeCompare(b)).map((o) => ({ value: o, label: o }));
+  function showWho(kind, now = false) {
+    const w = WHO.find((x) => x.value === kind) || WHO[0], f = now ? foldNow : fold;
+    $('fName').placeholder = w.name || 'Author'; $('fName').setAttribute('aria-label', w.name || 'Author');
+    f($('fNameRowWrap'), !!w.name);
+    f($('fNativeWrap'), kind === 'person' && NON_LATIN.has(edit ? edit.draft.author.country : ''));
+    f($('fOriginWrap'), kind === 'saying');
+  }
+  const who = combo($('fWho'), { options: WHO, placeholder: 'Who said or wrote it', keep: true, onChange: (v) => { if (!edit || !v || edit.draft.author.kind === v) return; mark('who'); edit.draft.author.kind = v; showWho(v); updateDirty(); } });
+  const origin = combo($('fOrigin'), { options: ORIGINS, placeholder: 'Where is it from', free: true, onChange: (v) => { if (!edit) return; mark('origin'); edit.draft.author.origin = v; updateDirty(); } });
   const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', onChange: (v) => { linkHint(v); if (!edit) return; mark('kind'); edit.draft.source.kind = v; showSourceFields(!!v && v !== 'personal'); updateDirty(); } });
   const lang = combo($('fLang'), { options: LANGUAGES, placeholder: 'Language', onChange: (v) => {
     if (!edit) return;
@@ -1331,7 +1354,7 @@
     $('catList').querySelectorAll('.chk').forEach((b) => b.setAttribute('aria-checked', String(d.categories.includes(b.dataset.key))));
     $('fNotFirst').setAttribute('aria-checked', String(!!d.notFirst));
     $('fName').value = d.author.name; $('fNative').value = d.author.nativeName;
-    country.set(d.author.country); foldNow($('fNativeWrap'), NON_LATIN.has(d.author.country));
+    country.set(d.author.country); who.set(d.author.kind || 'person'); origin.set(d.author.origin || ''); showWho(d.author.kind || 'person', true);
     kind.set(d.source.kind); year.set(d.source.year); linkHint(d.source.kind);
     const src = !!d.source.kind && d.source.kind !== 'personal';
     foldNow($('fTitleWrap'), src); foldNow($('fLinkWrap'), src);
@@ -1868,7 +1891,7 @@
       const exact = options.find((o) => o.label.toLowerCase() === t.toLowerCase());
       if (exact) setValue(exact.value, exact.label);
       else if (free && t) setValue(t, t);
-      else if (keep) { silent = true; setValue(kept, FONTS.find((o) => o.value === kept)?.label || ''); silent = false; }
+      else if (keep) { silent = true; setValue(kept, (all().find((o) => o.value === kept) || FONTS.find((o) => o.value === kept))?.label || ''); silent = false; }
       else if (!t) setValue('', '');
       else setValue(value, options.find((o) => o.value === value)?.label || (free ? value : ''));
       close();
@@ -1887,7 +1910,7 @@
     });
     btn.addEventListener('pointerdown', (e) => e.preventDefault());
     btn.addEventListener('click', () => { if (value && !keep) { setValue('', ''); input.focus(); render(''); } else if (list) { close(); input.blur(); } else input.focus(); });
-    return { input, set: (v) => { silent = true; const o = (keep ? FONTS : all()).find((x) => x.value === v); setValue(v, o ? o.label : (free ? v : '')); silent = false; } };
+    return { input, set: (v) => { silent = true; const o = all().find((x) => x.value === v) || (keep ? FONTS.find((x) => x.value === v) : null); setValue(v, o ? o.label : (free ? v : '')); silent = false; } };
   }
 
   /* ---------- Touch: swipe a row to the left for its action ---------- */
