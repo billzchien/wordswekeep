@@ -413,7 +413,10 @@
   /* ---------- Textareas: the dropdown's 2px overlay scrollbar ---------- */
   // Same bar as the combobox list: the native one is hidden (css), a 2px black bar over the
   // right edge shows the visible fraction, never shorter than 24px, gone when nothing scrolls.
-  document.querySelectorAll('textarea.field').forEach((ta) => {
+  // (Also for each annotation's explanation as its row is drawn: textareaBar.)
+  function textareaBar(ta) {
+    if (ta.dataset.bar) return;
+    ta.dataset.bar = '1';
     const bar = document.createElement('div');
     bar.className = 'fw-bar';
     bar.hidden = true;
@@ -431,7 +434,8 @@
     ta.addEventListener('input', draw);
     window.addEventListener('resize', draw);
     ta.addEventListener('focus', draw);
-  });
+  }
+  document.querySelectorAll('textarea.field').forEach(textareaBar);
 
   // Traditional or simplified Chinese (js/app.js → isHant: change both).
   const HANT_ONLY = /[說這們過時會來個為與學國對開關麼見現發經長點無還將當動從實後問進間頭東車門書話認樣電種總體歲氣讓應議處覺親邊雖萬誰聽廣際隊陽燈愛歡飛龍風馬鳥魚謂緣遠漸塊積塵習樂淚夢聲憶戀讀寫語衛華葉燒紅綠線給結終錯鐘難歷戰爭張紀記許該誤調請謝識變義藝劇嗎麗歐傳價優億盡屬歸斷雙舊雜響顏顯驗滿漢灣熱爾獨環畫盤確禮離筆節糧級細網練織臉興舉藥虛蘭術補視觀計訴詩詞試誠論證讚貝負財貨貴買費賣質輕載輪農運達遲選遺郵鄉醫釋鐵錢閉陳隨險雞靜韓頁順須預領題願類飯館驚齊齒]/g;
@@ -789,11 +793,11 @@
               ? `<button type="button" class="ann-unlock ann-remove" aria-label="Remove this word"${a.word.trim() && !matched ? ' hidden' : ''}><span class="icon icon-x"></span></button>`
               : `<button type="button" class="ann-unlock" aria-label="Change the word"${matched ? '' : ' hidden'}><span class="icon icon-x"></span></button>`}
           </div>
-          <div class="fold${matched ? ' is-open' : ''}"${matched ? '' : ' hidden'}><div class="fw"><input class="field" type="text" data-f="explanation" placeholder="Explain the word" value="${esc(a.explanation)}" autocomplete="off" aria-label="Explain word ${i + 1}"></div></div>
+          <div class="fold${matched ? ' is-open' : ''}"${matched ? '' : ' hidden'}><div class="fw"><textarea class="field" data-f="explanation" placeholder="Explain the word" aria-label="Explain word ${i + 1}">${esc(a.explanation)}</textarea></div></div>
         </div>
       </div></div>`;
   }
-  function renderRows() { $('annRows').innerHTML = draft.map((a, i) => rowHTML(a, i)).join(''); renderQuote(); syncTail(); }
+  function renderRows() { $('annRows').innerHTML = draft.map((a, i) => rowHTML(a, i)).join(''); $('annRows').querySelectorAll('textarea.field').forEach(textareaBar); renderQuote(); syncTail(); }
   // The quote with every matched word highlighted. A new highlight wipes in left→right
   // (MARK_MS); one being taken away wipes out left→right, then the span goes (`leaving`).
   const MARK_MS = 300;
@@ -845,7 +849,7 @@
     const exp = row.querySelector('.fold');
     fold(exp, true);
     renderQuote(); syncTail();
-    setTimeout(() => exp.querySelector('input').focus({ preventScroll: true }), FOLD_MS);
+    setTimeout(() => exp.querySelector('.field').focus({ preventScroll: true }), FOLD_MS);
   }
   function unlockWord(row, a) {
     const wrap = row.querySelector('.ann-field'), input = wrap.querySelector('input');
@@ -891,6 +895,7 @@
     draft.push({ word: '', explanation: '', matched: false, at: -1 });
     $('annRows').insertAdjacentHTML('beforeend', rowHTML(draft[draft.length - 1], draft.length - 1, ' is-new')); // fades in and unfolds
     const row = $('annRows').lastElementChild;
+    row.querySelectorAll('textarea.field').forEach(textareaBar);
     syncTail();
     setTimeout(() => { row.classList.remove('is-new'); row.querySelector('input').focus({ preventScroll: true }); }, annMs());
   });

@@ -24,6 +24,7 @@
   --fpad: calc(12 * var(--u));    /* field side padding */
   --ta-s: calc(100 * var(--u));   /* textarea height in the library's edit view */
   --ta-m: calc(160 * var(--u));   /* textarea height in the form: every one (words, original words, context, reflection) */
+  --ta-ann: calc(120 * var(--u)); /* an annotation's explanation in the form (Bill, 2026-10-07; it was a one-line field). The library's is its usual 122 (--ta-s there), on its grid */
   --ic: calc(18 * var(--u));      /* small icons: plus, ×, required */
   --ic-chevron: calc(24 * var(--u));
   --box: calc(12 * var(--u));     /* checkbox */
@@ -128,7 +129,7 @@
   caret-color: var(--ink); /* the insertion point in ink, not Safari's blue (its width is the system's) */
   transition: background 0.15s var(--ease);
 }
-textarea.field { height: var(--ta-s); padding: var(--fpad); resize: none; scrollbar-width: none; } /* the native bar is hidden (it would eat the right padding); js draws the same 2px bar as the dropdown (.fw-bar) */
+textarea.field { height: var(--ta-s); padding: var(--fpad); resize: none; scrollbar-width: none; overscroll-behavior: contain; } /* the native bar is hidden (it would eat the right padding); js draws the same 2px bar as the dropdown (.fw-bar); a scroll that reaches its end stops there, never scrolling the page or step behind (Bill, 2026-10-07) */
 textarea.field::-webkit-scrollbar { display: none; }
 .fw-bar { position: absolute; right: 0; width: 2px; background: var(--ink); pointer-events: none; }
 .form textarea.field { height: var(--ta-m); } /* one height for every large box in the form (Bill, 2026-10-03; they were 100 / 160 / 200) */
@@ -386,6 +387,7 @@ textarea.field::-webkit-scrollbar { display: none; }
 @keyframes ann-out { from { grid-template-rows: 1fr; opacity: 1; translate: 0 0; } to { grid-template-rows: 0fr; margin-top: 0; opacity: 0; translate: 0 calc(-8 * var(--u)); } }
 .ann-row-head { display: flex; justify-content: space-between; align-items: center; gap: calc(8 * var(--u)); font-feature-settings: var(--numeral-features); }
 /* The Word field: → to check the word (once there is one), × to unlock a matched word. */
+.ann-row textarea.field { height: var(--ta-ann); }
 .ann-field .field { padding-right: calc(var(--fpad) + var(--ic-chevron) + 8 * var(--u)); }
 /* Every control on the field's right sits on one centreline, 20px in from the edge — the same
    as the dropdowns' chevron and × (8px + a 24px box) and the warning ⓘ (12px + 16px). */
