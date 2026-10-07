@@ -1715,7 +1715,7 @@
       if (fromBtn && toBtn) {
         const a = fromBtn.getBoundingClientRect(), b = toBtn.getBoundingClientRect();
         const btn = toBtn.cloneNode(true);
-        btn.classList.remove('is-in');
+        btn.classList.remove('is-in', 'is-back'); // (no entrance of its own: it travels)
         Object.assign(btn.style, { left: `${b.left}px`, top: `${b.top}px`, translate: `${a.left - b.left}px ${a.top - b.top}px` });
         layer.appendChild(btn);
         btn.getBoundingClientRect(); // commit the start pose
@@ -1827,6 +1827,7 @@
      text blurs out while each character of the other language blurs in over the same spot.
      The 中 / EN button hides for the duration. */
   const LANG_MS = 400;        // the whole paragraph, start to finish
+  const LANG_BTN_OUT_MS = 50; // the button slipping away before it (css .lang.is-out)
   const LANG_CHAR_MS = 160;   // one character's blur in / blur out
   const LANG_BLUR = 8;        // px
   let langBusy = false;
@@ -1887,10 +1888,15 @@
 
     langBusy = true;
     const wrap = inNotes ? $('nQuoteWrap') : track.querySelector('.slide[data-pos="0"] .q-wrap');
-    wrap.classList.add('is-wiping'); // hides the button now; the dashes still need to be seen leaving
-    // Underlines leave first (if this language has any), then the paragraph changes.
+    // The button sets the change off (Bill, 2026-10-06): it slips 10px towards the quote, down and
+    // to the right, fading as it goes (LANG_BTN_OUT_MS), and only then does the paragraph change.
+    // The underlines (if this language has any) leave at the same time.
+    wrap.querySelector('.lang')?.classList.add('is-out');
     const hadDashes = inNotes && animateDashes(wrap, false) > 0;
-    setTimeout(() => swapLanguage(wrap, inNotes, render), hadDashes ? DASH_OUT_MS : 0);
+    setTimeout(() => {
+      wrap.classList.add('is-wiping'); // the button stays out of sight until the new words are in
+      swapLanguage(wrap, inNotes, render);
+    }, Math.max(LANG_BTN_OUT_MS, hadDashes ? DASH_OUT_MS : 0));
   }
 
   function swapLanguage(wrap, inNotes, render) {
@@ -1939,7 +1945,8 @@
       wrap.classList.remove('is-typing', 'is-wiping');
       wrap.style.transition = wrap.style.translate = wrap.style.height = '';
       col.style.transition = '';
-      render(); // back to the plain markup, button included
+      render(); // back to the plain markup, button included…
+      (inNotes ? $('nQuoteWrap') : track.querySelector('.slide[data-pos="0"] .q-wrap')).querySelector('.lang')?.classList.add('is-back'); // …which comes back in from where it went (css .lang.is-back)
       if (inNotes) animateDashes($('nQuoteWrap'), true); // underlines return, if this language has any
       langBusy = false;
     }, LANG_MS + 30);
