@@ -1072,7 +1072,7 @@
     }, reduceMotion.matches ? 0 : 600); // the step's slide (css --step-ms)
   }
 
-  /* ---------- "Add word": the landing page's label animation ----------
+  /* ---------- "Add words": the landing page's label animation ----------
      The letters erase left→right and type back left→right, LABEL_STEP_MS apart (index.html has
      the same at 26ms). Desktop: on hover (and again on leaving); touch: once when the button
      becomes ready. Never while disabled. */
