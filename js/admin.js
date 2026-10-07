@@ -306,7 +306,9 @@
   }
 
   function refreshChrome() {
-    $('pendingDot').hidden = !store.pending.some((q) => !q.seen);
+    // How many wait to be reviewed, beside the tab's name: "Pending (3)"; nothing when none (Bill,
+    // 2026-10-06; until then a small asterisk said only that some were new).
+    $('pendingCount').textContent = store.pending.length ? ` (${store.pending.length})` : '';
     $('publishBtn').disabled = !store.publishDirty;
     $('lastPublished').textContent = store.lastPublishedAt ? `Last published : ${fmtDate(store.lastPublishedAt)}` : 'Never published';
     $('removeAllBtn').disabled = !store.archive.length;
@@ -831,7 +833,7 @@
     f($('fNativeWrap'), kind === 'person' && NON_LATIN.has(edit ? edit.draft.author.country : ''));
     f($('fOriginWrap'), kind === 'saying');
   }
-  const who = combo($('fWho'), { options: WHO, placeholder: 'Who said or wrote it', keep: true, onChange: (v) => { if (!edit || !v || edit.draft.author.kind === v) return; mark('who'); edit.draft.author.kind = v; showWho(v); updateDirty(); } });
+  const who = combo($('fWho'), { options: WHO, placeholder: 'Who said or wrote it', keep: true, select: true, onChange: (v) => { if (!edit || !v || edit.draft.author.kind === v) return; mark('who'); edit.draft.author.kind = v; showWho(v); updateDirty(); } });
   const origin = combo($('fOrigin'), { options: ORIGINS, placeholder: 'Where is it from', free: true, onChange: (v) => { if (!edit) return; mark('origin'); edit.draft.author.origin = v; updateDirty(); } });
   const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', onChange: (v) => { linkHint(v); if (!edit) return; mark('kind'); edit.draft.source.kind = v; showSourceFields(!!v && v !== 'personal'); updateDirty(); } });
   const lang = combo($('fLang'), { options: LANGUAGES, placeholder: 'Language', onChange: (v) => {
@@ -1511,6 +1513,13 @@
   // RAG_SOFT of the box short — which decides between ways that are about as even, and gives way
   // to evenness otherwise. ("a", "an", "of", "from" are tied to the next word and never end a line.)
   const SOFT_END = new Set(['the', 'is']), RAG_SOFT = 0.15;
+  // No shapes (Bill, 2026-10-06): three lines in a row that each grow, or each shrink, make the
+  // rag a wedge or a diamond (a phone: 57% 60% 66% 82% 74% 64%). Each such run of three costs as
+  // much as a line left RAG_SHAPE of the box short, so the lines go in and out instead. A step
+  // under RAG_STEP of the box is no step, and lines that shrink into the last one are not a shape:
+  // that is how a paragraph ends ("is — in the end, the / world takes down everyone." kept a 58%
+  // line rather than let "world" up).
+  const RAG_SHAPE = 0.3, RAG_STEP = 0.05;
   const stackKey = (text) => text.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
   function ragBreaks(width, open, space, box, keys = []) {
     const n = width.length;
@@ -1531,7 +1540,13 @@
           const above = l > 1 ? trail[l - 2][i] : -1; // where the line before this one starts
           const stack = above >= 0 && keys[i] && keys[i] === keys[above] ? (RAG_STACK * box) ** 2 : 0;
           const soft = !last && SOFT_END.has(keys[j - 1]) ? (RAG_SOFT * box) ** 2 : 0;
-          const cost = prev[i] + stack + soft + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+          let shape = 0;
+          const above2 = l > 2 && above >= 0 ? trail[l - 3][above] : -1;
+          if (above2 >= 0) { // the two lines before this one: i is where the first ends, `above` where the one before it ends
+            const w1 = span(above, i), w2 = span(above2, above), step = RAG_STEP * box;
+            if ((w - w1 > step && w1 - w2 > step) || (!last && w1 - w > step && w2 - w1 > step)) shape = (RAG_SHAPE * box) ** 2; // (lines that shrink into the last line are how a paragraph ends: no shape)
+          }
+          const cost = prev[i] + stack + soft + shape + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
           if (cost < cur[j]) { cur[j] = cost; back[j] = i; }
         }
       }
@@ -1852,7 +1867,7 @@
   document.querySelectorAll('textarea.field').forEach(attachBar);
 
   // Combobox: a text field that filters a list (js/form.js → combo, trimmed).
-  function combo(host, { options: source, placeholder, free = false, keep = false, onChange }) {
+  function combo(host, { options: source, placeholder, free = false, keep = false, select = false, onChange }) {
     // `source`: a list, or what makes it (the faces depend on the quote). `keep`: a value that
     // is changed, never cleared — the chevron stays, and an emptied field takes its value back.
     const all = () => (typeof source === 'function' ? source() : source);
@@ -1860,6 +1875,7 @@
     host.innerHTML = `<input class="field" type="text" placeholder="${placeholder}" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-label="${placeholder}">
       <button type="button" class="combo-btn" tabindex="-1" aria-label="Open"><span class="icon icon-chevron"></span></button>`;
     const input = host.querySelector('input'), btn = host.querySelector('.combo-btn'), icon = btn.querySelector('.icon');
+    if (select) { input.readOnly = true; host.classList.add('combo--select'); input.removeAttribute('aria-autocomplete'); } // `select`: picked from the list only, never typed into (js/form.js → combo)
     let list = null, bar = null, value = '', kept = '', hover = -1, shown = [], silent = false;
     const drawBar = () => { if (!list || !bar) return; const { scrollHeight: sh, clientHeight: ch, scrollTop: st, offsetTop: top } = list; if (sh <= ch + 1) { bar.hidden = true; return; } bar.hidden = false; const h = Math.max(24, (ch / sh) * ch); bar.style.top = `${top + (st / (sh - ch)) * (ch - h)}px`; bar.style.height = `${h}px`; };
     const setValue = (v, lbl) => { value = v; if (v) kept = v; input.value = lbl || ''; host.classList.toggle('has-value', !!v); icon.className = 'icon ' + (v && !keep ? 'icon-x' : 'icon-chevron'); btn.setAttribute('aria-label', v && !keep ? 'Clear' : 'Open'); if (!silent) onChange(v); };

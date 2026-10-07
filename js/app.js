@@ -586,6 +586,13 @@
   // RAG_SOFT of the box short — which decides between ways that are about as even, and gives way
   // to evenness otherwise. ("a", "an", "of", "from" are tied to the next word and never end a line.)
   const SOFT_END = new Set(['the', 'is']), RAG_SOFT = 0.15;
+  // No shapes (Bill, 2026-10-06): three lines in a row that each grow, or each shrink, make the
+  // rag a wedge or a diamond (a phone: 57% 60% 66% 82% 74% 64%). Each such run of three costs as
+  // much as a line left RAG_SHAPE of the box short, so the lines go in and out instead. A step
+  // under RAG_STEP of the box is no step, and lines that shrink into the last one are not a shape:
+  // that is how a paragraph ends ("is — in the end, the / world takes down everyone." kept a 58%
+  // line rather than let "world" up).
+  const RAG_SHAPE = 0.3, RAG_STEP = 0.05;
   const stackKey = (text) => text.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
   function ragBreaks(width, open, space, box, keys = []) {
     const n = width.length;
@@ -606,7 +613,13 @@
           const above = l > 1 ? trail[l - 2][i] : -1; // where the line before this one starts
           const stack = above >= 0 && keys[i] && keys[i] === keys[above] ? (RAG_STACK * box) ** 2 : 0;
           const soft = !last && SOFT_END.has(keys[j - 1]) ? (RAG_SOFT * box) ** 2 : 0;
-          const cost = prev[i] + stack + soft + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+          let shape = 0;
+          const above2 = l > 2 && above >= 0 ? trail[l - 3][above] : -1;
+          if (above2 >= 0) { // the two lines before this one: i is where the first ends, `above` where the one before it ends
+            const w1 = span(above, i), w2 = span(above2, above), step = RAG_STEP * box;
+            if ((w - w1 > step && w1 - w2 > step) || (!last && w1 - w > step && w2 - w1 > step)) shape = (RAG_SHAPE * box) ** 2; // (lines that shrink into the last line are how a paragraph ends: no shape)
+          }
+          const cost = prev[i] + stack + soft + shape + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
           if (cost < cur[j]) { cur[j] = cost; back[j] = i; }
         }
       }

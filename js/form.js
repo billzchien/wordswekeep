@@ -496,12 +496,14 @@
   // A text field that filters a list. Typing narrows it; Enter / click picks; the × clears.
   // `free` lets a typed value that is on no row stand (the year).
   // `keep`: a choice that is never empty (who said it): no ×, the arrow stays, and a field left
-  // blank goes back to what was chosen.
-  function combo(host, { options, placeholder, free = false, keep = false, onChange, label }) {
+  // blank goes back to what was chosen. `select`: picked from the list only, never typed into
+  // (who said it: five choices) — the field is read-only, so a phone shows no keyboard.
+  function combo(host, { options, placeholder, free = false, keep = false, select = false, onChange, label }) {
     host.classList.add('combo');
     host.innerHTML = `<input class="field" type="text" placeholder="${placeholder}" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-label="${label || placeholder}">
       <button type="button" class="combo-btn" tabindex="-1" aria-label="Open"><span class="icon icon-chevron"></span></button>`;
     const input = host.querySelector('input'), btn = host.querySelector('.combo-btn'), icon = btn.querySelector('.icon');
+    if (select) { input.readOnly = true; host.classList.add('combo--select'); input.removeAttribute('aria-autocomplete'); }
     let list = null, bar = null, value = '', kept = '', hover = -1, shown = [];
     // iOS: a tap on a row can blur the input before the tap's click arrives; blur closes the
     // list, and the click (and the focus that comes with it) then lands on whatever field sits
@@ -676,7 +678,7 @@
     fold($('fOriginWrap'), kind === 'saying');
     document.querySelectorAll('#fNameRowWrap .fw, #fOriginWrap .fw').forEach((f) => f.classList.remove('is-warn'));
   }
-  const who = combo($('fWho'), { options: WHO, placeholder: 'Who said or wrote it', label: 'Who said or wrote it', keep: true, onChange: (v) => { if (!v || v === data.author.kind && who) return; data.author.kind = v; showWho(v); refresh(); } });
+  const who = combo($('fWho'), { options: WHO, placeholder: 'Who said or wrote it', label: 'Who said or wrote it', keep: true, select: true, onChange: (v) => { if (!v || v === data.author.kind && who) return; data.author.kind = v; showWho(v); refresh(); } });
   who.set('person');
   // Source name and link appear once a kind other than Personal is chosen, one after the other.
   const SOURCE_STAGGER_MS = 50;

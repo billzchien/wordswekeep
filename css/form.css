@@ -453,3 +453,6 @@ html.is-arriving .step:first-child .content > .group > *, html.is-arriving .step
   .ann-sheet { transition: none; }
   .ann-row.is-new, .ann-row.is-leaving { animation-duration: 0s; }
 }
+
+/* A dropdown picked from, never typed into (js: combo → select): the whole field opens it. */
+.combo--select .field { cursor: pointer; caret-color: transparent; }
