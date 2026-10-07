@@ -439,38 +439,51 @@
   const isHant = (text) => (text.match(HANT_ONLY) || []).length > (text.match(HANS_ONLY) || []).length;
   // Typed text in its own script's font (Bill, 2026-10-07), as the archive sets typed text: every
   // field has Crimson Pro first and then each script's Noto (css: --font-field), so the browser
-  // takes each letter from the first font that has it — "The Analects 論語" works. A field mostly
-  // in Chinese, Japanese or Korean is set smaller (.is-cjk, the site's 80%), mostly in another
-  // script at the site's script scale (.is-script); traditional Chinese takes Noto Sans TC, Japanese
-  // JP, Korean KR (data-cjk). And every field reads in the direction of what is typed (dir="auto").
-  // Text still being composed in an IME (underlined) never makes the size jump (Bill, 2026-10-07:
-  // it jumped to full size while pinyin was typed, then back): composed kana, hangul or Devanagari
-  // counts as its script at once, so the field goes straight to its size; composed Latin letters
-  // (pinyin, Vietnamese Telex) and dead-key accents count as nothing, since they become something
-  // else.
+  // takes each letter from the first font that has it — "The Analects 論語" works. Traditional
+  // Chinese takes Noto Sans TC, Japanese JP, Korean KR (data-cjk). And every field reads in the
+  // direction of what is typed (dir="auto").
   // The same helper is in js/admin.js: change both.
   function fieldLook(el) {
-    let v = el.value || '';
-    const comp = el._composing || '';
-    if (comp) { // (the composed text sits just before the caret)
-      const end = el.selectionStart ?? v.length;
-      if (v.slice(end - comp.length, end) === comp) v = v.slice(0, end - comp.length) + comp.replace(/[A-Za-z\u00c0-\u024f\u1e00-\u1eff]/g, '') + v.slice(end);
-    }
-    const cjk = (v.match(/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]/g) || []).length;
-    const other = (v.match(/[\u0370-\u03ff\u0400-\u052f\u0590-\u05ff\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\u0900-\u097f\u0e00-\u0e7f]/g) || []).length;
-    const latin = (v.match(/[A-Za-z\u00c0-\u024f\u1e00-\u1eff]/g) || []).length;
-    const mostlyCjk = cjk * 2 > latin + other; // (a CJK character carries about as much as two letters)
-    el.classList.toggle('is-cjk', cjk > 0 && mostlyCjk);
-    el.classList.toggle('is-script', !mostlyCjk && other > latin);
-    const look = /[\u3040-\u30ff]/.test(v) ? 'jpan' : /[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]/.test(v) ? 'kore' : cjk && isHant(v) ? 'hant' : '';
+    const v = el.value || '';
+    const look = /[぀-ヿ]/.test(v) ? 'jpan' : /[가-힯ᄀ-ᇿ㄰-㆏]/.test(v) ? 'kore' : /[㐀-鿿]/.test(v) && isHant(v) ? 'hant' : '';
     if (look) el.dataset.cjk = look; else delete el.dataset.cjk;
   }
   const typedFields = () => document.querySelectorAll('input.field[type="text"], textarea.field');
   typedFields().forEach((f) => { f.dir = 'auto'; });
   document.addEventListener('input', (e) => { if (e.target.matches && e.target.matches('input.field[type="text"], textarea.field')) { e.target.dir = 'auto'; fieldLook(e.target); } });
-  const isTyped = (el) => el.matches && el.matches('input.field[type="text"], textarea.field');
-  document.addEventListener('compositionupdate', (e) => { if (isTyped(e.target)) e.target._composing = e.data || ''; }, true);
-  document.addEventListener('compositionend', (e) => { if (isTyped(e.target)) { e.target._composing = ''; fieldLook(e.target); } }, true);
+  // Each script at the archive's size, letter by letter, in any field (Bill, 2026-10-07: 松 in an
+  // English context, 一席话 in an annotation came out at full size). A field can't size single
+  // letters, so its Noto fonts are copies drawn smaller: the page reads Google's @font-face rules
+  // and adds them again as "Field Noto …" with size-adjust — Chinese, Japanese, Korean at the
+  // site's 80% (--quote-native-scale), every other script at the script scale (--script-scale):
+  // Greek and Cyrillic in Noto Serif (ahead of Crimson Pro, as the archive sets them), Arabic,
+  // Hebrew, Thai, Devanagari, and the Notos of the other scripts someone may type (fetched here:
+  // the pages don't load them). Only each script's own letters are copied — Latin stays Crimson
+  // Pro at full size. Nothing changes size while typing. Until they load (or if Google can't be read), the full-size Notos stand in
+  // (css: --font-field). The same copies are made in js/admin.js: change both.
+  (function fieldFonts() {
+    const CJK = ['Noto Sans SC', 'Noto Sans TC', 'Noto Sans JP', 'Noto Sans KR'];
+    const SCRIPT = ['Noto Serif', 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Noto Sans Thai', 'Noto Sans Devanagari', // (as the archive: nativeRuns)
+      'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Noto Sans Gujarati', 'Noto Sans Gurmukhi', 'Noto Sans Oriya', 'Noto Sans Sinhala', 'Noto Sans Georgian', 'Noto Sans Armenian', 'Noto Sans Ethiopic', 'Noto Sans Khmer', 'Noto Sans Lao', 'Noto Sans Myanmar']; // (any other script someone may type)
+    const root = getComputedStyle(document.documentElement);
+    const scaleOf = (fam) => (CJK.includes(fam) ? parseFloat(root.getPropertyValue('--quote-native-scale')) || 0.8 : SCRIPT.includes(fam) ? parseFloat(root.getPropertyValue('--script-scale')) || 0.78 : 0);
+    const hrefs = [...document.querySelectorAll('link[href*="fonts.googleapis.com/css2"]')].map((l) => l.href);
+    const missing = [...CJK, ...SCRIPT].filter((fam) => !hrefs.some((h) => h.includes(`family=${fam.replace(/ /g, '+')}:`) || h.includes(`family=${fam.replace(/ /g, '+')}&`)));
+    if (missing.length) hrefs.push(`https://fonts.googleapis.com/css2?${missing.map((fam) => `family=${fam.replace(/ /g, '+')}`).join('&')}&display=swap`);
+    Promise.all(hrefs.map((h) => fetch(h).then((r) => (r.ok ? r.text() : '')).catch(() => ''))).then((sheets) => {
+      const faces = [];
+      for (const [, subset = '', body] of sheets.join('\n').matchAll(/(?:\/\*\s*([^*]*?)\s*\*\/\s*)?@font-face\s*\{([^}]*)\}/g)) {
+        const fam = (body.match(/font-family:\s*'([^']+)'/) || [])[1], scale = scaleOf(fam);
+        if (!scale || /^(latin|vietnamese)/.test(subset)) continue; // (Latin stays Crimson Pro, at full size)
+        if (fam === 'Noto Serif' && !/^(cyrillic|greek)/.test(subset)) continue;
+        faces.push(`@font-face {${body.replace(`'${fam}'`, `'Field ${fam}'`)}  size-adjust: ${Math.round(scale * 100)}%;\n}`);
+      }
+      if (!faces.length) return;
+      const style = document.createElement('style');
+      style.textContent = faces.join('\n');
+      document.head.appendChild(style);
+    });
+  })();
 
   /* ---------- Fields that appear and go (css .fold) ---------- */
   const FOLD_MS = 200;
