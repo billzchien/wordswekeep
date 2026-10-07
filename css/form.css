@@ -134,15 +134,12 @@ textarea.field::-webkit-scrollbar { display: none; }
 .form textarea.field { height: var(--ta-m); } /* one height for every large box in the form (Bill, 2026-10-03; they were 100 / 160 / 200) */
 .field::placeholder { color: var(--placeholder); opacity: 1; }
 /* Typed text in its own script's font (js: fieldLook; 2026-10-07): Crimson Pro, then each
-   script's Noto; mostly Chinese, Japanese or Korean at the site's 80%, mostly another script at
-   its script scale, as the archive sets typed text. (Until then only the native name was Noto.) */
+   script's Noto, drawn at the archive's scale letter by letter — the "Field Noto …" copies with
+   size-adjust (js: fieldFonts). (Until then only the native name was Noto.) */
 .field { font-family: var(--font-field); }
-.field[data-cjk="hant"] { font-family: 'Crimson Pro', 'Noto Serif', 'Noto Sans TC', var(--font-field); }
-.field[data-cjk="jpan"] { font-family: 'Crimson Pro', 'Noto Serif', 'Noto Sans JP', var(--font-field); }
-.field[data-cjk="kore"] { font-family: 'Crimson Pro', 'Noto Serif', 'Noto Sans KR', var(--font-field); }
-.field.is-cjk { font-size: calc(var(--text-size) * var(--quote-native-scale)); letter-spacing: 0; }
-.field.is-script { font-size: calc(var(--text-size) * var(--script-scale)); letter-spacing: 0; }
-.field.is-cjk, .field.is-script { line-height: calc(var(--text-size) * var(--text-leading)); } /* the line keeps its height */
+.field[data-cjk="hant"] { font-family: 'Field Noto Serif', 'Crimson Pro', 'Field Noto Sans TC', 'Noto Sans TC', var(--font-field); }
+.field[data-cjk="jpan"] { font-family: 'Field Noto Serif', 'Crimson Pro', 'Field Noto Sans JP', 'Noto Sans JP', var(--font-field); }
+.field[data-cjk="kore"] { font-family: 'Field Noto Serif', 'Crimson Pro', 'Field Noto Sans KR', 'Noto Sans KR', var(--font-field); }
 @media (hover: hover) { .field:hover { background: var(--field-hover); } }
 .field:focus { background: var(--field-hover); }
 .field:focus-visible { outline: none; }
