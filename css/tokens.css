@@ -30,6 +30,10 @@
   --font-native:    var(--noto-sans);                                     /* native-script names (sans) */
   --font-native-quote: 'Noto Serif SC', 'Songti SC', serif;               /* original-language quotes, medium */
   --font-native-ui: var(--noto-sans);
+  /* A field (the form, the library): Crimson Pro, then each script's Noto, letter by letter —
+     Cyrillic and Greek in Noto Serif as on the site; Japanese, Korean, traditional Chinese put
+     their own Noto first (form.css [data-cjk]). */
+  --font-field: 'Crimson Pro', 'Noto Serif', 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Noto Sans Thai', 'Noto Sans Devanagari', 'Noto Sans SC', 'Noto Sans JP', 'Noto Sans KR', Georgia, serif;
   --script-scale: 0.78;                                                   /* other scripts' Noto beside Crimson Pro: 42.0 ÷ 53.6, their x-heights */                                     /* language button: 中 日 한 / EN */
 
   /* ---------- Fluid unit ----------

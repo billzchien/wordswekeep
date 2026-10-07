@@ -773,9 +773,27 @@
   /* ---------- Fields ---------- */
 
   const bind = (id, set) => $(id).addEventListener('input', (e) => { mark(id); set(e.target.value); updateDirty(); });
-  // CJK text in a field is set smaller (css .is-cjk); checked as it is typed and when filled.
-  const cjkSize = (el) => el.classList.toggle('is-cjk', /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(el.value));
-  ['fOriginal', 'fNative', 'fText', 'fName', 'fTitle'].forEach((id) => $(id).addEventListener('input', () => cjkSize($(id))));
+  // Typed text in its own script's font (Bill, 2026-10-07), as the archive sets typed text: every
+  // field has Crimson Pro first and then each script's Noto (css: --font-field), so the browser
+  // takes each letter from the first font that has it — "The Analects 論語" works. A field mostly
+  // in Chinese, Japanese or Korean is set smaller (.is-cjk, the site's 80%), mostly in another
+  // script at the site's script scale (.is-script); traditional Chinese takes Noto Sans TC, Japanese
+  // JP, Korean KR (data-cjk). And every field reads in the direction of what is typed (dir="auto").
+  // The same helper is in js/form.js: change both.
+  function fieldLook(el) {
+    const v = el.value || '';
+    const cjk = (v.match(/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/g) || []).length;
+    const other = (v.match(/[\u0370-\u03ff\u0400-\u052f\u0590-\u05ff\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\u0900-\u097f\u0e00-\u0e7f]/g) || []).length;
+    const latin = (v.match(/[A-Za-z\u00c0-\u024f\u1e00-\u1eff]/g) || []).length;
+    const mostlyCjk = cjk * 2 > latin + other; // (a CJK character carries about as much as two letters)
+    el.classList.toggle('is-cjk', cjk > 0 && mostlyCjk);
+    el.classList.toggle('is-script', !mostlyCjk && other > latin);
+    const look = /[\u3040-\u30ff]/.test(v) ? 'jpan' : /[\uac00-\ud7af]/.test(v) ? 'kore' : cjk && isHant(v) ? 'hant' : '';
+    if (look) el.dataset.cjk = look; else delete el.dataset.cjk;
+  }
+  const typedFields = () => document.querySelectorAll('input.field[type="text"], textarea.field');
+  typedFields().forEach((f) => { f.dir = 'auto'; });
+  document.addEventListener('input', (e) => { if (e.target.matches && e.target.matches('input.field[type="text"], textarea.field')) { e.target.dir = 'auto'; fieldLook(e.target); } });
   bind('fText', (v) => { edit.draft.text = v; followAnn(); drawFont(); });
   // The language is guessed from the words until the admin picks one; a picked language stays.
   bind('fOriginal', (v) => { edit.draft.original = v; if (!edit.langPicked) { edit.draft.lang = v.trim() ? detectLang(v) : ''; lang.set(edit.draft.lang); } drawFont(); });
@@ -1366,7 +1384,7 @@
     healthWarn = false; warnCover(''); warnLink('');
     fieldHealth(); linkFieldHealth(); // (a link or cover that no longer works: its field says so)
     $('fContext').value = d.context; $('fReflection').value = d.reflection; $('fKeptBy').value = d.keptBy;
-    ['fOriginal', 'fNative', 'fText', 'fName', 'fTitle'].forEach((id) => cjkSize($(id)));
+    typedFields().forEach((f) => { f.dir = 'auto'; fieldLook(f); }); // (the quote's fields, as filled)
     font.set(d.font); lang.set(d.lang); drawFont();
     renderAnn();
     setAnnOpen(d.annotations.some((a) => a.word.trim() || a.explanation.trim()), false);

@@ -133,7 +133,16 @@ textarea.field::-webkit-scrollbar { display: none; }
 .fw-bar { position: absolute; right: 0; width: 2px; background: var(--ink); pointer-events: none; }
 .form textarea.field { height: var(--ta-m); } /* one height for every large box in the form (Bill, 2026-10-03; they were 100 / 160 / 200) */
 .field::placeholder { color: var(--placeholder); opacity: 1; }
-#fNative { font-family: 'Crimson Pro', var(--font-native); } /* the name in its own script: Noto Sans, as the archive shows it (the form and the library) */
+/* Typed text in its own script's font (js: fieldLook; 2026-10-07): Crimson Pro, then each
+   script's Noto; mostly Chinese, Japanese or Korean at the site's 80%, mostly another script at
+   its script scale, as the archive sets typed text. (Until then only the native name was Noto.) */
+.field { font-family: var(--font-field); }
+.field[data-cjk="hant"] { font-family: 'Crimson Pro', 'Noto Serif', 'Noto Sans TC', var(--font-field); }
+.field[data-cjk="jpan"] { font-family: 'Crimson Pro', 'Noto Serif', 'Noto Sans JP', var(--font-field); }
+.field[data-cjk="kore"] { font-family: 'Crimson Pro', 'Noto Serif', 'Noto Sans KR', var(--font-field); }
+.field.is-cjk { font-size: calc(var(--text-size) * var(--quote-native-scale)); letter-spacing: 0; }
+.field.is-script { font-size: calc(var(--text-size) * var(--script-scale)); letter-spacing: 0; }
+.field.is-cjk, .field.is-script { line-height: calc(var(--text-size) * var(--text-leading)); } /* the line keeps its height */
 @media (hover: hover) { .field:hover { background: var(--field-hover); } }
 .field:focus { background: var(--field-hover); }
 .field:focus-visible { outline: none; }

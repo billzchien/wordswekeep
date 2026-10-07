@@ -433,6 +433,32 @@
     ta.addEventListener('focus', draw);
   });
 
+  // Traditional or simplified Chinese (js/app.js → isHant: change both).
+  const HANT_ONLY = /[說這們過時會來個為與學國對開關麼見現發經長點無還將當動從實後問進間頭東車門書話認樣電種總體歲氣讓應議處覺親邊雖萬誰聽廣際隊陽燈愛歡飛龍風馬鳥魚謂緣遠漸塊積塵習樂淚夢聲憶戀讀寫語衛華葉燒紅綠線給結終錯鐘難歷戰爭張紀記許該誤調請謝識變義藝劇嗎麗歐傳價優億盡屬歸斷雙舊雜響顏顯驗滿漢灣熱爾獨環畫盤確禮離筆節糧級細網練織臉興舉藥虛蘭術補視觀計訴詩詞試誠論證讚貝負財貨貴買費賣質輕載輪農運達遲選遺郵鄉醫釋鐵錢閉陳隨險雞靜韓頁順須預領題願類飯館驚齊齒]/g;
+  const HANS_ONLY = /[说这们过时会来个为与学国对开关么见现发经长点无还将当动从实后问进间头东车门书话认样电种总体岁气让应议处觉亲边虽万谁听广际队阳灯爱欢飞龙风马鸟鱼谓缘远渐块积尘习乐泪梦声忆恋读写语卫华叶烧红绿线给结终错钟难历战争张纪记许该误调请谢识变义艺剧吗丽欧传价优亿尽属归断双旧杂响颜显验满汉湾热尔独环画盘确礼离笔节粮级细网练织脸兴举药虚兰术补视观计诉诗词试诚论证赞贝负财货贵买费卖质轻载轮农运达迟选遗邮乡医释铁钱闭陈随险鸡静韩页顺须预领题愿类饭馆惊齐齿]/g;
+  const isHant = (text) => (text.match(HANT_ONLY) || []).length > (text.match(HANS_ONLY) || []).length;
+  // Typed text in its own script's font (Bill, 2026-10-07), as the archive sets typed text: every
+  // field has Crimson Pro first and then each script's Noto (css: --font-field), so the browser
+  // takes each letter from the first font that has it — "The Analects 論語" works. A field mostly
+  // in Chinese, Japanese or Korean is set smaller (.is-cjk, the site's 80%), mostly in another
+  // script at the site's script scale (.is-script); traditional Chinese takes Noto Sans TC, Japanese
+  // JP, Korean KR (data-cjk). And every field reads in the direction of what is typed (dir="auto").
+  // The same helper is in js/admin.js: change both.
+  function fieldLook(el) {
+    const v = el.value || '';
+    const cjk = (v.match(/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/g) || []).length;
+    const other = (v.match(/[\u0370-\u03ff\u0400-\u052f\u0590-\u05ff\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\u0900-\u097f\u0e00-\u0e7f]/g) || []).length;
+    const latin = (v.match(/[A-Za-z\u00c0-\u024f\u1e00-\u1eff]/g) || []).length;
+    const mostlyCjk = cjk * 2 > latin + other; // (a CJK character carries about as much as two letters)
+    el.classList.toggle('is-cjk', cjk > 0 && mostlyCjk);
+    el.classList.toggle('is-script', !mostlyCjk && other > latin);
+    const look = /[\u3040-\u30ff]/.test(v) ? 'jpan' : /[\uac00-\ud7af]/.test(v) ? 'kore' : cjk && isHant(v) ? 'hant' : '';
+    if (look) el.dataset.cjk = look; else delete el.dataset.cjk;
+  }
+  const typedFields = () => document.querySelectorAll('input.field[type="text"], textarea.field');
+  typedFields().forEach((f) => { f.dir = 'auto'; });
+  document.addEventListener('input', (e) => { if (e.target.matches && e.target.matches('input.field[type="text"], textarea.field')) { e.target.dir = 'auto'; fieldLook(e.target); } });
+
   /* ---------- Fields that appear and go (css .fold) ---------- */
   const FOLD_MS = 200;
   const foldTimers = new WeakMap();
@@ -916,6 +942,7 @@
   function reset() {
     data = blank();
     ['fText', 'fOriginal', 'fName', 'fNative', 'fTitle', 'fSourceLink', 'fContext', 'fReflection', 'fKeptBy', 'fWebsite'].forEach((id) => { $(id).value = ''; });
+    typedFields().forEach(fieldLook);
     fold($('fOriginalWrap'), false); fold($('origToggleWrap'), true); fold($('fNativeWrap'), false); showSourceFields(false);
     who.set('person'); origin.set(''); showWho('person');
     document.querySelectorAll('.cat').forEach((b) => b.setAttribute('aria-checked', 'false'));
