@@ -779,21 +779,34 @@
   // in Chinese, Japanese or Korean is set smaller (.is-cjk, the site's 80%), mostly in another
   // script at the site's script scale (.is-script); traditional Chinese takes Noto Sans TC, Japanese
   // JP, Korean KR (data-cjk). And every field reads in the direction of what is typed (dir="auto").
+  // Text still being composed in an IME (underlined) never makes the size jump (Bill, 2026-10-07:
+  // it jumped to full size while pinyin was typed, then back): composed kana, hangul or Devanagari
+  // counts as its script at once, so the field goes straight to its size; composed Latin letters
+  // (pinyin, Vietnamese Telex) and dead-key accents count as nothing, since they become something
+  // else.
   // The same helper is in js/form.js: change both.
   function fieldLook(el) {
-    const v = el.value || '';
-    const cjk = (v.match(/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/g) || []).length;
+    let v = el.value || '';
+    const comp = el._composing || '';
+    if (comp) { // (the composed text sits just before the caret)
+      const end = el.selectionStart ?? v.length;
+      if (v.slice(end - comp.length, end) === comp) v = v.slice(0, end - comp.length) + comp.replace(/[A-Za-z\u00c0-\u024f\u1e00-\u1eff]/g, '') + v.slice(end);
+    }
+    const cjk = (v.match(/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]/g) || []).length;
     const other = (v.match(/[\u0370-\u03ff\u0400-\u052f\u0590-\u05ff\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\u0900-\u097f\u0e00-\u0e7f]/g) || []).length;
     const latin = (v.match(/[A-Za-z\u00c0-\u024f\u1e00-\u1eff]/g) || []).length;
     const mostlyCjk = cjk * 2 > latin + other; // (a CJK character carries about as much as two letters)
     el.classList.toggle('is-cjk', cjk > 0 && mostlyCjk);
     el.classList.toggle('is-script', !mostlyCjk && other > latin);
-    const look = /[\u3040-\u30ff]/.test(v) ? 'jpan' : /[\uac00-\ud7af]/.test(v) ? 'kore' : cjk && isHant(v) ? 'hant' : '';
+    const look = /[\u3040-\u30ff]/.test(v) ? 'jpan' : /[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]/.test(v) ? 'kore' : cjk && isHant(v) ? 'hant' : '';
     if (look) el.dataset.cjk = look; else delete el.dataset.cjk;
   }
   const typedFields = () => document.querySelectorAll('input.field[type="text"], textarea.field');
   typedFields().forEach((f) => { f.dir = 'auto'; });
   document.addEventListener('input', (e) => { if (e.target.matches && e.target.matches('input.field[type="text"], textarea.field')) { e.target.dir = 'auto'; fieldLook(e.target); } });
+  const isTyped = (el) => el.matches && el.matches('input.field[type="text"], textarea.field');
+  document.addEventListener('compositionupdate', (e) => { if (isTyped(e.target)) e.target._composing = e.data || ''; }, true);
+  document.addEventListener('compositionend', (e) => { if (isTyped(e.target)) { e.target._composing = ''; fieldLook(e.target); } }, true);
   bind('fText', (v) => { edit.draft.text = v; followAnn(); drawFont(); });
   // The language is guessed from the words until the admin picks one; a picked language stays.
   bind('fOriginal', (v) => { edit.draft.original = v; if (!edit.langPicked) { edit.draft.lang = v.trim() ? detectLang(v) : ''; lang.set(edit.draft.lang); } drawFont(); });
