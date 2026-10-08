@@ -1666,25 +1666,64 @@
   // among every way to break the quote into that many, the one whose lines fall least short
   // of the box. The breaks are written into the text as newlines; the text as it was is kept
   // on the element (`_plain`) and put back before each new measuring. Not here: the archive's
-  // fallback for CJK and for a word group wider than the box (those stay as the browser breaks them).
+  // fallback for a word group wider than the box (it stays as the browser breaks it).
   const RAG_LAST = 1, RAG_LAST_MIN = 0.33; // js/app.js → RAG_LAST
   function plainLines(q) {
     if (q._plain != null && q.firstChild && q.childNodes.length === 1) q.firstChild.data = q._plain;
     q._plain = null;
+  }
+  // Chinese, Japanese and Thai (js/app.js → noSpacePieces, copied: change both): a line may break
+  // between any two characters, a word kept whole when about as even (Thai: only between words),
+  // never before a closing mark or after an opening one.
+  const NO_SPACE = /[぀-ヿ㐀-鿿豈-﫿฀-๿]/;
+  const NO_START = /^[⁠、。，．・：；！？）〕］｝〉》」』】〙〗〟’”…‥ーぁぃぅぇぉっゃゅょゎゕゖァィゥェォッャュョヮヵヶ々〻,.!?:;)\]}%]/;
+  const NO_END = /[⁠（〔［｛〈《「『【〘〖〝‘“(\[{]$/;
+  const PHRASE_END = /[、。，．：；！？…‥」』）】,.;:!?]$/;
+  const segmenters = new Map();
+  function noSpacePieces(run, lang) {
+    // Its words, from the browser's own word list (Intl.Segmenter). Thai breaks only between
+    // them (without the list, the group stays whole). Chinese and Japanese may break between any
+    // two characters — even lines come first (Bill, 2026-10-08) — but a word is kept whole when
+    // that is about as even (世界, not 世 / 界).
+    if (!segmenters.has(lang)) { let seg = null; try { seg = new Intl.Segmenter(lang, { granularity: 'word' }); } catch (e) {} segmenters.set(lang, seg); }
+    const seg = segmenters.get(lang);
+    const words = seg ? [...seg.segment(run)].map((x) => x.segment) : lang === 'th' ? [run] : [...run];
+    // Each character a piece (a Thai word whole), with what a line starting there costs (`cost`,
+    // times RAG_PHRASE's): 0 after a phrase's mark (，。、！？), 1 between words, RAG_SPLIT inside one.
+    const pieces = [];
+    let at = 0;
+    words.forEach((w) => {
+      (lang === 'th' ? [w] : [...w]).forEach((ch, k) => {
+        const prev = pieces[pieces.length - 1];
+        if (prev && (NO_START.test(ch) || NO_END.test(prev.text) || !/[^\s⁠]/.test(ch))) { prev.text += ch; prev.end += ch.length; }
+        else pieces.push({ text: ch, start: at, end: at + ch.length, cost: k ? RAG_SPLIT : prev && PHRASE_END.test(prev.text) ? 0 : 1 });
+        at += ch.length;
+      });
+    });
+    return pieces;
   }
   function evenLines(q) {
     plainLines(q);
     const node = q.firstChild;
     if (!node || node.nodeType !== 3 || q.childNodes.length !== 1) return;
     const text = node.data, range = document.createRange(), words = [];
-    if (CJK_CHAR.test(text) || [...text].length !== text.length) return;
+    if ([...text].length !== text.length) return;
+    const lang = /[぀-ヿ]/.test(text) ? 'ja' : /[฀-๿]/.test(text) ? 'th' : 'zh';
+    const measure = (start, end) => { range.setStart(node, start); range.setEnd(node, end); return [...range.getClientRects()].filter((r) => r.width > 0); };
     const re = /\S+/g;
     let m;
     while ((m = re.exec(text))) {
-      range.setStart(node, m.index); range.setEnd(node, m.index + m[0].length);
-      const rects = [...range.getClientRects()].filter((r) => r.width > 0);
-      if (rects.length !== 1) return; // a word broken at its hyphen: left alone
-      words.push({ text: m[0], left: rects[0].left, right: rects[0].right, top: rects[0].top, height: rects[0].height, start: m.index, end: m.index + m[0].length });
+      if (NO_SPACE.test(m[0])) { // its words, each measured whole even where the browser broke it
+        for (const [i, p] of noSpacePieces(m[0], lang).entries()) {
+          const rects = measure(m.index + p.start, m.index + p.end);
+          if (!rects.length) return;
+          words.push({ text: p.text, left: rects[0].left, right: rects[rects.length - 1].right, top: rects[0].top, height: rects[0].height, width: rects.reduce((n, r) => n + r.width, 0), start: m.index + p.start, end: m.index + p.end, glued: i > 0, cost: p.cost });
+        }
+        continue;
+      }
+      const rects = measure(m.index, m.index + m[0].length);
+      if (rects.length !== 1 && !CJK_CHAR.test(m[0])) return; // a word broken at its hyphen: left alone (a Korean word broken by the browser: measured whole)
+      words.push({ text: m[0], left: rects[0].left, right: rects[rects.length - 1].right, top: rects[0].top, height: rects[0].height, width: rects.reduce((n, r) => n + r.width, 0), start: m.index, end: m.index + m[0].length });
     }
     const sameLine = (a, b) => Math.abs(a.top - b.top) < a.height / 2;
     const count = () => { // lines as rendered now
@@ -1698,20 +1737,22 @@
     const before = words.map((w, k) => (k ? text.slice(words[k - 1].end, w.start) : '\n'));
     const gapAt = words.findIndex((w, k) => k && before[k] === ' ' && sameLine(w, words[k - 1]));
     const space = gapAt > 0 ? Math.max(words[gapAt].left - words[gapAt - 1].right, words[gapAt - 1].left - words[gapAt].right) : parseFloat(getComputedStyle(q).fontSize) * 0.25; // (right to left, the word before is to the right)
-    const width = words.map((w) => w.right - w.left);
+    const gap = before.map((b) => (/^[  ]+$/.test(b) ? space : 0));
     const breaks = [];
     let from = 0;
     for (let k = 1; k <= words.length; k++) {
       if (k < words.length && !before[k].includes('\n')) continue;
-      const cut = ragBreaks(width.slice(from, k), before.slice(from, k).map((b, i) => i > 0 && b === ' '), space, box, words.slice(from, k).map((w) => stackKey(w.text)));
+      const part = words.slice(from, k);
+      const cut = ragBreaks(part.map((w) => w.width), part.map((w, i) => i > 0 && (before[from + i] === ' ' || !!w.glued)), gap.slice(from, k), box,
+        part.map((w) => stackKey(w.text)), part.map((w, i) => (i > 0 && w.glued ? w.cost : 0)));
       if (!cut) return;
       cut.forEach((c) => breaks.push(from + c));
       from = k;
     }
     if (!breaks.length) return;
-    const chars = [...text];
-    breaks.forEach((k) => { chars[words[k].start - 1] = '\n'; });
-    node.data = chars.join('');
+    let out = text;
+    breaks.slice().reverse().forEach((k) => { const at = words[k].start; out = before[k] === ' ' ? `${out.slice(0, at - 1)}\n${out.slice(at)}` : `${out.slice(0, at)}\n${out.slice(at)}`; });
+    node.data = out;
     q._plain = text;
     if (count() !== before.filter((b) => b.includes('\n')).length + breaks.length) plainLines(q); // the browser must agree line for line
   }
@@ -1732,10 +1773,13 @@
   // that is how a paragraph ends ("is — in the end, the / world takes down everyone." kept a 58%
   // line rather than let "world" up).
   const RAG_SHAPE = 0.3, RAG_STEP = 0.05;
+  const RAG_PHRASE = 0.15; // Chinese and Japanese: a line broken mid-phrase (not after ，。、！？) costs this much of the box short — a tie-breaker (js/app.js)
+  const RAG_SPLIT = 2; // …twice that inside a word (js/app.js)
   const stackKey = (text) => text.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
-  function ragBreaks(width, open, space, box, keys = []) {
-    const n = width.length;
-    const span = (i, j) => { let w = 0; for (let k = i; k < j; k++) w += width[k]; return w + (j - i - 1) * space; }; // words i…j-1 on one line
+  function ragBreaks(width, open, gap, box, keys = [], mid = []) {
+    const n = width.length, W = [0], G = [0];
+    for (let k = 0; k < n; k++) { W.push(W[k] + width[k]); G.push(G[k] + gap[k]); }
+    const span = (i, j) => W[j] - W[i] + G[j] - G[i + 1]; // words i…j-1 on one line
     // best[j] per line count: least cost of setting the first j words in exactly `l` lines.
     let prev = new Array(n + 1).fill(Infinity), trail = [];
     prev[0] = 0;
@@ -1752,13 +1796,14 @@
           const above = l > 1 ? trail[l - 2][i] : -1; // where the line before this one starts
           const stack = above >= 0 && keys[i] && keys[i] === keys[above] ? (RAG_STACK * box) ** 2 : 0;
           const soft = !last && SOFT_END.has(keys[j - 1]) ? (RAG_SOFT * box) ** 2 : 0;
+          const phrase = !last && mid[j] ? mid[j] * (RAG_PHRASE * box) ** 2 : 0;
           let shape = 0;
           const above2 = l > 2 && above >= 0 ? trail[l - 3][above] : -1;
           if (above2 >= 0) { // the two lines before this one: i is where the first ends, `above` where the one before it ends
             const w1 = span(above, i), w2 = span(above2, above), step = RAG_STEP * box;
             if ((w - w1 > step && w1 - w2 > step) || (!last && w1 - w > step && w2 - w1 > step)) shape = (RAG_SHAPE * box) ** 2; // (lines that shrink into the last line are how a paragraph ends: no shape)
           }
-          const cost = prev[i] + stack + soft + shape + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+          const cost = prev[i] + stack + soft + phrase + shape + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
           if (cost < cur[j]) { cur[j] = cost; back[j] = i; }
         }
       }
