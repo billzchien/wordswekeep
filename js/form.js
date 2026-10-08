@@ -513,7 +513,7 @@
   /* ---------- Step 1 ---------- */
 
   $('fText').addEventListener('input', (e) => { data.text = e.target.value; refresh(); });
-  $('fOriginal').addEventListener('input', (e) => { data.original = e.target.value; });
+  $('fOriginal').addEventListener('input', (e) => { data.original = e.target.value; clearTimeout(guessWhere.t); guessWhere.t = setTimeout(guessWhere, 400); }); // (once the typing pauses: where it is from)
   // Figma frame 1-2: the toggle row goes away and the second field appears under the first.
   // The toggle and the field fold in opposite directions at the same time, so the column's
   // height only ever changes smoothly and nothing below it jumps.
@@ -528,6 +528,7 @@
     fold($('origToggleWrap'), true);
     $('fOriginal').value = '';
     data.original = '';
+    guessWhere(); // (a guess from those words goes with them)
   });
 
   /* ---------- Step 2 ---------- */
@@ -722,11 +723,29 @@
     if (e.target.closest('.fw').classList.contains('is-warn')) warnLink('');
   });
   $('fSourceLink').addEventListener('change', checkSourceLink); // on leaving the field
-  const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Country or region', label: 'Country or region', onChange: (v) => { data.author.country = v; fold($('fNativeWrap'), data.author.kind === 'person' && NON_LATIN.has(v)); refresh(); } });
+  /* Where the words are from, guessed from the original language (Bill, 2026-10-08): once the
+     words in their original language are typed, the country is filled in for a language of
+     essentially one country (Japanese → Japan), and a saying's origin for a language that names
+     one (Japanese, Chinese, Latin…). Simplified Chinese → China (Bill); a language of several countries (traditional Chinese, Spanish, French,
+     German, Portuguese, Dutch, Arabic, Russian…) leaves the country to them. Only a field they
+     have not set themselves (own*) is filled; what was filled follows the words, and goes with
+     them. detectLang's codes; the regions are REGION_CODES', the origins ORIGINS'. */
+  const LANG_COUNTRY = { ja: 'JP', ko: 'KR', th: 'TH', he: 'IL', el: 'GR', hi: 'IN', it: 'IT', vi: 'VN', pl: 'PL', tr: 'TR' };
+  const LANG_ORIGIN = { ja: 'Japanese', ko: 'Korean', zh: 'Chinese', th: 'Thai', he: 'Hebrew', el: 'Greek', hi: 'Indian', it: 'Italian', vi: 'Vietnamese', pl: 'Polish', tr: 'Turkish', la: 'Latin', ar: 'Arabic' };
+  const guess = { country: '', origin: '', ownCountry: false, ownOrigin: false };
+  function guessWhere() {
+    clearTimeout(guessWhere.t);
+    const lang = data.original.trim() ? detectLang(data.original) : '';
+    const hans = lang === 'zh' && (data.original.match(HANS_ONLY) || []).length > (data.original.match(HANT_ONLY) || []).length; // simplified: China (traditional: Taiwan, Hong Kong, Macau… theirs to pick)
+    const c = hans ? 'CN' : LANG_COUNTRY[lang] || '', o = LANG_ORIGIN[lang] || '';
+    if (!guess.ownCountry && data.author.country !== c) { guess.country = c; country.set(c); }
+    if (!guess.ownOrigin && data.author.origin !== o) { guess.origin = o; origin.set(o); }
+  }
+  const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Country or region', label: 'Country or region', onChange: (v) => { if (v !== guess.country) guess.ownCountry = true; data.author.country = v; fold($('fNativeWrap'), data.author.kind === 'person' && NON_LATIN.has(v)); refresh(); } });
   // Who said it: the fields follow the kind. A name and a country for a person (the native name
   // too, for a known person from a country not written in Latin letters); where it is from for a
   // saying; nothing for "Not sure". What was typed stays, should the kind be changed back.
-  const origin = combo($('fOrigin'), { options: ORIGINS, placeholder: 'Where is it from', label: 'Where is it from', free: true, onChange: (v) => { data.author.origin = v; refresh(); } });
+  const origin = combo($('fOrigin'), { options: ORIGINS, placeholder: 'Where is it from', label: 'Where is it from', free: true, onChange: (v) => { if (v !== guess.origin) guess.ownOrigin = true; data.author.origin = v; refresh(); } });
   function showWho(kind) {
     const w = WHO.find((x) => x.value === kind) || WHO[0], named = !!w.name;
     $('fName').placeholder = w.name || 'Name'; $('fName').setAttribute('aria-label', w.name || 'Name');
@@ -981,6 +1000,7 @@
     document.querySelectorAll('.fw.is-warn').forEach((w) => w.classList.remove('is-warn'));
     warnLink('');
     country.set(''); kind.set(''); year.set(''); linkHint('');
+    Object.assign(guess, { country: '', origin: '', ownCountry: false, ownOrigin: false });
     // From "Words submitted", a fresh step 1 comes in from below (one slide down, like every
     // other step), not by rewinding up through all five. Step 1 is parked under the done screen
     // for the slide, then everything is put back in place without a transition.
