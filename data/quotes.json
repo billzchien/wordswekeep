@@ -253,15 +253,23 @@
       "perspective"
     ],
     "author": {
+      "kind": "person",
       "name": "Dan Sullivan",
       "nativeName": null,
-      "country": "CA"
+      "country": "CA",
+      "origin": null
     },
     "source": {
       "title": "Who Not How",
       "year": 2020,
       "kind": "book",
-      "link": "https://www.youtube.com/watch?v=wskoP7xVMXc"
+      "link": "https://www.youtube.com/watch?v=wskoP7xVMXc",
+      "crop": {
+        "x": 0.3853,
+        "y": 0.0009,
+        "w": 0.2342,
+        "h": 0.7391
+      }
     },
     "context": "This line gained wider resonance after Viola Davis referenced it in her Chairman’s Award acceptance speech at the 57th NAACP Image Awards (2026), using it to reflect on growth, living in one’s own truth, and becoming who we are meant to be.",
     "annotations": [],
