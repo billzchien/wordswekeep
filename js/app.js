@@ -2816,7 +2816,7 @@
     document.head.appendChild(style);
   });
 
-  Promise.all([fetch(DATA_URL), facesReady])
+  Promise.all([fetch(DATA_URL, { cache: 'no-cache' }) /* always checked against the server, as the faces: GitHub Pages lets a browser keep it 10 minutes unasked, so a publish showed late; unchanged, the answer is a short 304 */, facesReady])
     .then(([r]) => { if (!r.ok) throw new Error(`quotes.json: ${r.status}`); return r.json(); })
     .then((quotes) => {
       state.all = quotes.filter((q) => q.status === 'live').sort((a, b) => a.id - b.id);
