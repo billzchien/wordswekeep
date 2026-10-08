@@ -625,15 +625,23 @@
       "romance"
     ],
     "author": {
+      "kind": "person",
       "name": "Shanliao Huang",
       "nativeName": "黃山料",
-      "country": "TW"
+      "country": "TW",
+      "origin": null
     },
     "source": {
       "title": "放下吧！對的人，不是你得拼命追趕的人",
       "year": 2022,
       "kind": "social",
-      "link": "https://www.youtube.com/watch?v=WskNVzrQpy8"
+      "link": "https://www.youtube.com/watch?v=WskNVzrQpy8",
+      "crop": {
+        "x": 0.0141,
+        "y": 0.0493,
+        "w": 0.2985,
+        "h": 0.9418
+      }
     },
     "context": "Shanliao Huang is a bestselling Taiwanese author, novelist, and video creator. In the video, he describes a breakup as a “death” of the other person: the person may still be out there, but the partner you knew is gone. He argues that people who keep growing will often outgrow their relationships. When two people drift apart, nobody is to blame. Their paths have just split. Every love ends in some kind of parting, sooner or later, so even a relationship that was always going to end teaches us something: how to let go. The answer, he says, is to say goodbye, keep the memories, and move on as a better version of yourself.",
     "annotations": [],
