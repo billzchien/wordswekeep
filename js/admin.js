@@ -462,7 +462,7 @@
       let r;
       try { r = await call('/publish', 'POST', { rev }); } catch (e) { r = null; }
       if (r && r.status === 401) { await signIn(); return publish(); }
-      if (r && (r.ok || r.status === 409)) { adopt((await r.json()).store); if (r.ok) toast('Published'); }
+      if (r && (r.ok || r.status === 409)) { adopt((await r.json()).store); if (r.ok) toast('Published. On the site in about a minute.'); } // (GitHub Pages builds it: ~45s)
       else await ask('That could not be published. Nothing on the site changed.', 'Close', 'Not yet');
       renderList(); refreshChrome();
       return;
