@@ -32,7 +32,7 @@
   const VIDEO_HINT = 'Link to YouTube, Vimeo, or another site';
   const KINDS = [
     { value: 'book', label: 'Book' }, { value: 'film', label: 'Film & TV', hint: VIDEO_HINT }, { value: 'series', label: 'Series', hint: VIDEO_HINT },
-    { value: 'song', label: 'Song', hint: 'Link to Apple Music, Spotify, or another site' }, { value: 'poem', label: 'Poem' }, { value: 'speech', label: 'Speech & interview', hint: VIDEO_HINT },
+    { value: 'song', label: 'Song', hint: 'Link to Apple Music, Spotify, YouTube, or other' }, { value: 'poem', label: 'Poem' }, { value: 'speech', label: 'Speech & interview', hint: VIDEO_HINT },
     { value: 'interview', label: 'Interview', hint: VIDEO_HINT }, { value: 'writing', label: 'Writing' }, { value: 'essay', label: 'Essay' },
     { value: 'letter', label: 'Letter' }, { value: 'scripture', label: 'Scripture' }, { value: 'comic', label: 'Comic' },
     { value: 'artwork', label: 'Artwork' }, { value: 'commercial', label: 'Commercial', hint: VIDEO_HINT }, { value: 'social', label: 'Social media', hint: 'Link to YouTube, TikTok, Instagram, or other' }, { value: 'personal', label: 'Personal' },
@@ -553,7 +553,7 @@
     text: q.text || '', original: q.originalLanguage ? q.originalLanguage.text : '', lang: q.originalLanguage ? q.originalLanguage.lang : '',
     categories: [...q.categories],
     author: { kind: q.author?.kind || 'person', name: q.author?.name || '', nativeName: q.author?.nativeName || '', country: q.author?.country || '', origin: q.author?.origin || '' },
-    source: { kind: q.source?.kind || '', year: q.source?.year ? String(q.source.year) : '', title: q.source?.title || '', link: q.source?.link || '', cover: q.source?.cover || '' },
+    source: { kind: q.source?.kind || '', year: q.source?.year ? String(q.source.year) : '', title: q.source?.title || '', link: q.source?.link || '', cover: q.source?.cover || '', crop: q.source?.crop ? { ...q.source.crop } : null },
     context: q.context || '', annotations: q.annotations.map((a) => ({ word: a.word, explanation: a.explanation, matched: false, at: -1 })),
     reflection: q.reflection || '', keptBy: q.keptBy || '',
     font: fontFor(q.font, tier(q.text || '')), // the face the archive shows it in
@@ -572,6 +572,7 @@
       ? { title: hasSource ? (t(d.source.title) || null) : null, year: d.source.year ? Number(d.source.year) : null, kind: d.source.kind || null, link: hasSource ? (t(d.source.link) || null) : null }
       : null;
     if (q.source && d.source.kind === 'book' && t(d.source.cover || '')) q.source.cover = t(d.source.cover); // a book's cover: only ever present when picked
+    if (q.source && q.source.link && d.source.crop && videoKey(q.source.link)) q.source.crop = { ...d.source.crop }; // a video's thumbnail window: only ever present when cropped
     q.context = t(d.context) || null;
     q.annotations = d.annotations.filter((a) => a.matched && a.word.trim()).map((a) => ({ word: a.word.trim(), explanation: a.explanation.trim() })); // locked rows only
     q.reflection = t(d.reflection);
@@ -824,10 +825,10 @@
   bind('fText', (v) => { edit.draft.text = v; followAnn(); drawFont(); });
   // The language is guessed from the words until the admin picks one; a picked language stays.
   bind('fOriginal', (v) => { edit.draft.original = v; if (!edit.langPicked) { edit.draft.lang = v.trim() ? detectLang(v) : ''; lang.set(edit.draft.lang); } drawFont(); });
-  bind('fName', (v) => { edit.draft.author.name = v; clearTimeout(drawCovers.t); drawCovers.t = setTimeout(drawCovers, 600); });
+  bind('fName', (v) => { edit.draft.author.name = v; clearTimeout(drawCovers.t); drawCovers.t = setTimeout(drawCovers, 600); clearTimeout(autoSong.t); autoSong.t = setTimeout(autoSong, 600); });
   bind('fNative', (v) => { edit.draft.author.nativeName = v; });
-  bind('fTitle', (v) => { edit.draft.source.title = v; clearTimeout(drawCovers.t); drawCovers.t = setTimeout(drawCovers, 600); }); // (a book: its covers are looked for again once the typing pauses)
-  bind('fLink', (v) => { edit.draft.source.link = v; if ($('fLink').closest('.fw').classList.contains('is-warn')) warnLink(''); clearTimeout(drawVideo.t); drawVideo.t = setTimeout(drawVideo, 400); }); // (the preview follows once the typing pauses)
+  bind('fTitle', (v) => { edit.draft.source.title = v; clearTimeout(drawCovers.t); drawCovers.t = setTimeout(drawCovers, 600); clearTimeout(autoSong.t); autoSong.t = setTimeout(autoSong, 600); }); // (a book: its covers are looked for again once the typing pauses; a song: its link)
+  bind('fLink', (v) => { const was = videoKey(edit.draft.source.link); edit.draft.source.link = v; if (edit.draft.source.crop && videoKey(v) !== was) edit.draft.source.crop = null; /* (another video: its crop goes) */ if ($('fLink').closest('.fw').classList.contains('is-warn')) warnLink(''); clearTimeout(drawVideo.t); drawVideo.t = setTimeout(drawVideo, 400); }); // (the preview follows once the typing pauses)
   $('fLink').addEventListener('change', linkFieldHealth); // the check: on leaving the field
   bind('fContext', (v) => { edit.draft.context = v; });
   bind('fReflection', (v) => { edit.draft.reflection = v; });
@@ -878,9 +879,9 @@
     f($('fNativeWrap'), kind === 'person' && NON_LATIN.has(edit ? edit.draft.author.country : ''));
     f($('fOriginWrap'), kind === 'saying');
   }
-  const who = combo($('fWho'), { options: WHO, placeholder: 'Who said or wrote it', keep: true, select: true, onChange: (v) => { if (!edit || !v || edit.draft.author.kind === v) return; mark('who'); edit.draft.author.kind = v; showWho(v); updateDirty(); } });
+  const who = combo($('fWho'), { options: WHO, placeholder: 'Who said or wrote it', keep: true, select: true, onChange: (v) => { if (!edit || !v || edit.draft.author.kind === v) return; mark('who'); edit.draft.author.kind = v; showWho(v); updateDirty(); autoSong(); } });
   const origin = combo($('fOrigin'), { options: ORIGINS, placeholder: 'Where is it from', free: true, onChange: (v) => { if (!edit) return; mark('origin'); edit.draft.author.origin = v; updateDirty(); } });
-  const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', onChange: (v) => { linkHint(v); if (!edit) return; mark('kind'); edit.draft.source.kind = v; showSourceFields(!!v && v !== 'personal'); updateDirty(); } });
+  const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', onChange: (v) => { linkHint(v); if (!edit) return; mark('kind'); edit.draft.source.kind = v; showSourceFields(!!v && v !== 'personal'); updateDirty(); autoSong(); } });
   const lang = combo($('fLang'), { options: LANGUAGES, placeholder: 'Language', onChange: (v) => {
     if (!edit) return;
     mark('lang');
@@ -1021,24 +1022,188 @@
     const shown = d && !!d.source.kind && d.source.kind !== 'personal';
     let platform = null, id = null;
     for (const [name, p] of Object.entries(VIDEO)) { id = p.match(link); if (id) { platform = name; break; } }
-    if (!shown || !platform) { (instant ? foldNow : fold)(wrap, false); box.dataset.src = ''; box.innerHTML = ''; return; }
+    if (!shown || !platform) { cropFor('', instant); (instant ? foldNow : fold)(wrap, false); box.dataset.src = ''; box.innerHTML = ''; return; }
     if (id === 'short') { // a short TikTok link: ask TikTok for the video's id
       try { const r = await fetch(VIDEO.tiktok.lookup(link)); const j = r.ok ? await r.json() : null; id = j && j.embed_product_id ? String(j.embed_product_id) : null; } catch (e) { id = null; }
       if (!edit || edit.draft.source.link.trim() !== link) return; // the link changed meanwhile
     }
     const src = id ? VIDEO[platform].player(id, link) : '';
     const music = !!VIDEO[platform].height;
+    cropFor(id && !music ? `${platform}:${id}` : '', instant, platform, id, link); // (a video's thumbnail, to crop)
     box.dataset.orientation = music ? 'music' : d.source.orientation === 'vertical' || (VIDEO[platform].vertical && VIDEO[platform].vertical(link)) ? 'vertical' : 'horizontal';
     box.dataset.h = music ? VIDEO[platform].height(id, link) + 16 : ''; // (8 of black round the player)
     box.style.setProperty('--player-h', music ? `${VIDEO[platform].height(id, link)}px` : '');
     box.style.backgroundColor = music ? VIDEO[platform].bg : '';
     sizeVideo();
     (instant ? foldNow : fold)(wrap, true);
-    if (box.dataset.src === src) return; // the same video: the player is left as it is
+    if (box.dataset.src === src) return; // the same video: the player is left as it is (or the crop, while cropping)
     box.dataset.src = src;
     box.innerHTML = src
       ? `<iframe src="${esc(src)}" title="${music ? 'Music' : 'Video'} preview" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>`
       : `<p>${music ? 'Music' : 'Video'} not available.</p>`;
+  }
+
+  /* ---------- A video's thumbnail, cropped ----------
+     (Bill, 2026-10-08; Figma 500:3978.) The site shows a video's thumbnail through a portrait
+     window, 160 × 284 (css/app.css → .thumb), by default its middle. "Crop thumbnail" under the
+     player puts the thumbnail itself in the player's place, whole, with that window over it:
+     dragged to move, by a corner to size — always the same shape — and red while it would show
+     the thumbnail softer than twice the 160 it is shown at (THUMB_MIN_W, as covers). "Done" keeps
+     it as source.crop, the window as shares of the thumbnail { x, y, w, h }; the site draws the
+     thumbnail through it. Only the numbers are stored: the thumbnail is still the platform's.
+     The window left in the middle is no crop. Escape leaves without keeping, Enter is Done; the
+     arrow keys move it (with Shift, ten times as far). A new video drops the crop. The thumbnail
+     is the one the site shows (js/app.js → VIDEO.thumb, the lookup's thumbnail_url): keep the
+     two in step. Instagram has none to crop. */
+  const THUMB_RATIO = 160 / 284, THUMB_MIN_W = 320, CROP_MIN = 32; // CROP_MIN: the smallest window, in screen px
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  // A video link's platform and id ('' for music or not a video): the crop belongs to it.
+  function videoKey(link) {
+    const l = (link || '').trim();
+    for (const [name, p] of Object.entries(VIDEO)) { const id = p.match(l); if (id) return p.height ? '' : `${name}:${id === 'short' ? l : id}`; }
+    return '';
+  }
+  const thumbCache = new Map(); // "platform:id" → Promise of { src, nw, nh } or null
+  function thumbFor(platform, id, link) {
+    const key = `${platform}:${id}`;
+    if (thumbCache.has(key)) return thumbCache.get(key);
+    const load = (src) => new Promise((done) => { const img = new Image(); img.onload = () => done(img.naturalWidth ? { src, nw: img.naturalWidth, nh: img.naturalHeight } : null); img.onerror = () => done(null); img.src = src; });
+    const t = platform === 'youtube' ? load(`https://i.ytimg.com/vi/${id}/hq720.jpg`).then((x) => x || load(`https://i.ytimg.com/vi/${id}/mqdefault.jpg`)) // (the site's, and its second)
+      : platform === 'vimeo' || platform === 'tiktok' ? fetch(VIDEO[platform].lookup(link)).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((d) => (d && d.thumbnail_url ? load(d.thumbnail_url) : null))
+      : Promise.resolve(null);
+    thumbCache.set(key, t);
+    return t;
+  }
+  // The middle of the thumbnail, as tall (or as wide) as it goes: what the site shows uncropped.
+  const middleCrop = (t) => { const a = t.nw / t.nh; return a >= THUMB_RATIO ? { x: (1 - THUMB_RATIO / a) / 2, y: 0, w: THUMB_RATIO / a, h: 1 } : { x: 0, y: (1 - a / THUMB_RATIO) / 2, w: 1, h: a / THUMB_RATIO }; };
+  const crop = { on: false, key: '', thumb: null, r: null }; // r: the window, as shares of the thumbnail
+  // The video drawn: its thumbnail is fetched, and the row offered once it is there.
+  function cropFor(key, instant, platform, id, link) {
+    if (crop.on && crop.key !== key) endCrop(false, false);
+    if (crop.key !== key) {
+      crop.key = key; crop.thumb = null;
+      if (key) thumbFor(platform, id, link).then((t) => { if (crop.key === key) { crop.thumb = t; cropRow(); } });
+    }
+    cropRow(instant);
+  }
+  function cropRow(instant = false) {
+    const btn = $('fCropBtn');
+    btn.firstElementChild.textContent = crop.on ? 'Done' : 'Crop thumbnail';
+    btn.lastElementChild.className = `icon ${crop.on ? 'icon-done' : 'icon-crop'}`;
+    (instant ? foldNow : fold)($('fCropWrap'), !!crop.thumb);
+  }
+  // Where the thumbnail sits in the box (whole, centred), in px.
+  function cropLayout() {
+    const box = $('fVideo'), t = crop.thumb, W = box.clientWidth, H = box.clientHeight;
+    const s = Math.min(W / t.nw, H / t.nh), dw = t.nw * s, dh = t.nh * s;
+    return { dw, dh, ox: (W - dw) / 2, oy: (H - dh) / 2 };
+  }
+  function drawCrop() {
+    if (!crop.on) return;
+    const box = $('fVideo'), L = cropLayout(), r = crop.r, win = box.querySelector('.crop-win');
+    Object.assign(box.querySelector('.crop-img').style, { left: `${L.ox}px`, top: `${L.oy}px`, width: `${L.dw}px`, height: `${L.dh}px` });
+    Object.assign(win.style, { left: `${L.ox + r.x * L.dw}px`, top: `${L.oy + r.y * L.dh}px`, width: `${r.w * L.dw}px`, height: `${r.h * L.dh}px` });
+    win.classList.toggle('is-low', r.w * crop.thumb.nw < THUMB_MIN_W);
+  }
+  new ResizeObserver(drawCrop).observe($('fVideo'));
+  // The window from px (left, top, width, against the thumbnail as drawn), its height from its shape.
+  const setWin = (L, l, t, w) => { crop.r = { x: l / L.dw, y: t / L.dh, w: w / L.dw, h: Math.min(1, w / THUMB_RATIO / L.dh) }; drawCrop(); };
+  function startCrop() {
+    if (!edit || !crop.thumb || crop.on) return;
+    const box = $('fVideo'), saved = edit.draft.source.crop;
+    crop.on = true;
+    crop.r = saved ? { ...saved } : middleCrop(crop.thumb);
+    box.classList.add('is-cropping');
+    box.innerHTML = `<img class="crop-img" src="${esc(crop.thumb.src)}" alt="">
+      <div class="crop-win" tabindex="0" role="group" aria-label="The thumbnail's window: drag to move, a corner to size; arrow keys move it, Enter keeps it">
+        ${['nw', 'ne', 'sw', 'se'].map((c) => `<span class="crop-corner" data-c="${c}"></span>`).join('')}
+      </div>`;
+    drawCrop(); cropRow();
+    box.querySelector('.crop-win').focus({ preventScroll: true });
+  }
+  function endCrop(keep, redraw = true) {
+    if (!crop.on) return;
+    crop.on = false;
+    if (keep && edit) {
+      const mid = middleCrop(crop.thumb), r = crop.r, round = (v) => Math.round(v * 10000) / 10000;
+      const next = ['x', 'y', 'w', 'h'].every((k) => Math.abs(r[k] - mid[k]) < 0.002) ? null : { x: round(r.x), y: round(r.y), w: round(r.w), h: round(r.h) }; // (left in the middle: no crop)
+      if (JSON.stringify(next) !== JSON.stringify(edit.draft.source.crop || null)) { mark('crop'); edit.draft.source.crop = next; updateDirty(); }
+    }
+    const box = $('fVideo');
+    box.classList.remove('is-cropping'); box.dataset.src = ''; box.innerHTML = '';
+    cropRow();
+    if (redraw) drawVideo();
+  }
+  $('fCropBtn').addEventListener('click', () => (crop.on ? endCrop(true) : startCrop()));
+  // Dragging: the window moves; a corner sizes it from the opposite corner, keeping its shape.
+  $('fVideo').addEventListener('pointerdown', (e) => {
+    const win = crop.on && e.target.closest('.crop-win');
+    if (!win || e.button > 0) return;
+    e.preventDefault(); win.focus({ preventScroll: true });
+    const L = cropLayout(), rect = $('fVideo').getBoundingClientRect(), c = (e.target.closest('.crop-corner') || {}).dataset?.c;
+    const l0 = crop.r.x * L.dw, t0 = crop.r.y * L.dh, w0 = crop.r.w * L.dw, x0 = e.clientX, y0 = e.clientY;
+    const ax = c && c[1] === 'e' ? l0 : l0 + w0, ay = c && c[0] === 's' ? t0 : t0 + w0 / THUMB_RATIO; // (the corner that stays)
+    win.setPointerCapture(e.pointerId);
+    win.dataset.drag = c || 'move';
+    const move = (ev) => {
+      if (!c) return setWin(L, clamp(l0 + ev.clientX - x0, 0, L.dw - w0), clamp(t0 + ev.clientY - y0, 0, L.dh - w0 / THUMB_RATIO), w0);
+      const sx = c[1] === 'e' ? 1 : -1, sy = c[0] === 's' ? 1 : -1;
+      const px = ev.clientX - rect.left - L.ox, py = ev.clientY - rect.top - L.oy;
+      const max = Math.min(sx > 0 ? L.dw - ax : ax, (sy > 0 ? L.dh - ay : ay) * THUMB_RATIO);
+      const w = clamp(Math.max(sx * (px - ax), sy * (py - ay) * THUMB_RATIO), Math.min(CROP_MIN, max), max);
+      setWin(L, sx > 0 ? ax : ax - w, sy > 0 ? ay : ay - w / THUMB_RATIO, w);
+    };
+    const up = () => { delete win.dataset.drag; win.removeEventListener('pointermove', move); win.removeEventListener('pointerup', up); win.removeEventListener('pointercancel', up); };
+    win.addEventListener('pointermove', move); win.addEventListener('pointerup', up); win.addEventListener('pointercancel', up);
+  });
+  $('fVideo').addEventListener('keydown', (e) => {
+    if (!crop.on || !e.target.closest('.crop-win')) return;
+    if (e.key === 'Enter') { e.preventDefault(); endCrop(true); $('fCropBtn').focus({ preventScroll: true }); return; }
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); endCrop(false); $('fCropBtn').focus({ preventScroll: true }); return; }
+    const step = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const L = cropLayout(), n = e.shiftKey ? 10 : 1, w = crop.r.w * L.dw;
+    setWin(L, clamp(crop.r.x * L.dw + step[0] * n, 0, L.dw - w), clamp(crop.r.y * L.dh + step[1] * n, 0, L.dh - w / THUMB_RATIO), w);
+  });
+
+  /* ---------- A song's link ----------
+     A song with its name but no link (Bill, 2026-10-08): its Apple Music link is looked up by the
+     name and, for a known person, the author (Apple's search, US store) and put in the link field,
+     so its player shows under it and the site plays it. Apple only: Spotify has no search without
+     an account. Only a close match is taken — the same name (bracketed parts aside), the same
+     artist when there is an author — otherwise the link stays empty. Once per name and author: a
+     found link cleared or typed over stays so (Undo too); one found earlier follows a new name. A
+     link given (YouTube or any other) is left alone. */
+  const songCache = new Map(); // "title|author" → Promise of an Apple Music link or ''
+  const songKey = (s) => s.normalize('NFKC').toLowerCase().replace(/\s*[(（[].*?[)）\]]\s*/g, ' ').replace(/[^\p{L}\p{N}]+/gu, '');
+  function findSong(title, author) {
+    const key = `${title}|${author}`;
+    if (!songCache.has(key)) songCache.set(key, fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(author ? `${title} ${author}` : title)}&entity=song&limit=10&country=us`)
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null).then((d) => {
+        const same = (a, b) => !!a && !!b && (a.includes(b) || b.includes(a));
+        const hit = (d && d.results || []).find((x) => songKey(x.trackName || '') === songKey(title) && (!author || same(songKey(x.artistName || ''), songKey(author))));
+        if (!hit || !hit.trackViewUrl) return '';
+        const u = new URL(hit.trackViewUrl); u.searchParams.delete('uo');
+        return u.href;
+      }));
+    return songCache.get(key);
+  }
+  async function autoSong() {
+    clearTimeout(autoSong.t);
+    const d = edit && edit.draft;
+    if (!d || d.source.kind !== 'song') return;
+    const link = d.source.link.trim(), title = d.source.title.trim(), author = d.author.kind === 'person' ? d.author.name.trim() : '';
+    if (link && link !== edit.songLink) return; // a link given (or typed over the one found)
+    const key = `${title}|${author}`;
+    if (!title || edit.songTried === key) return;
+    edit.songTried = key;
+    const found = await findSong(title, author);
+    const now = edit && edit.draft.source.link.trim();
+    if (!edit || edit.songTried !== key || edit.draft.source.kind !== 'song' || (now && now !== edit.songLink) || found === now) return;
+    mark(); edit.draft.source.link = found; edit.songLink = found;
+    $('fLink').value = found; warnLink(''); drawVideo(); updateDirty();
+    if (found) toast('Apple Music link found.');
   }
 
   /* ---------- What no longer works ----------
@@ -1406,8 +1571,10 @@
     const src = !!d.source.kind && d.source.kind !== 'personal';
     foldNow($('fTitleWrap'), src); foldNow($('fLinkWrap'), src);
     $('fTitle').value = d.source.title; $('fLink').value = d.source.link;
+    endCrop(false, false); // (cropping: left, nothing kept)
     foldNow($('fVideoWrap'), false); $('fVideo').dataset.src = ''; $('fVideo').innerHTML = ''; drawVideo(true); // (the quote's own video, if it has one)
     drawCovers(true); // (a book: its covers, the picked one checked)
+    autoSong(); // (a song with no link: its Apple Music link)
     healthWarn = false; warnCover(''); warnLink('');
     fieldHealth(); linkFieldHealth(); // (a link or cover that no longer works: its field says so)
     $('fContext').value = d.context; $('fReflection').value = d.reflection; $('fKeptBy').value = d.keptBy;

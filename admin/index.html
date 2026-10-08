@@ -77,7 +77,11 @@
                 <div class="fold" id="fTitleWrap" hidden><div class="fw"><input class="field" id="fTitle" type="text" placeholder="Source name" autocomplete="off" aria-label="Source name"></div></div>
                 <div class="fold" id="fLinkWrap" hidden><div class="fw"><input class="field" id="fLink" type="url" placeholder="Source link" autocomplete="off" inputmode="url" aria-label="Source link"></div></div>
                 <!-- A YouTube, Vimeo, TikTok or Instagram link: the platform's player, 16:9, to check the video; Spotify or Apple Music: its dark player at its own height (js/admin.js → drawVideo). -->
-                <div class="fold" id="fVideoWrap" hidden><div><div class="video-preview" id="fVideo"></div></div></div>
+                <div class="fold" id="fVideoWrap" hidden><div class="stack">
+                  <div class="video-preview" id="fVideo"></div>
+                  <!-- A video with a thumbnail: "Crop thumbnail" shows the thumbnail with the site's portrait window over it; "Done" keeps it as source.crop (js/admin.js → startCrop, Figma 500:3978). -->
+                  <div class="fold" id="fCropWrap" hidden><div><button type="button" class="chk crop-btn" id="fCropBtn"><span>Crop thumbnail</span><span class="icon icon-crop" aria-hidden="true"></span></button></div></div>
+                </div></div>
                 <!-- A book: its cover, picked here (js/admin.js → drawCovers). Covers found from the title and
                      author (Apple Books, Open Library), "No cover", or an image address pasted. Stored as source.cover. -->
                 <div class="fold" id="fCoverWrap" hidden><div class="stack">

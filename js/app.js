@@ -323,9 +323,17 @@
       if (!id) continue;
       if (p.music) return { platform, id, link, orientation: 'music' };
       const vertical = (q.source && q.source.orientation === 'vertical') || !!(p.vertical && p.vertical(link));
-      return { platform, id, link, orientation: vertical ? 'vertical' : 'horizontal' };
+      return { platform, id, link, orientation: vertical ? 'vertical' : 'horizontal', crop: cropOf(q) };
     }
     return null;
+  }
+  // A video's thumbnail window, picked in the library (source.crop, since 2026-10-08): the part of
+  // the platform's thumbnail to show, as shares of it { x, y, w, h }. Nothing else is stored: the
+  // picture is still the platform's. Without one (or one that makes no sense), the middle.
+  function cropOf(q) {
+    const c = q.source && q.source.crop;
+    if (!c || ![c.x, c.y, c.w, c.h].every(Number.isFinite) || c.w <= 0 || c.h <= 0 || c.w > 1 || c.h > 1) return null;
+    return { x: c.x, y: c.y, w: c.w, h: c.h };
   }
   // What the platform says about a video, asked once per link: state 'ok' | 'broken' (the
   // platform answered: no such video) | 'offline' (no answer in VIDEO_WAIT_MS: blocked, or no
@@ -945,8 +953,11 @@
     const info = lookupVideo(video);
     if (!info.thumb || info.state === 'offline' || info.state === 'broken') return logoThumbHTML(video);
     const second = video.platform === 'youtube' ? ` data-second="https://i.ytimg.com/vi/${video.id}/mqdefault.jpg"` : '';
-    return `<button class="thumb" data-video data-platform="${video.platform}" data-orientation="${video.orientation}" aria-label="${playLabel(video)}">
-      <img src="${esc(info.thumb)}"${second} alt="" decoding="sync">
+    const c = video.crop, pct = (v) => `${(v * 100).toFixed(3)}%`; // cropped: the thumbnail drawn larger, so the window shows just that part
+    const style = c ? ` style="left:${pct(-c.x / c.w)};top:${pct(-c.y / c.h)};width:${pct(1 / c.w)};height:${pct(1 / c.h)}"` : '';
+    const pos = c ? ` data-pos="${c.w < 1 ? pct(c.x / (1 - c.w)) : '50%'} ${c.h < 1 ? pct(c.y / (1 - c.h)) : '50%'}"` : ''; // (the morph: the same part in view)
+    return `<button class="thumb" data-video data-platform="${video.platform}" data-orientation="${video.orientation}"${pos} aria-label="${playLabel(video)}">
+      <img src="${esc(info.thumb)}"${second}${style} alt="" decoding="sync">
       <span class="thumb-play"><img src="assets/icons/play.svg" alt=""></span>
     </button>`;
   }
@@ -2105,11 +2116,11 @@
   });
 
   // A stand-in showing the thumbnail image, animated between two rectangles.
-  function morph(poster, from, to, done, bg = '') {
+  function morph(poster, from, to, done, bg = '', pos = '') {
     const el = document.createElement('div');
     el.className = 'video-morph';
     el.style.background = bg; // (music: the player's grey)
-    if (poster) el.innerHTML = `<img src="${esc(poster)}" alt="">`; // (a logo card has none: the morph is a black box)
+    if (poster) el.innerHTML = `<img src="${esc(poster)}" alt=""${pos ? ` style="object-position:${pos}"` : ''}>`; // (a logo card has none: the morph is a black box)
     setRect(el, from);
     app.appendChild(el);
     el.getBoundingClientRect(); // commit the start rect before transitioning
@@ -2158,6 +2169,7 @@
     box.classList.remove('is-ready');
     frame.innerHTML = '';
     frame.style.backgroundImage = poster ? `url("${poster}")` : '';
+    frame.style.backgroundPosition = (!music && thumb.dataset.pos) || '';
     frame.style.backgroundColor = music ? VIDEO[video.platform].bg : '';
     $('videoOverlay').hidden = false;
     const from = thumb.getBoundingClientRect(), to = box.getBoundingClientRect();
@@ -2168,7 +2180,7 @@
       box.classList.add('is-ready');
       setTimeout(() => el.remove(), 250); // the poster stays underneath while the player loads
       videoBusy = false;
-    }, frame.style.backgroundColor);
+    }, frame.style.backgroundColor, frame.style.backgroundPosition);
   }
 
   function closeVideo() {
@@ -2190,7 +2202,7 @@
     frame.innerHTML = '';
     box.classList.remove('is-ready');
     dim(false);
-    morph(poster, from, to, (el) => { reset(); el.remove(); }, frame.style.backgroundColor);
+    morph(poster, from, to, (el) => { reset(); el.remove(); }, frame.style.backgroundColor, (!music && thumb.dataset.pos) || '');
   }
 
   function closeOverlays({ instant = false } = {}) {
