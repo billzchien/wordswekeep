@@ -265,10 +265,10 @@
       "kind": "book",
       "link": "https://www.youtube.com/watch?v=wskoP7xVMXc",
       "crop": {
-        "x": 0.3853,
+        "x": 0.3779,
         "y": 0.0009,
         "w": 0.2342,
-        "h": 0.7391
+        "h": 0.739
       }
     },
     "context": "This line gained wider resonance after Viola Davis referenced it in her Chairman’s Award acceptance speech at the 57th NAACP Image Awards (2026), using it to reflect on growth, living in one’s own truth, and becoming who we are meant to be.",
@@ -289,15 +289,23 @@
       "growth"
     ],
     "author": {
+      "kind": "person",
       "name": "Sheryl Lee Ralph",
       "nativeName": null,
-      "country": "US"
+      "country": "US",
+      "origin": null
     },
     "source": {
       "title": "Emmys Red Carpet Interview",
       "year": 2022,
       "kind": "interview",
-      "link": "https://youtu.be/xZFyT_8gukU?si=kSog6uCMQr85Grc8&t=88"
+      "link": "https://youtu.be/xZFyT_8gukU?si=kSog6uCMQr85Grc8&t=88",
+      "crop": {
+        "x": 0.3071,
+        "y": 0,
+        "w": 0.3169,
+        "h": 1
+      }
     },
     "context": "Sheryl Lee Ralph got her 1st Emmy Nomination at the age of 65, and this was the advice for those who struggle with their dreams:  “Don’t you ever give up. Don’t you ever give up on you. Don’t you ever give up on your dreams. Because no matter what, if it is meant for you, it will not miss you… So you must believe in yourself. You must really get up off of the sidelines of your own life and get in there and fight for you.You’re the best person out there to put up a good fight for you. And just know, if you don’t make it at 10 you can make it at 30. You don’t make it at 30 you can make it at 50. You don’t make it at 50, you can make it at 60 and still give them goodness.”",
     "annotations": [],
