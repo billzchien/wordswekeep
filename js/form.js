@@ -28,7 +28,7 @@
   const KINDS = [
     { value: 'book', label: 'Book' },
     { value: 'film', label: 'Film / TV', hint: 'Link to YouTube, Vimeo, or another site' },
-    { value: 'song', label: 'Song', hint: 'Link to Apple Music, Spotify, or another site' },
+    { value: 'song', label: 'Song', hint: 'Link to Apple Music, Spotify, YouTube, or other' },
     { value: 'poem', label: 'Poem' },
     { value: 'speech', label: 'Speech / Interview', hint: 'Link to YouTube, Vimeo, or another site' },
     { value: 'writing', label: 'Writing' },
