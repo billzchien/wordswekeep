@@ -483,10 +483,10 @@ ul { list-style: none; }
   padding-bottom: 160px;
   transition: filter 0.4s var(--ease);
 }
-.n-body { margin-top: 1.333em; display: flex; flex-direction: column; gap: 1.333em; } /* one gap (21.3 at 16px text) under "Kept by" and between the context and the note (it was 2.667em under "Kept by") */
-.n-body p + p { margin-top: 1.067em; }
-.n-context { display: flex; flex-direction: column; gap: 0.533em; }
-.n-context p + p { margin-top: 1.067em; }
+.n-body { margin-top: 2em; display: flex; flex-direction: column; gap: 2em; } /* one gap (32 at 16px text) under "Kept by" and between the note and the context (Bill, 2026-10-09, from the spacing tool; 1.333em until then) */
+.n-body p + p { margin-top: 1em; } /* between paragraphs (1.067em until 2026-10-09) */
+.n-context { display: flex; flex-direction: column; gap: 1em; } /* "Context/" to its words (0.533em until 2026-10-09) */
+.n-context p + p { margin-top: 1em; }
 
 .n-topfade { display: none; }
 
@@ -588,7 +588,7 @@ ul { list-style: none; }
   #nVideoPin .thumb { position: relative; top: auto; left: auto; width: 120px; margin: 40px 0 0 auto; } /* 40px under the quote */
   #nVideoCol { display: none; }
   .n-col { margin: 80px var(--m) 0 !important; padding-top: 0; padding-bottom: 120px; }
-  .n-body { margin-right: 40px; }
+  .n-body { margin-right: 0; max-width: 320px; } /* the margins' full width, at most 320 (Bill, 2026-10-09; it stopped 40px short of the right margin) */
   .n-topfade {
     display: block;
     position: absolute; /* a child of .app, so not fixed (see .app) and not inside the scrolling notes */

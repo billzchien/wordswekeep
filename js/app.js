@@ -1149,10 +1149,10 @@
 
     $('nKept').innerHTML = q.keptBy ? nativeRuns(esc(q.keptBy)) : 'a fellow human';
     // The personal note first, under "Kept by" and with no title of its own — it reads as the
-    // keeper's — then the context, titled "/Context/" (Bill, 2026-10-06; the other way round,
+    // keeper's — then the context, titled "Context/" (Bill, 2026-10-09; "/Context/" from 2026-10-06; the other way round,
     // with the note titled "/Note/", from 2026-10-04).
     let body = q.reflection ? `<div>${paragraphs(q.reflection)}</div>` : '';
-    if (q.context) body += `<div class="n-context"><p>/Context/</p><div>${paragraphs(q.context)}</div></div>`;
+    if (q.context) body += `<div class="n-context"><p>Context/</p><div>${paragraphs(q.context)}</div></div>`;
     $('nBody').innerHTML = body;
   }
 
