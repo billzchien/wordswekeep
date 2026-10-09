@@ -2018,7 +2018,7 @@
       ].join('. ');
     });
   }
-  // Save: every face with values tried out, at once.
+  // Publish (it said "Save" until 2026-10-09): every face with values tried out, at once, straight onto the site.
   async function saveFaces() {
     const next = clone(faces);
     Object.keys(face.tune).forEach((key) => {
@@ -2030,14 +2030,14 @@
       let r;
       try { r = await call('/faces', 'PUT', { faces: next }); } catch (e) { r = null; }
       if (r && r.status === 401) { await signIn(); return saveFaces(); }
-      if (!r || !r.ok) { $('facesSave').disabled = false; if (await ask('That could not be saved. Nothing on the site changed.', 'Try again', 'Not yet')) return saveFaces(); return; }
+      if (!r || !r.ok) { $('facesSave').disabled = false; if (await ask('That could not be published. Nothing on the site changed.', 'Try again', 'Not yet')) return saveFaces(); return; }
       faces = (await r.json()).faces;
     } else { faces = next; localStorage.setItem(FACES_KEY, JSON.stringify(faces)); }
     face.tune = {};
     applyFaces();
     drawFaces();
     sizeFont();
-    toast('Saved');
+    toast(remote ? 'Published. On the site in about a minute.' : 'Published'); // (as the quotes' Publish)
   }
 
   $('fontsView').addEventListener('click', (e) => {
