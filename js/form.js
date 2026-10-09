@@ -305,6 +305,22 @@
   // An Enter (or arrow) that belongs to an IME — picking a candidate in Chinese, Japanese, Korean —
   // is not ours. Safari reports the confirming Enter with isComposing false, but keyCode 229.
   const composing = (e) => e.isComposing || e.keyCode === 229;
+  // Return starts a new paragraph in any text box (Bill, 2026-10-09): a blank line — what the site
+  // reads as one (js/app.js → paragraphs), so the box shows the paragraphs as they will be.
+  // Shift+Return breaks the line inside the paragraph. Never more than one blank line between two
+  // paragraphs, none before the first; a Return beside a blank line already there just moves on to
+  // the next paragraph. (The same in js/form.js and js/admin.js: change both.)
+  document.addEventListener('keydown', (e) => {
+    const ta = e.target;
+    if (e.key !== 'Enter' || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey || composing(e) || !ta.matches || !ta.matches('textarea.field') || ta.readOnly) return;
+    e.preventDefault();
+    const v = ta.value, s0 = ta.selectionStart, s1 = ta.selectionEnd;
+    if (!v.slice(0, s0).trim()) return; // nothing before it yet
+    const nb = v.slice(0, s0).match(/\n*$/)[0].length, na = v.slice(s1).match(/^\n*/)[0].length;
+    const add = '\n'.repeat(Math.max(0, 2 - nb - na));
+    if (add || s0 !== s1) { if (!document.execCommand('insertText', false, add)) { ta.setRangeText(add, s0, s1, 'end'); ta.dispatchEvent(new Event('input', { bubbles: true })); } } // (insertText keeps the box's own undo)
+    const at = s0 + add.length + na; ta.setSelectionRange(at, at);
+  });
   // sessionStorage throws when site data is blocked (strict privacy settings, some in-app browsers).
   const session = {
     get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
