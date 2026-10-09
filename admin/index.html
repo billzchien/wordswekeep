@@ -80,7 +80,11 @@
                 <div class="fold" id="fVideoWrap" hidden><div class="stack">
                   <div class="video-preview" id="fVideo"></div>
                   <!-- A video with a thumbnail: "Crop thumbnail" shows the thumbnail with the site's portrait window over it; "Done" keeps it as source.crop (js/admin.js → startCrop, Figma 500:3978). -->
-                  <div class="fold" id="fCropWrap" hidden><div><button type="button" class="chk crop-btn" id="fCropBtn"><span>Crop thumbnail</span><span class="icon icon-crop" aria-hidden="true"></span></button></div></div>
+                  <div class="fold" id="fCropWrap" hidden><div class="row2">
+                    <!-- While cropping, once the window has moved: steps back one change at a time, greyed out at the start. -->
+                    <button type="button" class="chk crop-btn" id="fCropUndo" hidden><span>Undo</span></button>
+                    <button type="button" class="chk crop-btn" id="fCropBtn"><span class="icon icon-crop" aria-hidden="true"></span><span>Crop thumbnail</span></button>
+                  </div></div>
                 </div></div>
                 <!-- A book: its cover, picked here (js/admin.js → drawCovers). Covers found from the title and
                      author (Apple Books, Open Library), "No cover", or an image address pasted. Stored as source.cover. -->

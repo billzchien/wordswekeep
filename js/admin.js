@@ -620,6 +620,7 @@
     $('saveBtn').disabled = !d || !ok;
     $('approveBtn').disabled = !ok;
     $('revertBtn').disabled = !d;
+    $('cleanupBtn').disabled = !edit || norm(cleanup(edit.draft)) === norm(edit.draft); // nothing to clean up: greyed out, as Revert (Bill, 2026-10-08)
   }
 
   /* ---------- Annotations must match the quote ----------
@@ -717,7 +718,7 @@
     if (admin.dataset.view !== 'edit' || popupResolve || !edit) return;
     const mod = e.metaKey || e.ctrlKey;
     if (mod && e.key === 's') { e.preventDefault(); if (edit.tab === 'live' && isDirty()) saveEdit(); }
-    if (mod && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); if (e.shiftKey) redo(); else undo(); } // the form's own history, not the field's
+    if (mod && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); if (crop.on) { if (!e.shiftKey) cropUndo(); return; } if (e.shiftKey) redo(); else undo(); } // the form's own history, not the field's (while cropping: the window's)
   });
 
   /* ---------- Undo (⌘Z) / redo (⇧⌘Z) ----------
@@ -1052,10 +1053,11 @@
      it as source.crop, the window as shares of the thumbnail { x, y, w, h }; the site draws the
      thumbnail through it. Only the numbers are stored: the thumbnail is still the platform's.
      The window left in the middle is no crop. Escape leaves without keeping, Enter is Done; the
-     arrow keys move it (with Shift, ten times as far). A new video drops the crop. The thumbnail
+     arrow keys move it (with Shift, ten times as far); Undo (or ⌘Z) steps back, to the start. A new video drops the crop. The thumbnail
      is the one the site shows (js/app.js → VIDEO.thumb, the lookup's thumbnail_url): keep the
      two in step. Instagram has none to crop. */
-  const THUMB_RATIO = 160 / 284, THUMB_MIN_W = 320, CROP_MIN = 32; // CROP_MIN: the smallest window, in screen px
+  const THUMB_RATIO = 160 / 284, THUMB_MIN_W = 320;
+  const cropMin = () => (matchMedia('(pointer: coarse)').matches ? 64 : 32); // the smallest window, in screen px (a finger: room to drag it between the corners' 44px holds)
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   // A video link's platform and id ('' for music or not a video): the crop belongs to it.
   function videoKey(link) {
@@ -1076,7 +1078,7 @@
   }
   // The middle of the thumbnail, as tall (or as wide) as it goes: what the site shows uncropped.
   const middleCrop = (t) => { const a = t.nw / t.nh; return a >= THUMB_RATIO ? { x: (1 - THUMB_RATIO / a) / 2, y: 0, w: THUMB_RATIO / a, h: 1 } : { x: 0, y: (1 - a / THUMB_RATIO) / 2, w: 1, h: a / THUMB_RATIO }; };
-  const crop = { on: false, key: '', thumb: null, r: null }; // r: the window, as shares of the thumbnail
+  const crop = { on: false, key: '', thumb: null, r: null, history: [], moved: false, keyAt: 0 }; // r: the window, as shares of the thumbnail; history: where it was before each change
   // The video drawn: its thumbnail is fetched, and the row offered once it is there.
   function cropFor(key, instant, platform, id, link) {
     if (crop.on && crop.key !== key) endCrop(false, false);
@@ -1087,11 +1089,23 @@
     cropRow(instant);
   }
   function cropRow(instant = false) {
-    const btn = $('fCropBtn');
-    btn.firstElementChild.textContent = crop.on ? 'Done' : 'Crop thumbnail';
-    btn.lastElementChild.className = `icon ${crop.on ? 'icon-done' : 'icon-crop'}`;
+    const btn = $('fCropBtn'), back = $('fCropUndo');
+    btn.lastElementChild.textContent = crop.on ? 'Done' : 'Crop thumbnail';
+    btn.firstElementChild.hidden = crop.on; // (the crop icon; "Done" and "Undo" have none: Bill, 2026-10-08)
+    back.hidden = !(crop.on && crop.moved); // "Undo": once the window has moved, until Done
+    back.setAttribute('aria-disabled', String(!crop.history.length)); // (back where it started: greyed out)
     (instant ? foldNow : fold)($('fCropWrap'), !!crop.thumb);
   }
+  // Undo while cropping (the button, or ⌘Z): one move or sizing back at a time, to where the
+  // window was when cropping began. Arrow-key moves within CROP_KEYS_MS of each other are one step.
+  const CROP_KEYS_MS = 600;
+  function cropStep(from) { crop.history.push(from); crop.moved = true; cropRow(); }
+  function cropUndo() {
+    if (!crop.on || !crop.history.length) return;
+    crop.r = crop.history.pop(); crop.keyAt = 0;
+    drawCrop(); cropRow();
+  }
+  $('fCropUndo').addEventListener('click', cropUndo);
   // Where the thumbnail sits in the box (whole, centred), in px.
   function cropLayout() {
     const box = $('fVideo'), t = crop.thumb, W = box.clientWidth, H = box.clientHeight;
@@ -1113,6 +1127,7 @@
     const box = $('fVideo'), saved = edit.draft.source.crop;
     crop.on = true;
     crop.r = saved ? { ...saved } : middleCrop(crop.thumb);
+    crop.history = []; crop.moved = false; crop.keyAt = 0;
     box.classList.add('is-cropping');
     box.innerHTML = `<img class="crop-img" src="${esc(crop.thumb.src)}" alt="">
       <div class="crop-win" tabindex="0" role="group" aria-label="The thumbnail's window: drag to move, a corner to size; arrow keys move it, Enter keeps it">
@@ -1123,7 +1138,7 @@
   }
   function endCrop(keep, redraw = true) {
     if (!crop.on) return;
-    crop.on = false;
+    crop.on = false; crop.moved = false; crop.history = [];
     if (keep && edit) {
       const mid = middleCrop(crop.thumb), r = crop.r, round = (v) => Math.round(v * 10000) / 10000;
       const next = ['x', 'y', 'w', 'h'].every((k) => Math.abs(r[k] - mid[k]) < 0.002) ? null : { x: round(r.x), y: round(r.y), w: round(r.w), h: round(r.h) }; // (left in the middle: no crop)
@@ -1150,10 +1165,11 @@
       const sx = c[1] === 'e' ? 1 : -1, sy = c[0] === 's' ? 1 : -1;
       const px = ev.clientX - rect.left - L.ox, py = ev.clientY - rect.top - L.oy;
       const max = Math.min(sx > 0 ? L.dw - ax : ax, (sy > 0 ? L.dh - ay : ay) * THUMB_RATIO);
-      const w = clamp(Math.max(sx * (px - ax), sy * (py - ay) * THUMB_RATIO), Math.min(CROP_MIN, max), max);
+      const w = clamp(Math.max(sx * (px - ax), sy * (py - ay) * THUMB_RATIO), Math.min(cropMin(), max), max);
       setWin(L, sx > 0 ? ax : ax - w, sy > 0 ? ay : ay - w / THUMB_RATIO, w);
     };
-    const up = () => { delete win.dataset.drag; win.removeEventListener('pointermove', move); win.removeEventListener('pointerup', up); win.removeEventListener('pointercancel', up); };
+    const r0 = { ...crop.r };
+    const up = () => { delete win.dataset.drag; if (['x', 'y', 'w'].some((k) => crop.r[k] !== r0[k])) cropStep(r0); win.removeEventListener('pointermove', move); win.removeEventListener('pointerup', up); win.removeEventListener('pointercancel', up); };
     win.addEventListener('pointermove', move); win.addEventListener('pointerup', up); win.addEventListener('pointercancel', up);
   });
   $('fVideo').addEventListener('keydown', (e) => {
@@ -1163,8 +1179,12 @@
     const step = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
     if (!step) return;
     e.preventDefault();
-    const L = cropLayout(), n = e.shiftKey ? 10 : 1, w = crop.r.w * L.dw;
+    const now = performance.now();
+    const was = { ...crop.r }, L = cropLayout(), n = e.shiftKey ? 10 : 1, w = crop.r.w * L.dw;
     setWin(L, clamp(crop.r.x * L.dw + step[0] * n, 0, L.dw - w), clamp(crop.r.y * L.dh + step[1] * n, 0, L.dh - w / THUMB_RATIO), w);
+    if (crop.r.x === was.x && crop.r.y === was.y) return; // (at the edge: nothing moved)
+    if (now - crop.keyAt > CROP_KEYS_MS) cropStep(was); // (a run of presses: one step)
+    crop.keyAt = now;
   });
 
   /* ---------- A song's link ----------
@@ -2087,7 +2107,7 @@
   }
   $('cleanupBtn').addEventListener('click', () => {
     const before = edit.draft, after = cleanup(before);
-    if (JSON.stringify(before) === JSON.stringify(after)) return;
+    if (norm(before) === norm(after)) return;
     mark();
     edit.draft = after; followAnn(); fill(after); updateDirty();
     // light up what changed
