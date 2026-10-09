@@ -172,9 +172,19 @@
       <div class="guard guard--top" aria-hidden="true"></div>
       <div class="guard guard--bottom" aria-hidden="true"></div>
       <button type="button" class="link chrome ann-cancel" id="annCancel">Cancel</button>
+      <!-- The words to look back at, once the rows have scrolled them away (js/form.js → refCheck;
+           Figma 516:9, 522:153, 523:254). Desktop: on the left under Cancel. Tablet and phone: this
+           button, top right, opens them in the top bar. -->
+      <button type="button" class="chrome ann-ref-btn" id="annRefBtn" aria-label="Show the words" aria-expanded="false" aria-controls="annRef"><span class="icon icon-ref" aria-hidden="true"></span></button>
+      <div class="ann-ref" id="annRef" inert>
+        <button type="button" class="ann-lang" id="annRefLang" hidden></button>
+        <p class="ann-quote ann-ref-quote" id="annRefQuote"></p>
+      </div>
       <div class="ann-scroll">
       <div class="content content--40">
-        <div class="group group--11">
+        <div class="group group--11 ann-head">
+          <!-- With words in the original language: shows the quote in the other language (js/form.js → annLang). -->
+          <button type="button" class="ann-lang" id="annLang" hidden></button>
           <p>Words you entered:</p>
           <p class="ann-quote" id="annQuote"></p>
         </div>
@@ -184,6 +194,18 @@
         </div>
         <div class="fold" id="annSaveWrap" hidden><div><button type="button" class="btn" id="annSave">Save annotation</button></div></div>
       </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Asks before something is taken away (js/form.js → ask): removing the original language
+       with annotations of its own. -->
+  <div class="popup-layer" id="popup" hidden>
+    <div class="popup" role="dialog" aria-modal="true" aria-labelledby="popupText">
+      <p id="popupText"></p>
+      <div class="popup-btns">
+        <button type="button" class="btn" id="popupNo">Keep it</button>
+        <button type="button" class="btn btn--primary" id="popupYes">Remove</button>
       </div>
     </div>
   </div>

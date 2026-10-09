@@ -152,9 +152,9 @@ textarea.field::-webkit-scrollbar { display: none; }
    script's Noto, drawn at the archive's scale letter by letter — the "Field Noto …" copies with
    size-adjust (js: fieldFonts). (Until then only the native name was Noto.) */
 .field { font-family: var(--font-field); }
-.field[data-cjk="hant"] { font-family: 'Field Noto Serif', 'Field Local Serif', 'Crimson Pro', 'Field Noto Sans TC', var(--font-field); }
-.field[data-cjk="jpan"] { font-family: 'Field Noto Serif', 'Field Local Serif', 'Crimson Pro', 'Field Noto Sans JP', var(--font-field); }
-.field[data-cjk="kore"] { font-family: 'Field Noto Serif', 'Field Local Serif', 'Crimson Pro', 'Field Noto Sans KR', var(--font-field); }
+.field[data-cjk="hant"], .ann-quote.is-native[data-cjk="hant"] { font-family: 'Field Noto Serif', 'Field Local Serif', 'Crimson Pro', 'Field Noto Sans TC', var(--font-field); }
+.field[data-cjk="jpan"], .ann-quote.is-native[data-cjk="jpan"] { font-family: 'Field Noto Serif', 'Field Local Serif', 'Crimson Pro', 'Field Noto Sans JP', var(--font-field); }
+.field[data-cjk="kore"], .ann-quote.is-native[data-cjk="kore"] { font-family: 'Field Noto Serif', 'Field Local Serif', 'Crimson Pro', 'Field Noto Sans KR', var(--font-field); }
 @media (hover: hover) { .field:hover { background: var(--field-hover); } }
 .field:focus { background: var(--field-hover); }
 .field:focus-visible { outline: none; }
@@ -384,12 +384,97 @@ textarea.field::-webkit-scrollbar { display: none; }
 .ann-sheet.is-in { clip-path: inset(0); }
 .ann-sheet.is-out { clip-path: inset(100% 0 0 0); }
 .ann-scroll { position: absolute; inset: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.ann-scroll { --dy: 0px; } /* the steps' nudge (.step) is not set out here: without it .content's padding was invalid, so 0 — with several rows, the top of the sheet scrolled no further than under the top fade (Bill, 2026-10-09) */
+.ann-scroll .content:has(.ann-head .ann-lang:not([hidden])) { padding-top: calc(72 * var(--u) + 40px); } /* room for the language button above the words, clear of the top fade */
 .ann-scroll::-webkit-scrollbar { display: none; }
 .ann-sheet .btn { color: var(--white); }
 @media (hover: hover) { .ann-sheet .btn:not(:disabled):hover { border-color: var(--white); box-shadow: inset 0 0 0 0.5px var(--white); } }
 .ann-cancel { top: calc(20px - var(--cap-offset)); left: var(--m); } /* caps where the mark's top edge is */
 .ann-quote { padding-left: var(--gap-40); }
+/* The quote in its original language (js/form.js → renderQuote): as typed in the field — each
+   script's Noto at the archive's scale — read right to left for Arabic and Hebrew. */
+.ann-quote.is-native { font-family: var(--font-field); }
+/* The language button (Bill, 2026-10-09; as the archive's, js/app.js → LANG_BUTTON): 22 × 22, the
+   highlight's height, the other language's label in its own face, full white, in a frame of white
+   at 50% (full white on hover and press); a 44px hold round it. Top left of "Words you entered:" (above it on a phone). */
+.ann-head { position: relative; }
+.ann-lang {
+  position: absolute; left: -42px; top: -30px; width: 22px; height: 22px;
+  display: grid; place-items: center;
+  border: var(--hairline) solid rgba(255, 255, 255, 0.5); color: var(--white); /* the frame at 50%, the letter full white (Bill, 2026-10-09) */
+  font-family: var(--lb-font, var(--font-native-ui)), var(--font-native-ui);
+  font-weight: var(--lb-weight, 500); font-size: var(--lb-size, var(--glyph-size));
+  line-height: 1; letter-spacing: var(--lb-track, 0); font-feature-settings: normal; white-space: nowrap;
+  transition: border-color 0.15s var(--ease);
+}
+.ann-lang::before { content: ""; position: absolute; inset: -11px; }
+.ann-lang > span { display: block; transform: translateY(var(--lb-nudge, 0px)); }
+@media (hover: hover) { .ann-lang:hover { border-color: var(--white); } }
+/* Its intro and press, as the archive's (css/app.css → .lang, the lang-out / lang-back keyframes):
+   out 10px towards the quote, down and to the right (a phone: straight down), fading in 50ms; back
+   in from there with a 15% overshoot in 250ms. */
+.ann-lang { --lang-to-x: 10px; --lang-to-y: 10px; }
+.ann-lang.is-out { animation: lang-out 0.05s var(--ease) forwards; pointer-events: none; }
+.ann-lang.is-in, .ann-lang.is-back { animation: lang-back 0.25s both; }
+.ann-lang:active { border-color: var(--white); }
 .ann-rows { display: block; }
+/* The words to look back at (js/form.js → refCheck; Bill, 2026-10-09, Figma 516:9 / 522:153 /
+   523:254), once the rows have scrolled them away under the top fade: the quote showing, its
+   highlights on, and its language button. Desktop: on the left, under Cancel — its left edge,
+   60px below it (the button's top there; without one, the first line's capitals) — 300 wide or
+   what the room left of the column allows; it fades down in. */
+.ann-ref {
+  position: absolute; z-index: 18; left: var(--m); top: 98px;
+  width: min(300px, calc(var(--col3) - var(--m) - 40px));
+  display: flex; flex-direction: column; align-items: flex-start; gap: 20px;
+  opacity: 0; translate: 0 -12px; visibility: hidden; pointer-events: none;
+  --ref-ms: 500ms;
+  transition: opacity var(--ref-ms) var(--ease), translate var(--ref-ms) var(--ease), visibility 0s var(--ref-ms);
+}
+.ann-ref:has(> .ann-lang[hidden]) { top: calc(98px - var(--cap-offset)); }
+.ann-ref .ann-lang { position: relative; left: auto; top: auto; flex-shrink: 0; --lang-to-x: 0px; } /* above the words: it slips straight down towards them and back up (Bill, 2026-10-09; top left, it goes diagonally) */
+.ann-ref-quote { padding-left: 0; width: 100%; }
+.ann-sheet.is-ref .ann-ref { opacity: 1; translate: 0 0; visibility: visible; pointer-events: auto; transition: opacity var(--ref-ms) var(--ease), translate var(--ref-ms) var(--ease); }
+.ann-ref-btn { display: none; }
+.icon-ref { --src: url(../assets/icons/quote-ref.svg); }
+/* Tablet and phone (no room beside the column): a 24px button top right — two lines in a frame of
+   white at 50% — once the words are out of sight; it opens them in the top bar, made taller: the
+   sheet's colour, the words 60px under Cancel and 60px above the bar's own blurred fade; the
+   button turns to × (it, or a click anywhere else, closes it). */
+@media (max-width: 1023px) {
+  .ann-ref-btn {
+    display: grid; place-items: center; top: 20px; right: var(--m); width: 24px; height: 24px;
+    border: var(--hairline) solid rgba(255, 255, 255, 0.5); color: var(--white);
+    background: color-mix(in srgb, var(--sheet) 10%, transparent); -webkit-backdrop-filter: blur(25px); backdrop-filter: blur(25px); /* the sheet's navy at 10% over a blur, as the video thumbnail's play box (Bill, 2026-10-09): rows scrolling under it go soft */
+    opacity: 0; visibility: hidden; transition: opacity 0.3s var(--ease), visibility 0s 0.3s, border-color 0.15s var(--ease), background-color 0.15s var(--ease);
+  }
+  .ann-ref-btn::before { content: ""; position: absolute; inset: -10px; } /* a 44px hold */
+  .ann-ref-btn .icon { width: 14px; height: 4px; }
+  .ann-sheet.is-ref .ann-ref-btn { opacity: 1; visibility: visible; transition: opacity 0.3s var(--ease), border-color 0.15s var(--ease); }
+  .ann-sheet.is-ref-open .ann-ref-btn { border-color: transparent; background-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; } /* open: the × alone, as the frame */
+  .ann-sheet.is-ref-open .ann-ref-btn .icon { --src: url(../assets/icons/x-12.svg); width: 12px; height: 12px; }
+  .ann-ref {
+    left: 0; right: 0; top: 0; width: auto;
+    padding: 98px var(--m) calc(60px + 80px);
+    background: var(--sheet);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 80px), transparent); mask-image: linear-gradient(to bottom, black calc(100% - 80px), transparent);
+  }
+  .ann-ref:has(> .ann-lang[hidden]) { top: 0; padding-top: calc(98px - var(--cap-offset)); }
+  .ann-ref-quote { max-width: 300px; }
+  /* Opening, the top bar grows down from its own 64px to hold the words — cropped from the bottom
+     edge, as the sheet itself drops in (--ease-drop) — and the words fade in as it comes; closing,
+     it folds back up. */
+  .ann-ref, .ann-sheet.is-ref .ann-ref {
+    opacity: 1; translate: none; visibility: hidden; pointer-events: none;
+    clip-path: inset(0 0 calc(100% - 64px) 0);
+    transition: clip-path var(--ref-ms) var(--ease-drop, var(--ease)), visibility 0s var(--ref-ms);
+  }
+  .ann-ref > * { opacity: 0; translate: 0 -8px; transition: opacity 0.2s var(--ease), translate 0.2s var(--ease); }
+  .ann-sheet.is-ref.is-ref-open .ann-ref { visibility: visible; pointer-events: auto; clip-path: inset(0); transition: clip-path var(--ref-ms) var(--ease-drop, var(--ease)); }
+  .ann-sheet.is-ref.is-ref-open .ann-ref > * { opacity: 1; translate: 0 0; transition: opacity 0.3s var(--ease) 0.15s, translate 0.3s var(--ease) 0.15s; }
+}
+@media (hover: hover) { .ann-ref-btn:hover { border-color: var(--white); } .ann-sheet.is-ref-open .ann-ref-btn:hover { border-color: transparent; } }
 /* A row is a one-cell grid so its height can animate (0fr → 1fr) when it is added or removed:
    nothing ever overlaps, the rows below simply move. --ann-ms: fade + drop. */
 .ann-row { display: grid; grid-template-rows: 1fr; width: 100%; --ann-ms: 200ms; }
@@ -426,7 +511,15 @@ textarea.field::-webkit-scrollbar { display: none; }
   transition: background-size var(--mark-ms) var(--ease);
 }
 .ann-mark.is-on { background-size: 100% 100%; }
+/* Every highlight under every letter (Bill, 2026-10-09): a box reaching 2px past its words was
+   painted after the letter before it and covered its edge (个 before 世界). The quote is its own
+   layer; the marks sit at its bottom. */
+.ann-quote { isolation: isolate; }
+.ann-mark { position: relative; z-index: -1; }
 .ann-mark.is-off { background-position: right; background-size: 0% 100%; }
+/* Right to left (Arabic, Hebrew): the highlight wipes in and out from the right. */
+.ann-quote[dir="rtl"] .ann-mark { background-position: right; }
+.ann-quote[dir="rtl"] .ann-mark.is-off { background-position: left; }
 @media (prefers-reduced-motion: reduce) { .ann-mark { transition: none; } }
 .ann-sheet .btn:disabled { color: rgba(255, 255, 255, 0.4); border-color: rgba(255, 255, 255, 0.25); } /* Save annotation until every word is explained */
 .content > .fold { --fold-gap: var(--gap-40); }
@@ -468,6 +561,8 @@ html.is-arriving .step:first-child .content > .group > *, html.is-arriving .step
   .cat-box { top: 8px; right: 8px; } /* 8px in from the row's corner on a phone (12 elsewhere) */
   .cat-blurb { max-width: none; } /* a phone's rows are narrow: the description takes the whole row, so every one fits in two lines */
   .content { width: auto; margin-left: var(--m); margin-right: var(--m); padding-top: calc(60px + 2 * var(--dy)); padding-bottom: 96px; }
+  .ann-lang { left: 0; top: -36px; --lang-to-x: 0px; } /* above "Words you entered:"; it slips straight down towards the words */
+  .ann-scroll .content:has(.ann-head .ann-lang:not([hidden])) { padding-top: calc(60px + 40px); }
   .req { right: auto; left: 0; --req-gap: 12px; } /* on a phone the asterisk sits above the question, flush with its left edge, 12px over its capitals (Bill, 2026-10-07; 6 was tried first) */
 }
 
@@ -476,6 +571,14 @@ html.is-arriving .step:first-child .content > .group > *, html.is-arriving .step
   .ann-sheet { transition: none; }
   .ann-row.is-new, .ann-row.is-leaving { animation-duration: 0s; }
 }
+
+/* Asking first (js/form.js → ask; as the library's pop-up, css/admin.css): a white box in the
+   middle of the window, the words, then the two buttons side by side. */
+.popup-layer { font-family: var(--font-text); font-size: var(--text-size); line-height: var(--text-leading); letter-spacing: var(--text-tracking); position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(0, 0, 0, 0.2); animation: fade-in 0.2s var(--ease) both; }
+.popup { width: calc(400 * var(--u)); max-width: calc(100% - 2 * var(--m)); background: var(--white); color: var(--ink); padding: calc(20 * var(--u)); display: flex; flex-direction: column; gap: calc(40 * var(--u)); box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); }
+.popup-btns { display: flex; gap: calc(11 * var(--u)); }
+.popup-btns .btn { flex: 1 1 0; min-width: 0; }
+.popup .btn:not(.btn--primary) { border-color: var(--ink); }
 
 /* A dropdown picked from, never typed into (js: combo → select): the whole field opens it. */
 .combo--select .field { cursor: pointer; caret-color: transparent; }
