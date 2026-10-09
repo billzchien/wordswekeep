@@ -3259,13 +3259,20 @@
      it (the keyboard rising, the page panned), the nearest scroller moves so the field sits in
      view: its bottom KEYBOARD_GAP above the keyboard, its top below the chrome. Every page here
      is absolute boxes with an inner scroller, which iOS does not scroll for a focused field by
-     itself (Bill, 2026-10-09: the thoughts box stayed under the keyboard). The same in js/app.js,
-     js/form.js and js/admin.js: change all three. */
-  const KEYBOARD_GAP = 20, KEYBOARD_TOP = 80;
-  const scrollerOf = (el) => { for (el = el.parentElement; el && el !== document.body; el = el.parentElement) { if (/auto|scroll/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight) return el; } return null; };
+     itself (Bill, 2026-10-09: the thoughts box stayed under the keyboard). While the keyboard is
+     up the scroller is given the keyboard's height of room at its foot (padding), or a field at
+     the end of the page could never rise above it (Bill's second screenshot, the same day). The
+     same in js/app.js, js/form.js and js/admin.js: change all three. */
+  const KEYBOARD_GAP = 20, KEYBOARD_TOP = 80, KEYBOARD_MIN = 100; // a visible area shorter than the window by this much = the keyboard is up
+  const scrollerOf = (el) => { for (el = el.parentElement; el && el !== document.body; el = el.parentElement) { if (/auto|scroll/.test(getComputedStyle(el).overflowY)) return el; } return null; };
+  let keyboardRoom = null; // the scroller given room, while the keyboard is up
+  const keyboardHeight = () => { const vv = window.visualViewport; const h = vv ? window.innerHeight - vv.height : 0; return h >= KEYBOARD_MIN ? h : 0; };
   function keepAboveKeyboard(field) {
     const sc = scrollerOf(field);
-    if (!sc) { field.scrollIntoView({ block: 'nearest' }); return; } // nothing of ours scrolls here (a form step that fits the screen): the browser pans its visible area instead
+    if (!sc) { field.scrollIntoView({ block: 'nearest' }); return; } // nothing of ours scrolls here: the browser pans its visible area instead
+    const kb = keyboardHeight();
+    if (keyboardRoom && keyboardRoom !== sc) { keyboardRoom.style.paddingBottom = ''; keyboardRoom = null; }
+    if (kb) { sc.style.paddingBottom = `${kb}px`; keyboardRoom = sc; } else if (keyboardRoom) { keyboardRoom.style.paddingBottom = ''; keyboardRoom = null; }
     const vv = window.visualViewport, top = (vv ? vv.offsetTop : 0) + KEYBOARD_TOP, bottom = (vv ? vv.offsetTop + vv.height : window.innerHeight) - KEYBOARD_GAP;
     const r = field.getBoundingClientRect();
     let by = 0;
@@ -3274,9 +3281,14 @@
     if (Math.abs(by) > 1) sc.scrollTop += by;
   }
   let keyboardTimer = 0;
-  const keyboardSettle = () => { const f = document.activeElement; if (f && f.matches && f.matches('input, textarea')) keepAboveKeyboard(f); }; // whatever has focus now (not the event's target: a window without focus fires no focus events)
+  const keyboardSettle = () => { // whatever has focus now (not an event's target: a window without focus fires no focus events)
+    const f = document.activeElement;
+    if (f && f.matches && f.matches('input, textarea')) keepAboveKeyboard(f);
+    else if (keyboardRoom) { keyboardRoom.style.paddingBottom = ''; keyboardRoom = null; } // the keyboard went with the focus: the room goes too
+  };
   const keyboardSoon = () => { clearTimeout(keyboardTimer); keyboardTimer = setTimeout(keyboardSettle, 350); }; // once the keyboard has risen (iOS: ~300ms) and a fold has opened
   document.addEventListener('focusin', (e) => { if (e.target.matches && e.target.matches('input, textarea')) keyboardSoon(); });
+  document.addEventListener('focusout', keyboardSoon);
   if (window.visualViewport) ['resize', 'scroll'].forEach((t) => window.visualViewport.addEventListener(t, keyboardSettle));
 
   /* ---------- Links ---------- */
