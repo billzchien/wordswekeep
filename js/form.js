@@ -162,7 +162,7 @@
         ? { title: hasSource ? (t(data.source.title) || null) : null, year: data.source.year ? Number(data.source.year) : null, kind: data.source.kind || null, link: hasSource ? (t(data.source.link) || null) : null }
         : null,
       context: capParas(t(data.context)) || null,
-      annotations: data.annotations.filter((a) => a.word.trim()).map((a) => ({ word: a.word.trim(), explanation: a.explanation.trim() })),
+      annotations: data.annotations.filter((a) => a.word.trim() && (!a.in || original)).map((a) => ({ word: a.word.trim(), explanation: a.explanation.trim(), ...(a.in ? { in: a.in } : {}) })), // in: 'original' — a word of the original-language words
       reflection: capParas(t(data.reflection)),
       keptBy: t(data.keptBy) || null,
       submittedAt: new Date().toISOString(),
@@ -314,7 +314,7 @@
   const isTyping = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
   document.addEventListener('keydown', (e) => {
     if (composing(e)) return;
-    if (!sheet.hidden) { if (e.key === 'Escape') closeSheet(); return; }
+    if (!sheet.hidden) { if (e.key === 'Escape') { if (sheet.classList.contains('is-ref-open')) setRefOpen(false); else closeSheet(); } return; } // (the words to look back at close first)
     if (cur >= STEPS) return;
     const el = document.activeElement;
     if (el && el.closest('.combo.is-open')) return; // the list owns the keys
@@ -523,13 +523,31 @@
     setTimeout(() => $('fOriginal').focus({ preventScroll: true }), FOLD_MS);
   });
   // The × in its corner: the field folds shut, its words are dropped, the toggle comes back.
-  $('origClose').addEventListener('click', () => {
+  $('origClose').addEventListener('click', async () => {
+    const own = data.annotations.filter((a) => a.in === 'original'); // words annotated in the original go with it — asked first
+    if (own.length && !(await ask(`Removing the original language also removes ${own.length === 1 ? `the annotation of “${own[0].word}”` : `its ${own.length} annotations`}.`, 'Remove', 'Keep it'))) return;
+    data.annotations = data.annotations.filter((a) => a.in !== 'original');
     fold($('fOriginalWrap'), false);
     fold($('origToggleWrap'), true);
     $('fOriginal').value = '';
     data.original = '';
     guessWhere(); // (a guess from those words goes with them)
+    refresh(); // ("N words annotated")
   });
+  // Asking first: the white box in the middle (add.html #popup), resolved true by its main
+  // button, false by the other, Escape or a click beside it.
+  let popupResolve = null;
+  function ask(text, yes, no) {
+    $('popupText').textContent = text; $('popupYes').textContent = yes; $('popupNo').textContent = no;
+    $('popup').hidden = false;
+    $('popupNo').focus({ preventScroll: true });
+    return new Promise((res) => { popupResolve = res; });
+  }
+  function answer(v) { if (!popupResolve) return; $('popup').hidden = true; const r = popupResolve; popupResolve = null; r(v); }
+  $('popupYes').addEventListener('click', () => answer(true));
+  $('popupNo').addEventListener('click', () => answer(false));
+  $('popup').addEventListener('click', (e) => { if (e.target === $('popup')) answer(false); });
+  document.addEventListener('keydown', (e) => { if (popupResolve && e.key === 'Escape') { e.stopImmediatePropagation(); answer(false); } }, true);
 
   /* ---------- Step 2 ---------- */
 
@@ -787,8 +805,13 @@
   const normalise = (s) => s.replace(/\s+/g, ' ').trim().toLowerCase();
   // Where `word` sits in the quote (case-insensitive, any whitespace), skipping stretches already
   // taken by other rows — so a second "love" lands on the second love. -1 when it does not fit.
-  function findInQuote(word, taken = []) {
-    const q = data.text.trim(), w = normalise(word);
+  // The sheet shows the quote in English or, with the language button, in its original language
+  // (`sheetOrig`; Bill, 2026-10-09). A word is checked against the one showing and belongs to it
+  // (a row's `orig`, stored as in: 'original'); each language's rows only take its own words.
+  let sheetOrig = false;
+  const sheetText = (orig = sheetOrig) => (orig ? data.original : data.text).trim();
+  function findInQuote(word, taken = [], orig = sheetOrig) {
+    const q = sheetText(orig), w = normalise(word);
     if (!w) return { at: -1 };
     const hay = q.toLowerCase();
     // whole words when the phrase starts/ends with a Latin letter or digit; CJK etc. as a plain substring
@@ -799,7 +822,7 @@
     for (let i = hay.indexOf(w); i >= 0; i = hay.indexOf(w, i + 1)) { if (free(i, i + w.length)) return { at: i, text: q.slice(i, i + w.length) }; }
     return { at: -1 };
   }
-  const takenBy = (rows) => rows.filter((a) => a.matched && a.at >= 0).map((a) => [a.at, a.at + a.word.length]);
+  const takenBy = (rows, orig = sheetOrig) => rows.filter((a) => a.matched && a.at >= 0 && !!a.orig === orig).map((a) => [a.at, a.at + a.word.length]);
   function rowHTML(a, i, cls = '') {
     const matched = !!a.matched;
     return `
@@ -821,9 +844,16 @@
   // The quote with every matched word highlighted. A new highlight wipes in left→right
   // (MARK_MS); one being taken away wipes out left→right, then the span goes (`leaving`).
   const MARK_MS = 300;
+  // The quote's look for the language showing: the original in the fields' Noto, with its
+  // language and direction (Arabic and Hebrew right to left).
+  function quoteLook(el, q) {
+    el.classList.toggle('is-native', sheetOrig);
+    if (sheetOrig) { const lang = detectLang(q); el.lang = lang === 'other' ? '' : lang; el.dir = /^[^\p{L}]*[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufeff]/u.test(q) ? 'rtl' : 'ltr'; const look = /[\u3040-\u30ff]/.test(q) ? 'jpan' : /[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]/.test(q) ? 'kore' : /[\u3400-\u9fff]/.test(q) && isHant(q) ? 'hant' : ''; if (look) el.dataset.cjk = look; else delete el.dataset.cjk; }
+    else { el.lang = ''; el.dir = ''; delete el.dataset.cjk; }
+  }
   function renderQuote(leaving = []) {
-    const q = data.text.trim();
-    const spans = takenBy(draft).concat(leaving.map(([s0, s1]) => [s0, s1, 'off'])).sort((x, y) => x[0] - y[0]);
+    const q = sheetText(), el = $('annQuote');
+    quoteLook(el, q);    const spans = takenBy(draft).concat(leaving.map(([s0, s1]) => [s0, s1, 'off'])).sort((x, y) => x[0] - y[0]);
     const shown = new Set([...$('annQuote').querySelectorAll('.ann-mark')].map((m) => m.dataset.at));
     let html = '', at = 0;
     spans.forEach(([s0, s1, off]) => {
@@ -840,6 +870,7 @@
       $('annQuote').querySelectorAll('.ann-mark[data-leaving]').forEach((m) => { m.classList.remove('is-on'); m.classList.add('is-off'); });
     });
     if (leaving.length) setTimeout(() => renderQuote(), reduceMotion.matches ? 0 : MARK_MS);
+    drawRef();
   }
   // "Another" and "Save annotation" show once every row is matched (and there is one).
   // "Another" once every row is matched; "Save annotation" as soon as one row is complete —
@@ -851,29 +882,40 @@
     fold($('annSaveWrap'), matched.length > 0);
     $('annSave').disabled = complete.length === 0; // saves the complete rows; a word without its explanation is dropped
   }
+  // A field the sheet moves the typing to (a new row, an explanation unfolding) is scrolled into
+  // view, clear of the fades at the top and bottom (Bill, 2026-10-09: "Another" added rows under
+  // the bottom fade, out of sight).
+  function reveal(el) {
+    const sc = sheet.querySelector('.ann-scroll'), box = sc.getBoundingClientRect(), r = el.getBoundingClientRect();
+    const guard = (sheet.querySelector('.guard--bottom') || {}).offsetHeight || 80, top = (sheet.querySelector('.guard--top') || {}).offsetHeight || 80;
+    let by = 0;
+    if (r.bottom > box.bottom - guard) by = r.bottom - (box.bottom - guard);
+    if (r.top - by < box.top + top) by = r.top - (box.top + top);
+    if (by) sc.scrollBy({ top: by, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+  }
   const annMs = () => (reduceMotion.matches ? 0 : 200);
   const esc = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   const rowOf = (el) => { const row = el.closest('.ann-row'); return row ? { row, a: draft[Number(row.dataset.i)] } : null; };
   function confirmWord(row, a) {
     const wrap = row.querySelector('.ann-field'), input = wrap.querySelector('input');
     const m = findInQuote(input.value, takenBy(draft.filter((x) => x !== a)));
-    if (m.at < 0) { // no match (or every occurrence already taken): empty, warning state, "Word must match"
+    if (m.at < 0) { // no match (in the language showing) (or every occurrence already taken): empty, warning state, "Word must match"
       a.word = ''; input.value = ''; input.placeholder = 'Word must match';
       wrap.classList.add('is-warn'); wrap.querySelector('.ann-confirm').hidden = true;
       const rm = wrap.querySelector('.ann-remove'); if (rm) rm.hidden = false; // empty again: the extra row can be removed
       return;
     }
-    a.word = m.text; a.at = m.at; a.matched = true; input.value = m.text; input.readOnly = true;
+    a.word = m.text; a.at = m.at; a.matched = true; a.orig = sheetOrig; input.value = m.text; input.readOnly = true;
     wrap.classList.remove('is-warn'); wrap.querySelector('.ann-confirm').hidden = true; wrap.querySelector('.ann-unlock').hidden = false; // row 1: unlock ×; an added row: its remove ×
     row.classList.add('is-matched');
     const exp = row.querySelector('.fold');
     fold(exp, true);
     renderQuote(); syncTail();
-    setTimeout(() => exp.querySelector('.field').focus({ preventScroll: true }), FOLD_MS);
+    setTimeout(() => { const f = exp.querySelector('.field'); f.focus({ preventScroll: true }); reveal(row); }, FOLD_MS);
   }
   function unlockWord(row, a) {
     const wrap = row.querySelector('.ann-field'), input = wrap.querySelector('input');
-    const gone = a.at >= 0 ? [[a.at, a.at + a.word.length]] : [];
+    const gone = a.at >= 0 && !!a.orig === sheetOrig ? [[a.at, a.at + a.word.length]] : []; // (a word of the other language: no highlight to take away here)
     a.matched = false; a.at = -1;
     input.readOnly = false; input.placeholder = 'Word';
     wrap.querySelector('.ann-unlock').hidden = true; wrap.querySelector('.ann-confirm').hidden = !input.value.trim();
@@ -906,7 +948,7 @@
     if (!remove) return;
     if (r.row.classList.contains('is-leaving')) return;
     r.row.classList.add('is-leaving'); // fades up and folds shut, the rows below move up with it
-    const gone = r.a.matched && r.a.at >= 0 ? [[r.a.at, r.a.at + r.a.word.length]] : [];
+    const gone = r.a.matched && r.a.at >= 0 && !!r.a.orig === sheetOrig ? [[r.a.at, r.a.at + r.a.word.length]] : [];
     r.a.matched = false; r.a.at = -1;
     renderQuote(gone);
     setTimeout(() => { draft.splice(Number(r.row.dataset.i), 1); renderRows(); }, annMs());
@@ -917,15 +959,166 @@
     const row = $('annRows').lastElementChild;
     row.querySelectorAll('textarea.field').forEach(textareaBar);
     syncTail();
-    setTimeout(() => { row.classList.remove('is-new'); row.querySelector('input').focus({ preventScroll: true }); }, annMs());
+    setTimeout(() => { row.classList.remove('is-new'); row.querySelector('input').focus({ preventScroll: true }); reveal(row); }, annMs());
   });
+
+  // The language button: the other language's label (the original's, as on the archive; "EN"
+  // back), in that label's own face — loaded for just its letters. A word typed but not yet
+  // checked goes when the language changes (Bill: it would be checked against the other words).
+  const LANG_BUTTON = { // js/app.js → LANG_BUTTON (copied: change both)
+    en: { label: 'EN', font: 'Inter', weight: 500, size: 10, tracking: 4, nudge: 0 },
+    zh: { label: '中', font: 'Noto Sans SC', weight: 500, size: 12, tracking: 0, nudge: -3 },
+    ja: { label: 'JP', font: 'Inter', weight: 500, size: 10.5, tracking: 1.5, nudge: -1 },
+    ko: { label: '한', font: 'Noto Sans KR', weight: 500, size: 13, tracking: 0, nudge: -7 },
+    el: { label: 'ΕΛ', font: 'Inter', weight: 500, size: 10, tracking: 4, nudge: 0 },
+    ru: { label: 'РУ', font: 'Manrope', weight: 600, size: 11, tracking: 2.5, nudge: 2 },
+    uk: { label: 'УКР', font: 'Inter', weight: 500, size: 9.5, tracking: 0.5, nudge: 0 },
+    ar: { label: 'عربي', font: 'Noto Sans Arabic', weight: 500, size: 9.5, tracking: 0, nudge: -17 },
+    fa: { label: 'فا', font: 'IBM Plex Sans Arabic', weight: 400, size: 13.5, tracking: 0, nudge: 7 },
+    ur: { label: 'اردو', font: 'Noto Sans Arabic', weight: 500, size: 11.5, tracking: 0, nudge: -5 },
+    he: { label: 'עב', font: 'IBM Plex Sans Hebrew', weight: 400, size: 13, tracking: 2, nudge: -8 },
+    th: { label: 'ไทย', font: 'Bai Jamjuree', weight: 500, size: 11, tracking: 0, nudge: 0 },
+    hi: { label: 'हिं', font: 'Poppins', weight: 400, size: 12.5, tracking: 0, nudge: 11 },
+    bn: { label: 'বাং', font: 'Hind Siliguri', weight: 400, size: 13.5, tracking: 0, nudge: 6 },
+    ta: { label: 'த', font: 'Noto Sans Tamil', weight: 400, size: 13, tracking: 0, nudge: 0 },
+  };
+  const labelFonts = new Set();
+  function drawLangBtn() {
+    const btn = $('annLang'), has = !!data.original.trim();
+    btn.hidden = !has;
+    if (!has) return;
+    const code = sheetOrig ? 'en' : detectLang(data.original);
+    const b = LANG_BUTTON[code] || { ...LANG_BUTTON.en, label: /^[a-z]{2}$/.test(code) ? code.toUpperCase() : 'Aa' };
+    const key = `${b.font}:${b.weight}:${b.label}`;
+    if (!labelFonts.has(key)) { // just the label's letters of its face (Google Fonts' text=)
+      labelFonts.add(key);
+      const l = document.createElement('link'); l.rel = 'stylesheet';
+      l.href = `https://fonts.googleapis.com/css2?family=${b.font.replace(/ /g, '+')}:wght@${b.weight}&text=${encodeURIComponent(b.label)}&display=swap`;
+      document.head.appendChild(l);
+    }
+    Object.entries({ '--lb-font': `'${b.font}'`, '--lb-weight': b.weight, '--lb-size': `${b.size}px`, '--lb-track': `${b.tracking / 100}em`, '--lb-nudge': `${b.nudge / 10}px` }).forEach(([k, v]) => btn.style.setProperty(k, v)); // (not cssText: that would undo the hiding while it is out)
+    btn.innerHTML = `<span>${esc(b.label)}</span>`;
+    btn.setAttribute('aria-label', sheetOrig ? 'Show the words in English' : 'Show the words in their original language');
+    btn.setAttribute('aria-pressed', String(sheetOrig));
+  }
+  /* The words to look back at (Bill, 2026-10-09; Figma 516:9, 522:153, 523:254): once the rows
+     have scrolled the words away under the top fade, a copy of them — the language showing, its
+     highlights on, its language button — comes in. Desktop: on the left under Cancel (css). Tablet
+     and phone: a button top right opens it in the top bar; it, or a click anywhere else, closes it. */
+  const refWide = matchMedia('(min-width: 1024px)');
+  function drawRef() {
+    const q = sheetText(), el = $('annRefQuote');
+    quoteLook(el, q);
+    const had = new Set([...el.querySelectorAll('.ann-mark')].map((m) => m.dataset.at)); // (a highlight already there stays; a new one wipes in, as over the rows)
+    let html = '', at = 0;
+    takenBy(draft).sort((x, y) => x[0] - y[0]).forEach(([s0, s1]) => { if (s0 < at) return; html += esc(q.slice(at, s0)) + `<span class="ann-mark${had.has(String(s0)) ? ' is-on' : ''}" data-at="${s0}">${esc(q.slice(s0, s1))}</span>`; at = s1; });
+    el.innerHTML = html + esc(q.slice(at));
+    requestAnimationFrame(() => el.querySelectorAll('.ann-mark:not(.is-on)').forEach((m) => m.classList.add('is-on')));
+    const main = $('annLang'), b = $('annRefLang');
+    b.hidden = main.hidden; b.innerHTML = main.innerHTML;
+    ['--lb-font', '--lb-weight', '--lb-size', '--lb-track', '--lb-nudge'].forEach((k) => b.style.setProperty(k, main.style.getPropertyValue(k)));
+    b.setAttribute('aria-label', main.getAttribute('aria-label') || ''); b.setAttribute('aria-pressed', main.getAttribute('aria-pressed') || 'false');
+  }
+  function refShown() { $('annRef').inert = !(sheet.classList.contains('is-ref') && (refWide.matches || sheet.classList.contains('is-ref-open'))); }
+  function setRefOpen(on) {
+    sheet.classList.toggle('is-ref-open', on);
+    $('annRefBtn').setAttribute('aria-expanded', String(on)); $('annRefBtn').setAttribute('aria-label', on ? 'Hide the words' : 'Show the words');
+    refShown();
+  }
+  function refCheck() {
+    if (sheet.hidden) return;
+    const sc = sheet.querySelector('.ann-scroll'), head = sheet.querySelector('.ann-head'), fade = sheet.querySelector('.guard--top').offsetHeight || 80;
+    const out = head.getBoundingClientRect().bottom < sc.getBoundingClientRect().top + fade; // the words gone under the top fade
+    sheet.classList.toggle('is-ref', out);
+    if (!out) setRefOpen(false); else refShown();
+  }
+  sheet.querySelector('.ann-scroll').addEventListener('scroll', refCheck, { passive: true });
+  window.addEventListener('resize', refCheck);
+  refWide.addEventListener('change', () => { setRefOpen(false); refCheck(); });
+  $('annRefBtn').addEventListener('click', () => setRefOpen(!sheet.classList.contains('is-ref-open')));
+  sheet.addEventListener('pointerdown', (e) => { if (sheet.classList.contains('is-ref-open') && !e.target.closest('#annRef, #annRefBtn')) setRefOpen(false); }); // a click anywhere else closes it
+  // The change of language, as on the archive (js/app.js → sweep; Bill, 2026-10-09): each letter of
+  // the words showing blurs away while each letter of the other language blurs in over the same
+  // spot, left to right, within LANG_MS; the height eases between the two; the other language's
+  // highlights wipe in once its words are in. Arabic, Hebrew, Thai, Devanagari go a word at a time.
+  const LANG_MS = 400, LANG_CHAR_MS = 160, LANG_BLUR = 8;
+  let langBusy = false;
+  function spanChars(el) {
+    const text = el.textContent, byWord = /[\u0590-\u08ff\u0900-\u097f\u0e00-\u0e7f\ufb1d-\ufdff\ufe70-\ufeff]/.test(text), chars = [];
+    el.textContent = '';
+    (byWord ? text.match(/\s|\S+/g) || [] : [...text]).forEach((ch) => {
+      if (/\s/.test(ch)) { el.appendChild(document.createTextNode(ch)); return; }
+      const span = document.createElement('span'); span.textContent = ch; el.appendChild(span); chars.push(span);
+    });
+    return chars;
+  }
+  function sweep(chars, show) {
+    const easing = getComputedStyle(document.documentElement).getPropertyValue('--ease').trim() || 'ease';
+    const ink = getComputedStyle(chars[0] || document.body).color;
+    const clear = { opacity: 1, color: ink, textShadow: `0 0 0 ${ink}` }, gone = { opacity: 0, color: 'transparent', textShadow: `0 0 ${LANG_BLUR}px ${ink}` };
+    const span = Math.max(0, LANG_MS - LANG_CHAR_MS);
+    chars.forEach((c, i) => c.animate(show ? [gone, clear] : [clear, gone], { duration: LANG_CHAR_MS, delay: chars.length > 1 ? (i / (chars.length - 1)) * span : 0, easing, fill: 'both' }));
+  }
+  // The button itself, as the archive's (css .lang; Bill, 2026-10-09): pressed, it slips towards the
+  // quote and fades (LANG_BTN_OUT_MS), and only then do the words change; it stays out of sight
+  // meanwhile and comes back with the other label, bouncing in from where it went (.is-back). It
+  // comes in the same way once the sheet is down (.is-in).
+  const LANG_BTN_OUT_MS = 50;
+  const langBtns = () => [$('annLang'), $('annRefLang')]; // the one over the words, and the one in the words to look back at
+  function langBtnIn(cls, btns = langBtns()) { btns.forEach((btn) => { btn.style.visibility = ''; btn.classList.remove('is-out', 'is-in', 'is-back'); void btn.offsetWidth; btn.classList.add(cls); }); }
+  function pressLang() {
+    if (langBusy) return;
+    if (reduceMotion.matches) return changeLanguage();
+    langBusy = true;
+    langBtns().forEach((btn) => { btn.classList.remove('is-in', 'is-back'); btn.classList.add('is-out'); });
+    setTimeout(() => { langBtns().forEach((btn) => { btn.style.visibility = 'hidden'; }); changeLanguage(); }, LANG_BTN_OUT_MS);
+  }
+  $('annLang').addEventListener('click', pressLang);
+  $('annRefLang').addEventListener('click', pressLang);
+  // The words going, laid over their own spot (the quote over the rows, and the copy to look back at).
+  function ghostOf(el) {
+    const g = el.cloneNode(false); g.removeAttribute('id'); g.setAttribute('aria-hidden', 'true'); g.textContent = el.textContent;
+    Object.assign(g.style, { position: 'absolute', left: `${el.offsetLeft}px`, top: `${el.offsetTop}px`, width: `${el.offsetWidth}px`, margin: '0', pointerEvents: 'none' });
+    return { el, g, from: el.offsetHeight };
+  }
+  function changeLanguage() {
+    const swaps = reduceMotion.matches ? [] : [$('annQuote'), $('annRefQuote')].map(ghostOf);
+    sheetOrig = !sheetOrig;
+    draft.forEach((a, i) => { // a word not yet checked goes; an explanation being written stays
+      if (a.matched || !a.word) return;
+      a.word = '';
+      const row = $('annRows').querySelector(`.ann-row[data-i="${i}"]`); if (!row) return;
+      const wrap = row.querySelector('.ann-field'), input = wrap.querySelector('input');
+      input.value = ''; input.placeholder = 'Word'; wrap.classList.remove('is-warn');
+      wrap.querySelector('.ann-confirm').hidden = true;
+      const rm = wrap.querySelector('.ann-remove'); if (rm) rm.hidden = false;
+    });
+    drawLangBtn(); syncTail();
+    const afresh = () => { $('annQuote').innerHTML = ''; $('annRefQuote').innerHTML = ''; renderQuote(); }; // (every highlight of this language wipes in, in both)
+    if (!swaps.length) return afresh();
+    swaps.forEach((w) => { // the words coming, plain for the sweep; the height eases from the one to the other
+      quoteLook(w.el, sheetText()); w.el.textContent = sheetText();
+      w.el.parentNode.appendChild(w.g);
+      const to = w.el.offsetHeight;
+      w.el.style.height = `${w.from}px`; w.el.getBoundingClientRect();
+      w.el.style.transition = `height ${LANG_MS}ms var(--ease)`; w.el.style.height = `${to}px`;
+      sweep(spanChars(w.g), false); sweep(spanChars(w.el), true);
+    });
+    setTimeout(() => {
+      swaps.forEach((w) => { w.g.remove(); w.el.style.height = w.el.style.transition = ''; });
+      afresh(); langBtnIn('is-back'); langBusy = false;
+    }, LANG_MS + 30);
+  }
 
   function openSheet() {
     draft = [];
-    data.annotations.forEach((a) => { const m = findInQuote(a.word, takenBy(draft)); draft.push({ ...a, matched: m.at >= 0, at: m.at }); });
+    sheetOrig = false;
+    data.annotations.forEach((a) => { const orig = a.in === 'original'; const m = findInQuote(a.word, takenBy(draft, orig), orig); draft.push({ word: a.word, explanation: a.explanation, orig, matched: m.at >= 0, at: m.at }); });
+    drawLangBtn();
+    if (!reduceMotion.matches && !$('annLang').hidden) { $('annLang').style.visibility = 'hidden'; setTimeout(() => { if (!sheet.hidden) langBtnIn('is-in', [$('annLang')]); }, sheetMs()); } // (in once the sheet is down)
     if (!draft.length) draft.push({ word: '', explanation: '', matched: false, at: -1 });
     renderRows();
-    sheet.classList.remove('is-out');
+    sheet.classList.remove('is-out', 'is-ref'); setRefOpen(false);
     sheet.hidden = false;
     sheet.querySelector('.ann-scroll').scrollTop = 0;
     void sheet.offsetHeight; // commit the closed crop, then let the drop transition run
@@ -940,6 +1133,7 @@
     if (document.activeElement && sheet.contains(document.activeElement)) document.activeElement.blur();
     sheet.classList.remove('is-in');
     sheet.classList.add('is-out');
+    setRefOpen(false);
     setChrome(getComputedStyle(document.documentElement).getPropertyValue('--paper').trim());
     refresh();
     setTimeout(() => { if (sheet.classList.contains('is-out')) { sheet.hidden = true; sheet.classList.remove('is-out'); } }, sheetMs());
@@ -947,7 +1141,7 @@
   $('annToggle').addEventListener('click', openSheet);
   $('annCancel').addEventListener('click', closeSheet);
   $('annSave').addEventListener('click', () => {
-    data.annotations = draft.filter((a) => a.matched && a.word.trim() && a.explanation.trim()).map((a) => ({ word: a.word.trim(), explanation: a.explanation.trim() }));
+    data.annotations = draft.filter((a) => a.matched && a.word.trim() && a.explanation.trim()).map((a) => ({ word: a.word.trim(), explanation: a.explanation.trim(), ...(a.orig ? { in: 'original' } : {}) }));
     closeSheet();
   });
 

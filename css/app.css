@@ -632,6 +632,12 @@ ul { list-style: none; }
   font-feature-settings: var(--qf-features, "liga" 1, "clig" 1); /* ligatures asked for by name, in every face: a browser drops them as soon as letter-spacing is not 0 (css/fonts.css) */
   white-space: nowrap;
 }
+.ann-word[data-native] { /* a word of the original's: its script's font, size and spacing, as the quote (css/fonts.css) */
+  font-family: var(--qf-native, var(--qn-serif, var(--font-native-quote)));
+  font-style: normal; font-weight: var(--qf-native-weight, var(--qn-weight, 500));
+  font-size: calc(var(--quote-annotation) * var(--qf-native-scale, var(--qn-scale, var(--quote-native-scale))));
+  letter-spacing: var(--qf-native-tracking, var(--qn-tracking, 0.02em)); font-feature-settings: normal;
+}
 .ann-text { position: absolute; width: min(20.4em, calc(100vw - 2 * var(--m))); }
 
 .video-overlay { display: grid; place-items: center; padding: 72px var(--m) 48px; }

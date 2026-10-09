@@ -403,26 +403,35 @@
   }
 
 
-  // Wrap annotated words (first occurrence each) in the English text.
-  function annotate(text, annotations) {
-    const lower = text.replace(/[\u00a0\n]/g, ' ').toLowerCase(); // tied words and locked line breaks still match (same length)
+  // Wrap annotated words (first occurrence each) in the quote as shown. An annotation belongs to the
+  // English words or (in: 'original', since 2026-10-09) to the original's, and is marked in either
+  // where its word is found (Bill: a word the same in both is annotated in both) — its own words
+  // first. As the form checks it (js/form.js → findInQuote): case aside, whole words for a word
+  // that starts and ends in a Latin letter or digit, anywhere for the rest; a line break the rag
+  // put in (between two characters, or for a space) or noOrphans' tie does not stop a match.
+  const annSpan = (i, text) => `<span class="ann" role="button" tabindex="0" data-ann="${i}">${esc(text)}</span>`;
+  function annotate(text, annotations, orig = false) {
     const ranges = [];
-    annotations.forEach((a, i) => {
-      const start = lower.indexOf(a.word.toLowerCase());
-      if (start < 0) return;
-      const end = start + a.word.length;
-      if (ranges.some((r) => start < r.end && end > r.start)) return;
-      ranges.push({ start, end, i });
+    const order = annotations.map((a, i) => ({ a, i })).sort((x, y) => Number((y.a.in === 'original') === orig) - Number((x.a.in === 'original') === orig));
+    order.forEach(({ a, i }) => {
+      const w = (a.word || '').trim();
+      if (!w) return;
+      const pat = [...w].map((ch) => (/\s/.test(ch) ? '[\\s\\u00a0]+' : ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))).join('[\\n\\u2060]*'); // (noOrphans' word joiners, the rag's breaks)
+      const re = new RegExp(`${/^[\p{L}\p{N}]/u.test(w) && /[a-z0-9]$/i.test(w) ? '(^|[^\\p{L}\\p{N}])' : '()'}${pat}${/[a-z0-9]$/i.test(w) ? '(?![\\p{L}\\p{N}])' : ''}`, 'giu');
+      let m;
+      while ((m = re.exec(text))) {
+        const start = m.index + m[1].length, end = m.index + m[0].length;
+        if (end === m.index) { re.lastIndex++; continue; }
+        if (ranges.some((r) => start < r.end && end > r.start)) continue;
+        ranges.push({ start, end, i });
+        break;
+      }
     });
-    ranges.sort((a, b) => a.start - b.start);
+    ranges.sort((x, y) => x.start - y.start);
     let html = '', pos = 0;
-    ranges.forEach((r) => {
-      html += esc(text.slice(pos, r.start));
-      // A span, not a <button>: a button is an inline-block box — it cannot wrap across lines and it
-      // changes the height of its line, so the notes quote would not sit like the main one.
-      html += `<span class="ann" role="button" tabindex="0" data-ann="${r.i}">${esc(text.slice(r.start, r.end))}</span>`;
-      pos = r.end;
-    });
+    // A span, not a <button>: a button is an inline-block box — it cannot wrap across lines and it
+    // changes the height of its line, so the notes quote would not sit like the main one.
+    ranges.forEach((r) => { html += esc(text.slice(pos, r.start)) + annSpan(r.i, text.slice(r.start, r.end)); pos = r.end; });
     return html + esc(text.slice(pos));
   }
 
@@ -537,6 +546,7 @@
   // kept on the element (`_plain`) and put back before every new measuring.
   evenLines.reset = (quoteEl) => {
     quoteEl.style.width = '';
+    if (quoteEl._html != null) { quoteEl.innerHTML = quoteEl._html; quoteEl._html = null; }
     if (quoteEl._plain != null && quoteEl.firstChild && quoteEl.childNodes.length === 1) quoteEl.firstChild.data = quoteEl._plain;
     quoteEl._plain = null;
   };
@@ -601,8 +611,30 @@
     }
     return out;
   }
+  // A quote with annotations (the notes quote, when it is not already locked to the main one's
+  // lines): the rag is set on its words alone — the same breaks the main quote gets, so nothing
+  // jumps between the modes — and the underlined words are wrapped again around the same letters.
+  function evenAnnotated(quoteEl) {
+    const spans = [];
+    let at = 0;
+    quoteEl.childNodes.forEach((n) => { const t = n.textContent; if (n.nodeType === 1 && n.classList.contains('ann')) spans.push({ start: at, end: at + t.length, i: n.dataset.ann }); at += t.length; });
+    const html = quoteEl.innerHTML, plain = quoteEl.textContent;
+    quoteEl.textContent = plain;
+    evenLines(quoteEl);
+    const out = quoteEl.textContent, map = [];
+    for (let i = 0, j = 0; i <= plain.length; i++, j++) { // where each letter went: a space may have become the break, a break may have been put in before it
+      while (j < out.length && out[j] === '\n' && plain[i] !== '\n' && plain[i] !== ' ') j++;
+      map[i] = j;
+    }
+    let rebuilt = '', pos = 0;
+    spans.forEach((r) => { const s0 = map[r.start], s1 = map[r.end - 1] + 1; rebuilt += esc(out.slice(pos, s0)) + annSpan(r.i, out.slice(s0, s1)); pos = s1; });
+    quoteEl.innerHTML = rebuilt + esc(out.slice(pos));
+    quoteEl._plain = null;
+    quoteEl._html = html; // (evenLines.reset puts it back)
+  }
   function evenLines(quoteEl) {
     if (!quoteEl) return;
+    if (quoteEl._html == null && quoteEl.querySelector('.ann')) return evenAnnotated(quoteEl);
     quoteEl.style.width = '';
     const node = quoteEl.firstChild;
     const single = node && node.nodeType === 3 && quoteEl.childNodes.length === 1;
@@ -760,8 +792,8 @@
     let text = noOrphans(raw);
     const locked = keepLines && lockedLines && lockedLines.text === text;
     if (locked) text = lockedLines.broken;
-    const body = withAnnotations && !showOrig && q.annotations && q.annotations.length
-      ? annotate(text, q.annotations) : esc(text);
+    const body = withAnnotations && q.annotations && q.annotations.length
+      ? annotate(text, q.annotations, !!showOrig) : esc(text);
     const langBtn = orig
       ? (() => { const b = langButtonInner(showOrig ? 'en' : orig.lang); return `<button class="lang" data-lang style="${b.style}" aria-pressed="${showOrig ? 'true' : 'false'}" aria-label="${showOrig ? 'Show English' : 'Show original language'}">${b.html}</button>`; })()
       : '';
@@ -2115,9 +2147,11 @@
     const a = current().annotations[+el.dataset.ann];
     const rect = el.getClientRects()[0];
     const overlay = $('annOverlay'), word = $('annWord'), text = $('annText'), back = $('annBack');
-    word.textContent = el.textContent;
     const quoteEl = el.closest('.quote'); // the enlarged word is set in the quote's face, at the quote's scale
+    word.textContent = el.textContent.replace(/\n/g, (m, k, t) => (CJK_CHAR.test(t[k - 1] || '') || CJK_CHAR.test(t[k + 1] || '') ? '' : ' ')); // a word the rag broke over two lines comes back together
     word.dataset.font = quoteEl.dataset.font; word.dataset.tier = quoteEl.dataset.tier;
+    ['native', 'script'].forEach((k) => { if (quoteEl.dataset[k] != null) word.dataset[k] = quoteEl.dataset[k]; else delete word.dataset[k]; }); // the original's words: its script's font
+    word.lang = quoteEl.lang || ''; word.dir = quoteEl.dir || '';
     const rtl = rtlFirst(a.explanation);
     text.innerHTML = nativeRuns(rtl ? ltrRuns(esc(noOrphans(a.explanation))) : esc(noOrphans(a.explanation)));
     text.dir = rtl ? 'rtl' : '';

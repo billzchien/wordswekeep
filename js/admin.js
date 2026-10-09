@@ -554,7 +554,7 @@
     categories: [...q.categories],
     author: { kind: q.author?.kind || 'person', name: q.author?.name || '', nativeName: q.author?.nativeName || '', country: q.author?.country || '', origin: q.author?.origin || '' },
     source: { kind: q.source?.kind || '', year: q.source?.year ? String(q.source.year) : '', title: q.source?.title || '', link: q.source?.link || '', cover: q.source?.cover || '', crop: q.source?.crop ? { ...q.source.crop } : null },
-    context: q.context || '', annotations: q.annotations.map((a) => ({ word: a.word, explanation: a.explanation, matched: false, at: -1 })),
+    context: q.context || '', annotations: q.annotations.map((a) => ({ word: a.word, explanation: a.explanation, orig: a.in === 'original', matched: false, at: -1 })), // orig: a word of the original-language words
     reflection: q.reflection || '', keptBy: q.keptBy || '',
     font: fontFor(q.font, tier(q.text || '')), // the face the archive shows it in
     notFirst: !!q.notFirst, // "Don't show as the first quote"
@@ -574,7 +574,7 @@
     if (q.source && d.source.kind === 'book' && t(d.source.cover || '')) q.source.cover = t(d.source.cover); // a book's cover: only ever present when picked
     if (q.source && q.source.link && d.source.crop && videoKey(q.source.link)) q.source.crop = { ...d.source.crop }; // a video's thumbnail window: only ever present when cropped
     q.context = t(d.context) || null;
-    q.annotations = d.annotations.filter((a) => a.matched && a.word.trim()).map((a) => ({ word: a.word.trim(), explanation: a.explanation.trim() })); // locked rows only
+    q.annotations = d.annotations.filter((a) => a.matched && a.word.trim() && (!a.orig || q.originalLanguage)).map((a) => ({ word: a.word.trim(), explanation: a.explanation.trim(), ...(a.orig ? { in: 'original' } : {}) })); // locked rows only
     q.reflection = t(d.reflection);
     q.keptBy = t(d.keptBy) || null;
     q.font = d.font;
@@ -613,7 +613,7 @@
   }
 
   // Compared without empty annotation pairs (the blank pair the view shows is not a change).
-  const norm = (d) => JSON.stringify({ ...d, annotations: d.annotations.filter((a) => a.word.trim() || a.explanation.trim()).map((a) => ({ word: a.word, explanation: a.explanation })) });
+  const norm = (d) => JSON.stringify({ ...d, annotations: d.annotations.filter((a) => a.word.trim() || a.explanation.trim()).map((a) => ({ word: a.word, explanation: a.explanation, orig: !!a.orig })) });
   const isDirty = () => !!edit && norm(edit.draft) !== norm(edit.orig);
   function updateDirty() {
     const d = isDirty(), ok = checkAnn() && checkFont();
@@ -643,22 +643,25 @@
     for (let k = hay.indexOf(w); k >= 0; k = hay.indexOf(w, k + 1)) { if (free(k, k + w.length)) return { at: k, text: q.slice(k, k + w.length) }; }
     return { at: -1 };
   }
-  const takenBy = (rows) => rows.filter((a) => a.matched && a.at >= 0).map((a) => [a.at, a.at + a.word.length]);
+  // A row belongs to the English words or (orig) to the original's (since 2026-10-09): checked
+  // against the English first, then the original; each language's rows only take its own words.
+  const takenBy = (rows, orig = false) => rows.filter((a) => a.matched && a.at >= 0 && !!a.orig === orig).map((a) => [a.at, a.at + a.word.length]);
+  const textOf = (d, a) => (a.orig ? d.original : d.text);
   const loose = (t) => t.toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[.,;:!?…()\[\]"']/g, '').replace(/\s+/g, ' ').trim();
   // Lock every row that fits the quote (opening a quote; the draft coming back from undo).
   function relockAnn(d) {
     d.annotations.forEach((a) => { a.matched = false; a.at = -1; });
-    d.annotations.forEach((a) => { const m = findInQuote(a.word, d.text, takenBy(d.annotations)); if (m.at >= 0) { a.word = m.text; a.at = m.at; a.matched = true; } });
+    d.annotations.forEach((a) => { const m = findInQuote(a.word, textOf(d, a), takenBy(d.annotations, !!a.orig)); if (m.at >= 0) { a.word = m.text; a.at = m.at; a.matched = true; } });
   }
   const checkAnn = () => !edit || edit.draft.annotations.every((a) => a.matched || !a.word.trim());
   // The quote changed: locked words follow it or come unlocked.
   function followAnn() {
     if (!edit) return;
-    const text = edit.draft.text, words = text.split(/\s+/);
     let changed = false;
     edit.draft.annotations.forEach((a) => {
       if (!a.matched) return;
-      const others = takenBy(edit.draft.annotations.filter((x) => x !== a));
+      const text = textOf(edit.draft, a), words = text.split(/\s+/);
+      const others = takenBy(edit.draft.annotations.filter((x) => x !== a), !!a.orig);
       let m = findInQuote(a.word, text, others);
       if (m.at < 0) { // loosely: one clear hit and the word is rewritten
         const target = loose(a.word), n = target.split(' ').length, hits = [];
@@ -825,7 +828,7 @@
   })();
   bind('fText', (v) => { edit.draft.text = v; followAnn(); drawFont(); });
   // The language is guessed from the words until the admin picks one; a picked language stays.
-  bind('fOriginal', (v) => { edit.draft.original = v; if (!edit.langPicked) { edit.draft.lang = v.trim() ? detectLang(v) : ''; lang.set(edit.draft.lang); } drawFont(); });
+  bind('fOriginal', (v) => { edit.draft.original = v; followAnn(); if (!edit.langPicked) { edit.draft.lang = v.trim() ? detectLang(v) : ''; lang.set(edit.draft.lang); } drawFont(); });
   bind('fName', (v) => { edit.draft.author.name = v; clearTimeout(drawCovers.t); drawCovers.t = setTimeout(drawCovers, 600); clearTimeout(autoSong.t); autoSong.t = setTimeout(autoSong, 600); });
   bind('fNative', (v) => { edit.draft.author.nativeName = v; });
   bind('fTitle', (v) => { edit.draft.source.title = v; clearTimeout(drawCovers.t); drawCovers.t = setTimeout(drawCovers, 600); clearTimeout(autoSong.t); autoSong.t = setTimeout(autoSong, 600); }); // (a book: its covers are looked for again once the typing pauses; a song: its link)
@@ -838,7 +841,10 @@
   // "In original language +" adds the second field; it stays as long as there is text in it.
   $('origToggle').addEventListener('click', () => { mark(); fold($('fOriginalWrap'), true); $('origToggle').hidden = true; setTimeout(() => $('fOriginal').focus({ preventScroll: true }), 200); });
   // The × on the original-language field: the words go, the field folds shut, the "+" is back.
-  $('origClose').addEventListener('click', () => { mark(); edit.draft.original = ''; edit.draft.lang = ''; edit.langPicked = false; lang.set(''); $('fOriginal').value = ''; fold($('fOriginalWrap'), false); $('origToggle').hidden = false; drawFont(); updateDirty(); });
+  $('origClose').addEventListener('click', async () => {
+    const own = edit.draft.annotations.filter((a) => a.orig && a.word.trim()); // words annotated in the original go with it — asked first
+    if (own.length && !(await ask(`Removing the original language also removes ${own.length === 1 ? `the annotation of “${own[0].word}”` : `its ${own.length} annotations`}.`, 'Remove', 'Keep it'))) return;
+    mark(); edit.draft.annotations = edit.draft.annotations.filter((a) => !a.orig); renderAnn(); edit.draft.original = ''; edit.draft.lang = ''; edit.langPicked = false; lang.set(''); $('fOriginal').value = ''; fold($('fOriginalWrap'), false); $('origToggle').hidden = false; drawFont(); updateDirty(); });
 
   $('catList').innerHTML = CATEGORIES.map((c) => `
     <button type="button" class="chk" role="checkbox" aria-checked="false" data-key="${c.key}">
@@ -1539,10 +1545,12 @@
   }
   const rowOf = (el) => { const row = el.closest('.ann-pair'); if (!row) return null; const i = Number(row.dataset.i); if (!edit.draft.annotations[i]) edit.draft.annotations[i] = { word: '', explanation: '', matched: false, at: -1 }; return { row, i, a: edit.draft.annotations[i] }; };
   function confirmWord(row, a) {
-    const m = findInQuote(a.word, edit.draft.text, takenBy(edit.draft.annotations.filter((x) => x !== a)));
+    const others = edit.draft.annotations.filter((x) => x !== a);
+    let m = findInQuote(a.word, edit.draft.text, takenBy(others)), orig = false;
+    if (m.at < 0 && edit.draft.original.trim()) { m = findInQuote(a.word, edit.draft.original, takenBy(others, true)); orig = m.at >= 0; } // not in the English: the original's
     mark();
     if (m.at < 0) { a.matched = false; a.at = -1; renderAnn(); row.querySelector('input').focus({ preventScroll: true }); updateDirty(); return; } // warning state, → stays to try again
-    a.word = m.text; a.at = m.at; a.matched = true;
+    a.word = m.text; a.at = m.at; a.matched = true; a.orig = orig;
     const i = [...row.parentElement.children].indexOf(row); // before renderAnn, which builds the rows anew (this one is then gone)
     renderAnn(); updateDirty();
     const r = $('annRows').querySelector(`.ann-pair[data-i="${i}"]`);
@@ -2095,7 +2103,7 @@
     n.original = d.original.trim();
     n.context = tidy(d.context, { close: true });
     n.reflection = tidy(d.reflection, { close: true });
-    n.annotations = d.annotations.map((a) => ({ word: a.word.trim().replace(/\s+/g, ' '), explanation: tidy(a.explanation, { close: true }) }));
+    n.annotations = d.annotations.map((a) => ({ ...a, word: a.word.trim().replace(/\s+/g, ' '), explanation: tidy(a.explanation, { close: true }) }));
     n.author.name = tidy(d.author.name, { sentences: false, typos: false }).replace(/\b(\p{Ll})(\p{L}*)/gu, (m, a, b) => (m.length > 2 || /^(de|da|di|van|von|le|la|du|bin|al)$/.test(m) ? m : a.toUpperCase() + b)); // no title-casing: "bell hooks" is a name
     n.author.name = d.author.name === d.author.name.toLowerCase() ? d.author.name.trim().replace(/\s+/g, ' ').replace(/(^|\s)(\p{Ll})/gu, (m, s, c) => s + c.toUpperCase()) : n.author.name; // all-lowercase names are capitalised
     n.author.nativeName = d.author.nativeName.trim();
