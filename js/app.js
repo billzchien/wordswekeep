@@ -1237,6 +1237,7 @@
       root.querySelector('.n-add-open').hidden = true;
       fold(root.querySelector('.n-add-box'), true);
       root.querySelector('.n-add-text').focus({ preventScroll: true });
+      keyboardSoon(); // the box into view above the keyboard once it has unfolded
     } else if (e.target.closest('.n-add-close')) {
       fold(root.querySelector('.n-add-box'), false);
       setTimeout(() => { if (root.isConnected) root.querySelector('.n-add-open').hidden = false; }, reduceMotion.matches ? 0 : FOLD_MS);
@@ -3252,6 +3253,31 @@
     app.classList.add('is-arriving');
     setTimeout(() => app.classList.remove('is-arriving'), CHROME_IN_MS + 100);
   }
+
+  /* ---------- A field above the phone's keyboard ----------
+     When a field takes focus, and again whenever the phone's visible area changes while it has
+     it (the keyboard rising, the page panned), the nearest scroller moves so the field sits in
+     view: its bottom KEYBOARD_GAP above the keyboard, its top below the chrome. Every page here
+     is absolute boxes with an inner scroller, which iOS does not scroll for a focused field by
+     itself (Bill, 2026-10-09: the thoughts box stayed under the keyboard). The same in js/app.js,
+     js/form.js and js/admin.js: change all three. */
+  const KEYBOARD_GAP = 20, KEYBOARD_TOP = 80;
+  const scrollerOf = (el) => { for (el = el.parentElement; el && el !== document.body; el = el.parentElement) { if (/auto|scroll/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight) return el; } return null; };
+  function keepAboveKeyboard(field) {
+    const sc = scrollerOf(field);
+    if (!sc) { field.scrollIntoView({ block: 'nearest' }); return; } // nothing of ours scrolls here (a form step that fits the screen): the browser pans its visible area instead
+    const vv = window.visualViewport, top = (vv ? vv.offsetTop : 0) + KEYBOARD_TOP, bottom = (vv ? vv.offsetTop + vv.height : window.innerHeight) - KEYBOARD_GAP;
+    const r = field.getBoundingClientRect();
+    let by = 0;
+    if (r.bottom > bottom) by = r.bottom - bottom;
+    if (r.top - by < top) by = r.top - top; // too tall for the room: its top wins
+    if (Math.abs(by) > 1) sc.scrollTop += by;
+  }
+  let keyboardTimer = 0;
+  const keyboardSettle = () => { const f = document.activeElement; if (f && f.matches && f.matches('input, textarea')) keepAboveKeyboard(f); }; // whatever has focus now (not the event's target: a window without focus fires no focus events)
+  const keyboardSoon = () => { clearTimeout(keyboardTimer); keyboardTimer = setTimeout(keyboardSettle, 350); }; // once the keyboard has risen (iOS: ~300ms) and a fold has opened
+  document.addEventListener('focusin', (e) => { if (e.target.matches && e.target.matches('input, textarea')) keyboardSoon(); });
+  if (window.visualViewport) ['resize', 'scroll'].forEach((t) => window.visualViewport.addEventListener(t, keyboardSettle));
 
   /* ---------- Links ---------- */
   // Links are buttons with a data-href, not <a href>: a browser shows an <a>'s address in a
