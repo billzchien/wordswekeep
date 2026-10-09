@@ -1,6 +1,7 @@
 /* Words We Keep — the library (admin CMS). Plain JS.
-   Three lists (Live / Pending / Archive) and an edit / review view. Routes (`go`): #live ·
-   #pending · #archive · #fonts · #edit/<id>; kept in history.state, never in the address (an
+   Three lists (Live / Pending / Archive) and an edit / review view; the Thoughts tab (since
+   2026-10-09): one row per quote with visitors' thoughts, and a view of one quote's. Routes
+   (`go`): #live · #pending · #archive · #thoughts · #fonts · #edit/<id> · #thoughts/<id>; kept in history.state, never in the address (an
    address with one still opens it, then the address is cleaned). #reset throws the demo data away.
 
    Data: served by the library's Worker (workers/admin), everything comes from and goes to its
@@ -134,22 +135,22 @@
 
   /* ---------- Data ---------- */
 
-  let store = null; // { live: [], pending: [], archive: [], lastPublishedAt, publishDirty }
+  let store = null; // { live: [], pending: [], archive: [], thoughts: [] (waiting under quotes), lastPublishedAt, publishDirty }
   const API = '/api';
   let remote = false;    // true: the Worker is behind this page
   let rev = 0;           // the Worker's revision of the store; a save from an older one is refused
   let known = new Set(); // keys the Worker has; one that is gone from the store was removed for good
-  const allKeys = () => [...store.live, ...store.pending, ...store.archive].map((q) => q.key);
+  const allKeys = () => [...store.live, ...store.pending, ...store.archive, ...store.thoughts].map((q) => q.key); // (an approved thought lives inside its quote: its own key leaves this list, so the Worker drops it from the queue)
   const isJSON = (r) => (r.headers.get('Content-Type') || '').includes('json');
   const call = (path, method = 'GET', body) => fetch(API + path, { method, credentials: 'same-origin', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
   function adopt(s) {
     rev = s.rev;
-    store = { live: s.live, pending: s.pending, archive: s.archive, lastPublishedAt: s.lastPublishedAt, publishDirty: s.publishDirty };
+    store = { live: s.live, pending: s.pending, archive: s.archive, thoughts: s.thoughts || [], lastPublishedAt: s.lastPublishedAt, publishDirty: s.publishDirty };
     known = new Set(allKeys());
   }
   // The store as the Worker has it now took over (it changed on another device): what is on
   // screen is drawn again from it.
-  function redraw() { if (edit && !findItem(edit.key)) edit = null; if (edit) { refreshChrome(); return; } renderList(); refreshChrome(); route(); }
+  function redraw() { if (edit && !findItem(edit.key)) edit = null; if (edit) { refreshChrome(); return; } if (th) { openThoughts(th.key); refreshChrome(); return; } renderList(); refreshChrome(); route(); }
 
   // Saving. One request at a time, always the latest store: an action taken while a save is
   // on its way is sent when that one is back.
@@ -181,7 +182,7 @@
       return;
     }
     const raw = localStorage.getItem(STORE_KEY);
-    if (raw) { try { store = JSON.parse(raw); if (store && store.live && store.live.every((q) => q.key)) return; } catch (e) { /* fall through */ } } // no keys = an older demo store: re-seed
+    if (raw) { try { store = JSON.parse(raw); if (store && store.live && store.live.every((q) => q.key)) { if (!store.thoughts) store.thoughts = seedThoughts(store.live); return; } } catch (e) { /* fall through */ } } // no keys = an older demo store: re-seed (no thoughts = a demo from before them: given some)
     const res = await fetch('../data/quotes.json');
     store = seed(await res.json());
     persist();
@@ -210,17 +211,31 @@
         reflection: 'best quotes', keptBy: null, submittedAt: daysAgo(9), archivedAt: daysAgo(9), archivedFrom: 'pending' }),
       { ...clone(live[1]), key: 'a-jordan', id: live.reduce((m, q) => Math.max(m, q.id), 0) + 1, status: 'archived', text: 'I have missed more than 9000 shots in my career. I have lost almost 300 games.', keptBy: 'Sam', submittedAt: daysAgo(20), approvedAt: daysAgo(19), archivedAt: daysAgo(3), archivedFrom: 'live', dirty: false },
     ];
-    return {
+    const out = {
       live: live.map((q) => ({ ...q, key: `q${q.id}`, dirty: false })),
       pending, archive,
       lastPublishedAt: daysAgo(3),
       publishDirty: false,
     };
+    out.thoughts = seedThoughts(out.live);
+    return out;
+  }
+  // Made-up thoughts (the demo): two waiting under the first quote, one under the second, and
+  // one already approved into the first.
+  function seedThoughts(live) {
+    const [a, b] = live;
+    if (!a) return [];
+    a.thoughts = [{ key: 'ta', quote: a.id, text: 'I love how this works.', name: 'Anna', submittedAt: daysAgo(6), approvedAt: daysAgo(5) }];
+    return [
+      { key: 'tb', quote: a.id, text: 'i really relate to what you say about letting go.  it took me years to see it', name: 'ruolin', submittedAt: daysAgo(1), seen: false },
+      { key: 'tc', quote: a.id, text: 'Its boundless vision of the world reveals a remarkably expansive spirit.', name: null, submittedAt: daysAgo(2), seen: false },
+      ...(b ? [{ key: 'td', quote: b.id, text: 'read this on the worst day of the year. still here', name: 'sam', submittedAt: daysAgo(3), seen: true }] : []),
+    ];
   }
 
   const fmtDate = (iso) => { if (!iso) return ''; const d = new Date(iso); return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`; };
   const catLabel = (keys) => keys.map((k, i) => { const n = (CATEGORIES.find((c) => c.key === k) || { name: k }).name; return i ? n.toLowerCase() : n; }).join(', ');
-  const listOf = (tab) => store[tab];
+  const listOf = (tab) => (tab === 'thoughts' ? thoughtRows() : store[tab]);
   const findItem = (key) => { for (const tab of ['live', 'pending', 'archive']) { const q = store[tab].find((x) => x.key === key); if (q) return { q, tab }; } return null; };
   // Numbers. A live quote keeps its number for good (an archived live quote's number is retired
   // with it). A pending quote shows its *potential* number: the next free one, in order of
@@ -231,7 +246,7 @@
 
   /* ---------- Routing ---------- */
 
-  const TABS = { live: 1, pending: 1, archive: 1 };
+  const TABS = { live: 1, pending: 1, archive: 1, thoughts: 1 };
   let tab = 'live';
   // The view is kept in history.state (Back / Forward step through views) and in sessionStorage
   // (a reload stays put), never in the address: it stays admin.wordswekeep.org. An address that
@@ -259,6 +274,7 @@
     if (h === 'reset' && !remote) { localStorage.removeItem(STORE_KEY); history.replaceState({ route: 'live' }, '', cleanAddress()); try { sessionStorage.setItem(ROUTE_KEY, 'live'); } catch (e) {} location.reload(); return; }
     const [view, id] = h.split('/');
     if (view === 'edit' && findItem(id)) openEdit(id);
+    else if (view === 'thoughts' && id) { if (thoughtRows().some((r) => r.key === id)) openThoughts(id); else showList('thoughts'); }
     else if (view === 'fonts') showFonts(id);
     else showList(view in TABS ? view : 'live');
   }
@@ -276,7 +292,7 @@
   document.addEventListener('auxclick', (e) => { const el = e.target.closest('[data-href]'); if (el && e.button === 1) follow(el, e); });
 
   // The list and the edit view cross-fade (--view-ms) and the page scrolls back to the top.
-  const VIEWS = { list: 'listView', edit: 'editView', fonts: 'fontsView' };
+  const VIEWS = { list: 'listView', edit: 'editView', fonts: 'fontsView', thoughts: 'thoughtsView' };
   let viewTimer = 0;
   function switchView(view) {
     const cur = admin.dataset.view;
@@ -288,7 +304,7 @@
       viewTimer = setTimeout(() => {
         from.hidden = true; to.hidden = false; to.classList.add('is-out');
         admin.dataset.view = view;
-        $('chromeList').hidden = view === 'edit'; $('chromeEdit').hidden = view !== 'edit';
+        $('chromeList').hidden = $('chromeEdit').hidden = false; $('chromeList').hidden = view === 'edit' || view === 'thoughts'; $('chromeEdit').hidden = !$('chromeList').hidden;
         scroll.scrollTop = 0;
         void to.offsetHeight;
         to.classList.remove('is-out');
@@ -303,12 +319,32 @@
     live:    [{ c: 'c-num', t: 'Number', short: 'No.', sort: 'id' }, { c: 'c-date', t: 'Date published', sort: 'publishedAt' }, { c: 'c-cat', t: 'Category' }, { c: 'c-quote', t: 'Quote', count: true }, { c: 'c-act', t: '' }],
     pending: [{ c: 'c-num', t: 'Number', short: 'No.', sort: 'id' }, { c: 'c-date', t: 'Date submitted', sort: 'submittedAt' }, { c: 'c-cat', t: 'Category' }, { c: 'c-quote', t: 'Quote', count: true }, { c: 'c-act', t: '' }],
     archive: [{ c: 'c-date', t: 'Date archived', sort: 'archivedAt' }, { c: 'c-cat', t: 'Category' }, { c: 'c-quote', t: 'Quote', count: true }, { c: 'c-act', t: '' }],
+    thoughts: [{ c: 'c-num', t: 'Number', short: 'No.', sort: 'id' }, { c: 'c-date', t: 'Last submitted', sort: 'lastSubmitted' }, { c: 'c-date', t: 'Last published', sort: 'lastPublished' }, { c: 'c-cnt', t: 'Approved', sort: 'approved' }, { c: 'c-cnt', t: 'Pending', sort: 'pending' }, { c: 'c-act', t: '' }],
   };
-  const sortState = { live: { key: 'id', dir: -1 }, pending: { key: 'id', dir: -1 }, archive: { key: 'archivedAt', dir: -1 } }; // every list opens newest first
+  const sortState = { live: { key: 'id', dir: -1 }, pending: { key: 'id', dir: -1 }, archive: { key: 'archivedAt', dir: -1 }, thoughts: { key: 'activity', dir: -1 } }; // every list opens newest first; Thoughts: a quote with something waiting first, then by the latest thought (Bill: a new one pushes its quote to the top)
   // A live quote waiting for Publish: "Updated" if the site shows an older version of it, "Not
   // published" if the site does not show it at all (newly approved or put back).
   const unpublished = (q) => (q.dirty ? (q.updated ? 'Updated' : 'Not published') : '');
-  const dateOf = { live: (q) => q.dirty ? '' : (q.approvedAt || ''), pending: (q) => q.submittedAt, archive: (q) => q.archivedAt };
+  const dateOf = { live: (q) => q.dirty ? '' : (q.approvedAt || ''), pending: (q) => q.submittedAt, archive: (q) => q.archivedAt, thoughts: (r) => r.lastSubmitted };
+  // The Thoughts list: one row per quote that has any — waiting (store.thoughts, by the quote's
+  // number) or approved (inside the quote). A thought whose quote is gone for good still shows,
+  // under its number, so it can be removed.
+  const latest = (list, k) => list.reduce((m, t) => (t[k] && t[k] > m ? t[k] : m), '');
+  function thoughtRows() {
+    const rows = new Map();
+    const rowFor = (id) => {
+      if (!rows.has(id)) {
+        const f = [...store.live, ...store.archive].find((q) => q.id === id) || null;
+        rows.set(id, { key: f ? f.key : `gone-${id}`, id, q: f, status: f ? f.status : 'gone', text: f ? f.text : '(This quote is no longer in the library.)', waiting: [], approved: f && Array.isArray(f.thoughts) ? f.thoughts : [] });
+      }
+      return rows.get(id);
+    };
+    [...store.live, ...store.archive].forEach((q) => { if (Array.isArray(q.thoughts) && q.thoughts.length) rowFor(q.id); });
+    store.thoughts.forEach((t) => rowFor(t.quote).waiting.push(t));
+    return [...rows.values()].map((r) => ({ ...r, pending: r.waiting.length, approvedN: r.approved.length,
+      lastSubmitted: latest([...r.waiting, ...r.approved], 'submittedAt'),
+      lastPublished: r.approved.length ? (r.q && r.q.dirty ? '' : (r.q && (r.q.publishedAt || r.q.approvedAt)) || '') : '' })); // with approved thoughts: when the quote last went to the site; "Updated" (blank here) while it waits for Publish
+  }
 
   function showList(t) {
     tab = t;
@@ -316,6 +352,7 @@
     document.querySelectorAll('.tab').forEach((a) => a.classList.toggle('is-active', a.dataset.tab === t));
     $('ctaLive').hidden = t !== 'live'; $('ctaArchive').hidden = t !== 'archive'; $('ctaFonts').hidden = true;
     if (t === 'pending' && store.pending.some((q) => !q.seen)) { store.pending.forEach((q) => { q.seen = true; }); persist(); } // read: the mark goes
+    if (t === 'thoughts' && store.thoughts.some((q) => !q.seen)) { store.thoughts.forEach((q) => { q.seen = true; }); persist(); }
     renderList();
     switchView('list');
     refreshChrome();
@@ -325,6 +362,7 @@
     // How many wait to be reviewed, beside the tab's name: "Pending (3)"; nothing when none (Bill,
     // 2026-10-06; until then a small asterisk said only that some were new).
     $('pendingCount').textContent = store.pending.length ? ` (${store.pending.length})` : '';
+    $('thoughtsCount').textContent = store.thoughts.length ? ` (${store.thoughts.length})` : ''; // thoughts waiting, the same way
     $('publishBtn').disabled = !store.publishDirty;
     $('lastPublished').textContent = store.lastPublishedAt ? `Last published : ${fmtDate(store.lastPublishedAt)}` : 'Never published';
     $('removeAllBtn').disabled = !store.archive.length;
@@ -333,7 +371,9 @@
   // The list as shown: sorted, and in Live and Pending narrowed by the search.
   function sorted(t) {
     const { key, dir } = sortState[t];
-    const val = (q) => (key === 'id' ? numberOf(q) : (key === 'publishedAt' ? (q.dirty ? '￿' : (q.approvedAt || '')) : (q[key] || '')));
+    const val = t === 'thoughts'
+      ? (r) => (key === 'activity' ? `${r.pending ? 1 : 0}${r.lastSubmitted}` : key === 'approved' ? r.approvedN : key === 'lastPublished' ? (r.q && r.q.dirty && r.approvedN ? '￿' : r.lastPublished) : (r[key] || 0))
+      : (q) => (key === 'id' ? numberOf(q) : (key === 'publishedAt' ? (q.dirty ? '￿' : (q.approvedAt || '')) : (q[key] || '')));
     const terms = t in SEARCH_TABS ? fold_(query).split(/\s+/).filter(Boolean) : [];
     return listOf(t).filter((q) => terms.every((w) => hit(q, t, w))).sort((a, b) => (val(a) > val(b) ? 1 : val(a) < val(b) ? -1 : 0) * dir);
   }
@@ -343,13 +383,15 @@
   // finds September and the 9th) and at the start of a word; anything with a "/" in the date as
   // shown (09/26, 9/26/26); anything else anywhere in the words: the quote, its original, the
   // author, the source, the categories, who kept it, and "Updated" / "Not published".
-  const SEARCH_TABS = { live: 1, pending: 1 };
+  const SEARCH_TABS = { live: 1, pending: 1, thoughts: 1 };
   let query = '';
   const fold_ = (s) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').toLowerCase().trim();
   function hit(q, t, w) {
     const date = t === 'live' && q.dirty ? '' : fmtDate(dateOf[t](q));
-    const words = fold_([q.text, q.originalLanguage && q.originalLanguage.text, q.author && q.author.name, q.author && q.author.nativeName, q.author && q.author.origin && `${q.author.origin} proverb`, q.source && q.source.title, catLabel(q.categories), q.keptBy, t === 'live' ? unpublished(q) : ''].filter(Boolean).join(' \n '));
-    if (/^\d+$/.test(w)) return String(numberOf(q)).startsWith(w) || date.split('/').some((p) => Number(p) === Number(w)) || new RegExp(`(^|[^\\d])${w}`).test(words);
+    const words = t === 'thoughts'
+      ? fold_([q.text, ...[...q.waiting, ...q.approved].flatMap((x) => [x.text, x.name])].filter(Boolean).join(' \n ')) // the quote's words and every thought's, with its name
+      : fold_([q.text, q.originalLanguage && q.originalLanguage.text, q.author && q.author.name, q.author && q.author.nativeName, q.author && q.author.origin && `${q.author.origin} proverb`, q.source && q.source.title, catLabel(q.categories), q.keptBy, t === 'live' ? unpublished(q) : ''].filter(Boolean).join(' \n '));
+    if (/^\d+$/.test(w)) return String(t === 'thoughts' ? q.id : numberOf(q)).startsWith(w) || date.split('/').some((p) => Number(p) === Number(w)) || new RegExp(`(^|[^\\d])${w}`).test(words);
     if (w.includes('/')) return date.includes(w) || date.replace(/(^|\/)0/g, '$1').includes(w);
     return words.includes(w);
   }
@@ -362,6 +404,7 @@
       if (h.sort) return `<div class="${h.c}"><button type="button" class="sort" data-key="${h.sort}" data-dir="${sortState[tab].key === h.sort ? sortState[tab].dir : 1}"><span>${label}</span><span class="icon icon-sort"></span></button></div>`;
       return `<div class="${h.c}">${label}</div>`;
     }).join(''));
+    if (tab === 'thoughts') { renderThoughtRows(items); return; }
     const acts = { live: '<button type="button" data-act="edit" aria-label="Edit"><span class="icon icon-edit"></span></button><button type="button" data-act="archive" aria-label="Archive"><span class="icon icon-x16"></span></button>',
                    pending: '<button type="button" data-act="edit" aria-label="Review"><span class="icon icon-eye"></span></button>',
                    archive: '<button type="button" data-act="revert" aria-label="Put back"><span class="icon icon-revert"></span></button><button type="button" data-act="remove" aria-label="Remove"><span class="icon icon-x16"></span></button>' }[tab];
@@ -382,6 +425,23 @@
       </div>`).join('');
     $('empty').hidden = items.length > 0;
     $('empty').textContent = listOf(tab).length ? 'Nothing found.' : { live: 'Nothing live yet.', pending: 'Nothing waiting.', archive: 'The archive is empty.' }[tab];
+  }
+
+  function renderThoughtRows(items) {
+    $('rows').style.setProperty('--num-w', `${String(Math.max(0, ...items.map((r) => r.id))).length}ch`);
+    $('rows').innerHTML = items.map((r) => `
+      <div class="row" data-key="${r.key}" tabindex="0">
+        <div class="row-inner">
+          <p class="c-num num"><span class="num-n">${r.id}</span></p>
+          <p class="c-date num">${fmtDate(r.lastSubmitted)}</p>
+          <p class="c-date num">${r.approvedN ? (r.q && r.q.dirty ? 'Updated' : fmtDate(r.lastPublished)) : ''}</p>
+          <p class="c-cnt num">${r.approvedN}</p>
+          <p class="c-cnt num">${r.pending}</p>
+          <div class="c-act"><button type="button" data-act="thoughts" aria-label="Review"><span class="icon icon-edit"></span></button></div>
+        </div>
+      </div>`).join('');
+    $('empty').hidden = items.length > 0;
+    $('empty').textContent = listOf('thoughts').length ? 'Nothing found.' : 'No thoughts yet.';
   }
 
   // The search button opens the field beside it (--search-ms) and closes it again; closing
@@ -423,11 +483,13 @@
     const act = e.target.closest('[data-act]');
     if (act) { e.preventDefault(); doAction(act.dataset.act, key, row); return; }
     if (row.classList.contains('is-open')) { row.classList.remove('is-open'); return; }
-    if (tab !== 'archive') go(`#edit/${key}`);
+    if (tab === 'thoughts') go(`#thoughts/${key}`);
+    else if (tab !== 'archive') go(`#edit/${key}`);
   });
   $('rows').addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
-    const row = e.target.closest('.row'); if (row && tab !== 'archive') go(`#edit/${row.dataset.key}`);
+    const row = e.target.closest('.row'); if (!row) return;
+    if (tab === 'thoughts') go(`#thoughts/${row.dataset.key}`); else if (tab !== 'archive') go(`#edit/${row.dataset.key}`);
   });
 
   // A row goes: fades out, then the list re-renders without it.
@@ -437,6 +499,7 @@
   }
   async function doAction(act, key, row) {
     if (act === 'edit') { go(`#edit/${key}`); return; }
+    if (act === 'thoughts') { go(`#thoughts/${key}`); return; }
     if (act === 'archive') { leaveRow(row, () => archiveItem(key)); toast('Archived'); }
     if (act === 'revert') { // it goes back onto the site (or into the queue): worth a second look
       const f = findItem(key); const to = f && f.q.archivedFrom === 'live' ? 'live' : 'pending';
@@ -487,7 +550,7 @@
     store.live.forEach((q) => { if (q.dirty) { q.dirty = false; delete q.updated; q.approvedAt = q.approvedAt || t; q.publishedAt = t; } });
     store.publishDirty = false; store.lastPublishedAt = t;
     persist();
-    console.log('[library] publish →', store.live.map(({ dirty, updated, seen, publishedAt, ...q }) => q));
+    console.log('[library] publish →', store.live.map(({ dirty, updated, seen, publishedAt, ...q }) => (q.thoughts && q.thoughts.length ? { ...q, thoughts: q.thoughts.map(({ key, ...t }) => t) } : q)));
     renderList(); refreshChrome();
     toast('Published');
   }
@@ -630,7 +693,7 @@
 
   // Compared without empty annotation pairs (the blank pair the view shows is not a change).
   const norm = (d) => JSON.stringify({ ...d, annotations: d.annotations.filter((a) => a.word.trim() || a.explanation.trim()).map((a) => ({ word: a.word, explanation: a.explanation, orig: !!a.orig })) });
-  const isDirty = () => !!edit && norm(edit.draft) !== norm(edit.orig);
+  const isDirty = () => (edit ? norm(edit.draft) !== norm(edit.orig) : thDirty());
   function updateDirty() {
     const d = isDirty(), ok = checkAnn() && checkFont();
     $('saveBtn').disabled = !d || !ok;
@@ -727,13 +790,15 @@
   // Leaving the edit view with unsaved changes asks first.
   async function leaveTo(hash) {
     if (isDirty() && !(await ask('Leave without saving?', 'Leave', 'Keep editing'))) return;
-    edit = null;
+    edit = null; th = null;
     go(hash);
   }
+  const stepTo = (key) => (admin.dataset.kind === 'thoughts' ? `#thoughts/${key}` : `#edit/${key}`); // the arrows step through the list the view came from
   $('backBtn').addEventListener('click', (e) => { e.preventDefault(); leaveTo($('backBtn').dataset.href); });
-  $('prevBtn').addEventListener('click', () => { if ($('prevBtn').dataset.key) { stepDir = -1; leaveTo(`#edit/${$('prevBtn').dataset.key}`); } });
-  $('nextBtn').addEventListener('click', () => { if ($('nextBtn').dataset.key) { stepDir = 1; leaveTo(`#edit/${$('nextBtn').dataset.key}`); } });
+  $('prevBtn').addEventListener('click', () => { if ($('prevBtn').dataset.key) { stepDir = -1; leaveTo(stepTo($('prevBtn').dataset.key)); } });
+  $('nextBtn').addEventListener('click', () => { if ($('nextBtn').dataset.key) { stepDir = 1; leaveTo(stepTo($('nextBtn').dataset.key)); } });
   document.addEventListener('keydown', (e) => {
+    if (admin.dataset.view === 'thoughts' && th && !popupResolve && (e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); if (thDirty()) saveThoughts(); return; } // ⌘S saves the thoughts and stays
     if (admin.dataset.view !== 'edit' || popupResolve || !edit) return;
     const mod = e.metaKey || e.ctrlKey;
     if (mod && e.key === 's') { e.preventDefault(); if (edit.tab === 'live' && isDirty()) saveEdit(); }
@@ -769,6 +834,7 @@
   // The Save button saves and goes back to the list the quote was opened from (as Approve and
   // Archive do); ⌘S saves and stays, for carrying on with the same quote.
   $('saveBtn').addEventListener('click', () => {
+    if (th) { saveThoughts(); th = null; go('#thoughts'); return; }
     if (!edit) return;
     const back = `#${edit.tab}`;
     saveEdit();
@@ -790,6 +856,116 @@
     edit = null; go('#pending');
   });
   $('revertBtn').addEventListener('click', () => { if (!isDirty()) return; mark(); edit.draft = clone(edit.orig); fill(edit.draft); updateDirty(); });
+
+  /* ---------- One quote's thoughts (Figma 526:1024, since 2026-10-09) ----------
+     Waiting thoughts first, newest first, then the approved. A waiting one can be edited (the
+     words, the name), cleaned up (the house style, as Auto cleanup — the button then reads
+     Revert until it is pressed again or the words are back as they were), removed, or approved:
+     approved, it moves into its quote (q.thoughts, with the time), the quote goes to the site
+     with the next Publish, and only Remove is left. Save keeps the edits to waiting thoughts and
+     goes back to the list; ⌘S saves and stays. Remove asks first, for both kinds. */
+  let th = null; // { key, id, q, drafts: { [thoughtKey]: { text, name } }, orig: { … }, before: { [thoughtKey]: { text, name } } (the state Cleanup started from) }
+  const thDraftOf = (t) => ({ text: t.text || '', name: t.name || '' });
+  const thDirty = () => !!th && Object.keys(th.drafts).some((k) => JSON.stringify(th.drafts[k]) !== JSON.stringify(th.orig[k]));
+  const tidyThought = (d) => ({ text: tidy(d.text, { close: true }), name: d.name.trim().replace(/\s+/g, ' ').replace(/^(\p{Ll})/u, (c) => c.toUpperCase()) });
+  const thItems = (r) => [...r.waiting.slice().sort((a, b) => (a.submittedAt > b.submittedAt ? -1 : 1)), ...r.approved.slice().sort((a, b) => (a.submittedAt > b.submittedAt ? -1 : 1))];
+  async function openThoughts(key) {
+    const r = thoughtRows().find((x) => x.key === key); if (!r) { go('#thoughts'); return; }
+    const stepping = admin.dataset.view === 'thoughts' && stepDir !== 0;
+    const view = $('thoughtsView');
+    if (stepping) { view.style.setProperty('--dir', stepDir); view.classList.add('is-stepping-out'); await new Promise((res) => setTimeout(res, ms(STEP_MS))); }
+    const keep = th && th.key === key ? th : null; // redrawn after an action: the edits to the other thoughts stay
+    th = { key, id: r.id, q: r.q, drafts: {}, orig: {}, before: keep ? keep.before : {} };
+    r.waiting.forEach((t) => { th.orig[t.key] = thDraftOf(t); th.drafts[t.key] = keep && keep.drafts[t.key] ? keep.drafts[t.key] : thDraftOf(t); });
+    admin.dataset.kind = 'thoughts';
+    tab = 'thoughts';
+    $('backBtn').dataset.href = '#thoughts';
+    $('thNo').textContent = `Quote ${r.id}`;
+    $('thQuote').textContent = r.text;
+    $('thList').innerHTML = thItems(r).map((t) => {
+      const waiting = !t.approvedAt, d = waiting ? th.drafts[t.key] : thDraftOf(t);
+      return `<div class="th-item" data-key="${t.key}" data-state="${waiting ? 'pending' : 'approved'}">
+        <div class="th-head"><p>Submitted ${fmtDate(t.submittedAt)}</p><p>${waiting ? 'Pending' : ''}</p></div>
+        <div class="stack">
+          <div class="fw"><textarea class="field th-text" placeholder="Notes" rows="3" aria-label="The thoughts"${waiting ? '' : ' readonly'}>${esc(d.text)}</textarea></div>
+          <div class="fw"><input class="field th-name" type="text" placeholder="Name" autocomplete="off" aria-label="Name" value="${esc(d.name)}"${waiting ? '' : ' readonly'}></div>
+          <div class="row2 th-btns">${waiting
+            ? '<button type="button" class="btn btn--field th-clean">Cleanup</button><button type="button" class="btn btn--soft th-remove">Remove</button><button type="button" class="btn btn--primary th-approve"' + (r.q ? '' : ' disabled') + '>Approve</button>'
+            : '<button type="button" class="btn btn--soft th-remove">Remove</button>'}</div>
+        </div>
+      </div>`;
+    }).join('');
+    $('thList').querySelectorAll('textarea.field').forEach((ta) => { attachBar(ta); fieldLook(ta); ta.dir = 'auto'; });
+    $('thList').querySelectorAll('input.field').forEach((f) => { fieldLook(f); f.dir = 'auto'; });
+    updateThDirty();
+    const list = sorted('thoughts'), i = list.findIndex((x) => x.key === key);
+    $('prevBtn').disabled = i <= 0; $('nextBtn').disabled = i >= list.length - 1;
+    $('prevBtn').dataset.key = i > 0 ? list[i - 1].key : ''; $('nextBtn').dataset.key = i < list.length - 1 ? list[i + 1].key : '';
+    if (stepping) {
+      scroll.scrollTop = 0;
+      view.classList.remove('is-stepping-out'); view.classList.add('is-stepping-in');
+      void view.offsetHeight;
+      view.classList.remove('is-stepping-in');
+    }
+    stepDir = 0;
+    document.querySelectorAll('.tab').forEach((a) => a.classList.toggle('is-active', a.dataset.tab === 'thoughts'));
+    await switchView('thoughts');
+  }
+  // Save (top right) and each Cleanup / Revert button follow the drafts.
+  function updateThDirty() {
+    if (!th) return;
+    $('saveBtn').disabled = !thDirty();
+    $('thList').querySelectorAll('.th-item[data-state="pending"]').forEach((item) => {
+      const k = item.dataset.key, d = th.drafts[k], b = item.querySelector('.th-clean'); if (!d || !b) return;
+      const before = th.before[k], same = (x, y) => JSON.stringify(x) === JSON.stringify(y);
+      if (before && !same(before, d)) { b.textContent = 'Revert'; b.disabled = false; }
+      else { if (before) delete th.before[k]; b.textContent = 'Cleanup'; b.disabled = same(tidyThought(d), d); }
+    });
+  }
+  const thQuote = () => th && th.q && findItem(th.q.key) && findItem(th.q.key).q; // the quote as the store has it now
+  function thTouched(q) { if (!q.dirty) q.updated = true; q.dirty = true; store.publishDirty = true; } // the site shows the quote without this change until the next Publish
+  function saveThoughts() {
+    if (!th) return;
+    store.thoughts.forEach((t) => { const d = th.drafts[t.key]; if (d) { t.text = d.text.trim(); t.name = d.name.trim() || null; } });
+    Object.keys(th.drafts).forEach((k) => { th.orig[k] = { ...th.drafts[k] }; });
+    persist(); updateThDirty();
+    toast('Saved');
+  }
+  $('thList').addEventListener('input', (e) => {
+    const item = e.target.closest('.th-item'); if (!item || !th) return;
+    const d = th.drafts[item.dataset.key]; if (!d) return;
+    if (e.target.classList.contains('th-text')) d.text = e.target.value; else if (e.target.classList.contains('th-name')) d.name = e.target.value;
+    updateThDirty();
+  });
+  $('thList').addEventListener('click', async (e) => {
+    const item = e.target.closest('.th-item'), btn = e.target.closest('button'); if (!item || !btn || !th) return;
+    const k = item.dataset.key, flash = (el) => { el.classList.add('is-flash'); setTimeout(() => el.classList.remove('is-flash'), 600); };
+    if (btn.classList.contains('th-clean')) {
+      const d = th.drafts[k];
+      if (th.before[k] && btn.textContent === 'Revert') { Object.assign(d, th.before[k]); delete th.before[k]; }
+      else { const c = tidyThought(d); if (JSON.stringify(c) === JSON.stringify(d)) return; th.before[k] = { ...d }; Object.assign(d, c); }
+      const ta = item.querySelector('.th-text'), f = item.querySelector('.th-name');
+      if (ta.value !== d.text) { ta.value = d.text; flash(ta); } if (f.value !== d.name) { f.value = d.name; flash(f); }
+      updateThDirty();
+    } else if (btn.classList.contains('th-approve')) {
+      const q = thQuote(), t = store.thoughts.find((x) => x.key === k); if (!q || !t) return;
+      const d = th.drafts[k];
+      store.thoughts = store.thoughts.filter((x) => x.key !== k);
+      delete th.drafts[k]; delete th.orig[k]; delete th.before[k];
+      (q.thoughts = q.thoughts || []).push({ key: t.key, quote: t.quote, text: d.text.trim(), name: d.name.trim() || null, submittedAt: t.submittedAt, approvedAt: nowISO() });
+      thTouched(q);
+      persist(); toast('Approved');
+      await openThoughts(th.key); refreshChrome();
+    } else if (btn.classList.contains('th-remove')) {
+      if (!(await ask('Remove this thought?', 'Remove', 'Not yet'))) return;
+      const q = thQuote();
+      if (item.dataset.state === 'pending') { store.thoughts = store.thoughts.filter((x) => x.key !== k); delete th.drafts[k]; delete th.orig[k]; delete th.before[k]; }
+      else if (q) { q.thoughts = (q.thoughts || []).filter((x) => x.key !== k); if (!q.thoughts.length) delete q.thoughts; thTouched(q); }
+      persist(); toast('Removed');
+      const key = th.key;
+      if (thoughtRows().some((x) => x.key === key)) { await openThoughts(key); refreshChrome(); } else { th = null; go('#thoughts'); }
+    }
+  });
 
   /* ---------- Fields ---------- */
 
