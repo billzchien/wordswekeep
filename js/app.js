@@ -1,6 +1,11 @@
 /* Words We Keep — main experience. Plain JS, renders from data/quotes.json. */
 (() => {
   const DATA_URL = 'data/quotes.json';
+  // Where a visitor's thoughts under a quote go (workers/submit, /thought). On a local preview
+  // nothing is sent: the thought stays in this browser (localStorage "wwk-thoughts"), as the form
+  // does with an entry (js/form.js → SUBMIT_URL); ?real in the address posts to the Worker.
+  const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && !/[?&]real\b/.test(location.search);
+  const THOUGHT_URL = LOCAL ? '' : 'https://api.wordswekeep.org/thought';
   const FACES_URL = 'data/faces.json'; // the quote faces' tuned settings (the library's Fonts tab)
 
   const CATEGORIES = [
@@ -1153,8 +1158,108 @@
     // with the note titled "/Note/", from 2026-10-04).
     let body = q.reflection ? `<div>${paragraphs(q.reflection)}</div>` : '';
     if (q.context) body += `<div class="n-context"><p>Context/</p><div>${paragraphs(q.context)}</div></div>`;
+    body += thoughtsHTML(q) + addThoughtsHTML(q);
     $('nBody').innerHTML = body;
   }
+
+  /* ---------- Thoughts (Figma 525:759, since 2026-10-09) ----------
+     A visitor's thoughts under a quote. Approved ones (the library's Thoughts tab) come with the
+     quote in quotes.json (`thoughts`) and are shown under the context as "Thoughts/", oldest
+     first. New ones are sent to the submit Worker (THOUGHT_URL) from the box "Add thoughts +"
+     opens; once sent, the box gives way to a line of thanks, which stays for that quote until
+     the tab is closed (sessionStorage `wwk-thanked`). Fields and buttons: css/form.css, on the
+     dark ground (css/app.css → .n-add). */
+  let thankedIds = null; // read once it is first needed: `session` is set up further down
+  const thanked = () => thankedIds || (thankedIds = new Set((session.get('wwk-thanked') || '').split(',').filter(Boolean)));
+  function thoughtsHTML(q) {
+    const list = (Array.isArray(q.thoughts) ? q.thoughts : []).filter((t) => t && t.text).slice().sort((a, b) => ((a.submittedAt || '') > (b.submittedAt || '') ? 1 : -1));
+    if (!list.length) return '';
+    return `<div class="n-thoughts"><p>Thoughts/</p>${list.map((t) => `<div class="n-thought"><p>${t.name ? nativeRuns(esc(t.name)) : 'A fellow human'}</p><div class="n-indent n-indent--kept">${paragraphs(t.text)}</div></div>`).join('')}</div>`;
+  }
+  const THANKS = '(Thanks for sharing your thoughts! We’ll take it from here.)';
+  function addThoughtsHTML(q) {
+    if (thanked().has(String(q.id))) return `<div class="n-add"><p class="n-thanks">${THANKS}</p></div>`;
+    return `<div class="n-add" data-quote="${q.id}">
+      <button type="button" class="more n-add-open"><span>Add thoughts</span><span class="icon icon-plus"></span></button>
+      <div class="fold n-add-box" hidden><div class="stack">
+        <div class="fw fw--closable"><textarea class="field n-add-text" placeholder="Your thoughts" rows="3" aria-label="Your thoughts" maxlength="2000"></textarea><button type="button" class="fw-close n-add-close" aria-label="Close"><span class="icon icon-x"></span></button></div>
+        <div class="fold n-add-more" hidden><div>
+          <div class="fw"><input class="field n-add-name" type="text" placeholder="Your first name or nickname" autocomplete="nickname" maxlength="120" aria-label="Your first name or nickname"></div>
+          <button type="button" class="btn n-add-send"><span class="label">Add thoughts</span></button>
+        </div></div>
+      </div></div>
+      <p class="n-thanks" hidden>${THANKS}</p>
+    </div>`;
+  }
+  // A fold opens and shuts as on the form (js/form.js, js/admin.js → fold: change all three).
+  const FOLD_MS = 200;
+  const foldTimers = new WeakMap();
+  function fold(el, open) {
+    clearTimeout(foldTimers.get(el));
+    const wait = reduceMotion.matches ? 0 : FOLD_MS;
+    if (open) { if (!el.hidden && el.classList.contains('is-open')) return; el.hidden = false; void el.offsetHeight; el.classList.add('is-open'); foldTimers.set(el, setTimeout(() => el.classList.add('is-settled'), wait)); }
+    else { if (el.hidden) return; el.classList.remove('is-open', 'is-settled'); foldTimers.set(el, setTimeout(() => { el.hidden = true; }, wait)); }
+  }
+  let sendingThought = false;
+  async function sendThought(root) {
+    if (sendingThought) return;
+    const text = root.querySelector('.n-add-text').value.trim(), name = root.querySelector('.n-add-name').value.trim();
+    const btn = root.querySelector('.n-add-send');
+    if (!text) return;
+    const thought = { quote: Number(root.dataset.quote), text, name, website: '' };
+    sendingThought = true;
+    btn.classList.add('is-busy'); btn.setAttribute('aria-busy', 'true');
+    try {
+      if (THOUGHT_URL) {
+        const r = await fetch(THOUGHT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(thought) });
+        if (!r.ok) throw new Error(`Thought failed: ${r.status}`);
+      } else {
+        let kept = []; try { kept = JSON.parse(localStorage.getItem('wwk-thoughts') || '[]'); } catch (e) { /* none */ }
+        kept.push(thought); try { localStorage.setItem('wwk-thoughts', JSON.stringify(kept)); } catch (e) { /* site data blocked */ }
+        console.log('[Words We Keep] thought (offline, saved to localStorage "wwk-thoughts"):', thought);
+      }
+      thanked().add(root.dataset.quote); session.set('wwk-thanked', [...thanked()].join(','));
+      if (!root.isConnected) return;
+      root.querySelector('.n-add-text').blur();
+      fold(root.querySelector('.n-add-box'), false);
+      setTimeout(() => { if (root.isConnected) root.querySelector('.n-thanks').hidden = false; }, reduceMotion.matches ? 0 : FOLD_MS);
+    } catch (err) {
+      console.error(err);
+      toast('That could not be sent. Please try again.');
+    } finally {
+      sendingThought = false;
+      btn.classList.remove('is-busy'); btn.removeAttribute('aria-busy');
+    }
+  }
+  $('nBody').addEventListener('click', (e) => {
+    const root = e.target.closest('.n-add'); if (!root) return;
+    if (e.target.closest('.n-add-open')) {
+      root.querySelector('.n-add-open').hidden = true;
+      fold(root.querySelector('.n-add-box'), true);
+      root.querySelector('.n-add-text').focus({ preventScroll: true });
+    } else if (e.target.closest('.n-add-close')) {
+      fold(root.querySelector('.n-add-box'), false);
+      setTimeout(() => { if (root.isConnected) root.querySelector('.n-add-open').hidden = false; }, reduceMotion.matches ? 0 : FOLD_MS);
+    } else if (e.target.closest('.n-add-send')) sendThought(root);
+  });
+  $('nBody').addEventListener('input', (e) => { // words typed: the name and the button unfold; none left: they fold away
+    if (!e.target.classList.contains('n-add-text')) return;
+    fold(e.target.closest('.n-add').querySelector('.n-add-more'), !!e.target.value.trim());
+  });
+  // Return starts a new paragraph in the box, Shift+Return breaks the line (the form's and the
+  // library's rule, js/form.js and js/admin.js: change all three).
+  const composing = (e) => e.isComposing || e.keyCode === 229;
+  document.addEventListener('keydown', (e) => {
+    const ta = e.target;
+    if (e.key !== 'Enter' || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey || composing(e) || !ta.matches || !ta.matches('textarea.field') || ta.readOnly) return;
+    e.preventDefault();
+    const v = ta.value, s0 = ta.selectionStart, s1 = ta.selectionEnd;
+    if (!v.slice(0, s0).trim()) return;
+    const nb = v.slice(0, s0).match(/\n*$/)[0].length, na = v.slice(s1).match(/^\n*/)[0].length;
+    const add = '\n'.repeat(Math.max(0, 2 - nb - na));
+    if (add || s0 !== s1) { if (!document.execCommand('insertText', false, add)) { ta.setRangeText(add, s0, s1, 'end'); ta.dispatchEvent(new Event('input', { bubbles: true })); } }
+    const at = s0 + add.length + na; ta.setSelectionRange(at, at);
+  });
 
   function renderNotesQuote() {
     const wrap = $('nQuoteWrap');
@@ -1902,8 +2007,16 @@
     glide.raf = requestAnimationFrame(glideStep);
   }
 
+  // A box under the pointer that can still scroll the way the wheel goes (the thoughts box) scrolls itself first.
+  function scrollsInside(el, dy) {
+    for (; el && el !== notes; el = el.parentElement) {
+      if (el.scrollHeight <= el.clientHeight + 1 || !/auto|scroll/.test(getComputedStyle(el).overflowY)) continue;
+      if (dy < 0 ? el.scrollTop > 0 : el.scrollTop + el.clientHeight < el.scrollHeight - 1) return true;
+    }
+    return false;
+  }
   notes.addEventListener('wheel', (e) => {
-    if (reduceMotion.matches || e.ctrlKey || app.classList.contains('is-dim')) return; // ctrl+wheel = pinch zoom
+    if (reduceMotion.matches || e.ctrlKey || app.classList.contains('is-dim') || scrollsInside(e.target, e.deltaY)) return; // ctrl+wheel = pinch zoom
     e.preventDefault();
     const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? notes.clientHeight : 1; // lines / pages → px
     if (!glide.raf) glide.pos = glide.target = notes.scrollTop;
@@ -2849,6 +2962,7 @@
 
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      if (e.target.matches && e.target.matches('input, textarea')) return e.target.blur(); // out of the thoughts box first, not out of notes
       if (!$('menu').hidden) return closeMenu();
       if (!$('annOverlay').hidden || !$('videoOverlay').hidden) return closeOverlays();
       if (state.mode === 'notes') return setMode('main');

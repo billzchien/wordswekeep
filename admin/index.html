@@ -152,6 +152,15 @@
         </div>
       </section>
 
+      <!-- Thoughts under one quote (Figma 526:1024): the quote, then each thought — waiting ones
+           first, newest first, then the approved — as fields (Notes, Name) with its own buttons:
+           Cleanup / Remove / Approve while it waits, Remove alone once approved (js/admin.js → openThoughts). -->
+      <section class="page thoughts" id="thoughtsView" aria-label="Thoughts" hidden>
+        <div class="edit-meta"><p id="thNo"></p></div>
+        <p class="th-quote" id="thQuote"></p>
+        <div class="th-list" id="thList"></div>
+      </section>
+
       <!-- Fonts: tune a quote face (its size at each length, leading, tracking) on a short, a
            medium and a long quote set as the archive sets them; Save puts it on the site. -->
       <section class="page faces" id="fontsView" aria-label="Quote faces" hidden>
@@ -191,6 +200,7 @@
         <button type="button" class="tab" role="link" data-href="#live" data-tab="live">Live</button>
         <button type="button" class="tab" role="link" data-href="#pending" data-tab="pending">Pending<span id="pendingCount"></span></button>
         <button type="button" class="tab" role="link" data-href="#archive" data-tab="archive">Archive</button>
+        <button type="button" class="tab" role="link" data-href="#thoughts" data-tab="thoughts">Thoughts<span id="thoughtsCount"></span></button>
         <button type="button" class="tab" role="link" data-href="#fonts" data-tab="fonts">Fonts</button>
       </nav>
       <div class="chrome cta" id="ctaLive">

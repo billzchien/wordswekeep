@@ -82,8 +82,9 @@
 @media (hover: hover) { .btn--soft:not(:disabled):hover { border-color: var(--soft); box-shadow: none; filter: brightness(0.96); } }
 .popup .btn { border-color: var(--ink); } /* Figma: the outlined "Not yet" has a black hairline */
 
-/* The edit view's chrome shows Save for a live quote, Archive + Approve for a pending one. */
-.admin[data-kind="live"] [data-for="pending"], .admin[data-kind="pending"] [data-for="live"] { display: none; }
+/* The edit view's chrome shows Save for a live quote, Archive + Approve for a pending one; the
+   thoughts view (data-kind="thoughts") Save alone, no Revert / Auto cleanup. */
+.admin[data-kind="live"] [data-for="pending"], .admin[data-kind="pending"] [data-for="live"], .admin[data-kind="thoughts"] [data-for="pending"], .admin[data-kind="thoughts"] .cta-links { display: none; }
 
 /* ---------- Pages ---------- */
 
@@ -264,6 +265,27 @@
 .edit.is-stepping-in { opacity: 0; translate: 0 calc(var(--dir) * 24 * var(--u)); transition: none; }
 .edit { transition: opacity var(--step-ms) var(--ease), translate var(--step-ms) var(--ease); }
 
+/* ---------- Thoughts (Figma 524:518 the list, 526:1024 one quote's; since 2026-10-09) ----------
+   The list: one row per quote with thoughts — number · last submitted · last published ·
+   approved · pending · the edit icon. One quote's: a single column as wide as the edit view,
+   four grid columns from col2 (margin to margin on a phone): "Quote N" on the meta line, the
+   words, then each thought on the edit view's grid — a 40 head row (Submitted, and Pending
+   while it waits), the words (--ta-s), the name (--fh), its buttons (--fh), 1px apart. */
+.c-cnt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thoughts { margin-left: var(--col2); width: calc(4 * var(--colw) + 3 * var(--g)); padding-left: 0; padding-right: 0; } /* the edit view's measure: four columns from col2 (Bill, 2026-10-09; Figma's two from col3 was too narrow) */
+.th-quote { margin-top: calc(20 * var(--u)); }
+.th-list { display: flex; flex-direction: column; gap: var(--gap-1); margin-top: calc(20 * var(--u)); }
+.th-item { display: flex; flex-direction: column; gap: var(--gap-1); }
+.th-head { display: flex; justify-content: space-between; align-items: center; height: var(--fh); color: var(--meta); white-space: nowrap; font-feature-settings: var(--numeral-features); }
+.th-btns .btn { flex: 1 1 0; min-width: 0; }
+.btn--field { background: var(--field); border-color: var(--field); } /* Cleanup: a field's grey, no frame */
+@media (hover: hover) { .btn--field:not(:disabled):hover { background: var(--field-hover); border-color: var(--field-hover); box-shadow: none; } }
+.btn--field:disabled { background: var(--field); border-color: var(--field); }
+.th-item[data-state="approved"] .field { color: var(--meta); } /* approved: final, read only, in the meta tone */
+.thoughts { --dir: 1; --step-ms: 250ms; transition: opacity var(--step-ms) var(--ease), translate var(--step-ms) var(--ease); }
+.thoughts.is-stepping-out { opacity: 0; translate: 0 calc(var(--dir) * -24 * var(--u)); }
+.thoughts.is-stepping-in { opacity: 0; translate: 0 calc(var(--dir) * 24 * var(--u)); transition: none; }
+
 /* ---------- Pop-up (Figma 303:2108) ---------- */
 
 .popup-layer { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; animation: fade-in 0.2s var(--ease) both; }
@@ -304,15 +326,22 @@
   .row-swipe { display: flex; }
   .edit-cols { grid-template-columns: 1fr; }
   .edit { padding-left: 0; }
+  /* The thoughts list on a tablet and a phone: number · approved · pending. */
+  .admin[data-tab="thoughts"] .thead, .admin[data-tab="thoughts"] .row-inner { grid-template-columns: calc(40 * var(--u)) minmax(0, 1fr) minmax(0, 1fr); }
+  .admin[data-tab="thoughts"] .thead > .c-cnt, .admin[data-tab="thoughts"] .row-inner > .c-cnt { display: block; }
 }
 .h-short { display: none; } /* "No." stands in for "Number" on a phone */
 @media (max-width: 599px) {
   .h-long { display: none; } .h-short { display: inline; }
   .tabs { left: calc(var(--m) + var(--mark) + 20px); }
+  /* Five tabs, two with counts, are wider than a phone (since Thoughts, 2026-10-09): the row ends
+     where the top-line button starts and scrolls sideways, fading out at its right edge. */
+  .tabs { right: calc(var(--btn-inset) + 100 * var(--u) + 12px); overflow-x: auto; scrollbar-width: none; padding-right: 40px; -webkit-mask-image: linear-gradient(to right, black calc(100% - 20px), transparent); mask-image: linear-gradient(to right, black calc(100% - 20px), transparent); }
+  .tabs::-webkit-scrollbar { display: none; }
   .cta-meta { display: none; }
   .thead, .row-inner { grid-template-columns: calc(40 * var(--u)) minmax(0, 1fr); }
   .c-quote { grid-column: 2; }
-  .edit { margin-left: var(--m); margin-right: var(--m); width: auto; }
+  .edit, .thoughts { margin-left: var(--m); margin-right: var(--m); width: auto; }
   .cta-links { padding: 0 calc(8 * var(--u)); gap: calc(12 * var(--u)); }
   .page { padding-top: calc(120 * var(--u)); }
 }
