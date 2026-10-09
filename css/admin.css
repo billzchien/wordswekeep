@@ -474,14 +474,17 @@
 .video-preview p { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--white); }
 
 /* Cropping a video's thumbnail (js/admin.js → startCrop, Figma 500:3978): a row under the player,
-   "Crop thumbnail" / "Done" with its 24px icon at the right (as the dropdowns' chevron); the
+   "Crop thumbnail" with its icon on the left, as "Note background" (Bill, 2026-10-08); while
+   cropping, "Done", and "Undo" beside it once the window has moved, greyed out back at the
+   start — both words alone. The
    built rows' height (--fh), not the frame's 46. While cropping, the player's box holds the
    thumbnail whole, on black, the rest of it dimmed round the window: a white hairline with a
    2px square at each corner (each the hold for sizing), red when the crop would be soft. */
-.crop-btn { width: 100%; justify-content: space-between; padding-right: calc(8 * var(--u)); color: var(--ink); }
-.crop-btn .icon { width: var(--ic-chevron); height: var(--ic-chevron); }
+.crop-btn { width: 100%; color: var(--ink); }
+.crop-btn .icon { width: var(--box); height: var(--box); color: var(--ink); }
+.crop-btn[aria-disabled="true"], .crop-btn[aria-disabled="true"] .icon { color: var(--placeholder); cursor: default; }
+@media (hover: hover) { .crop-btn[aria-disabled="true"]:hover { background: var(--field); } }
 .icon-crop { --src: url(../assets/icons/crop.svg); }
-.icon-done { --src: url(../assets/icons/crop-done.svg); }
 .video-preview.is-cropping { overflow: hidden; user-select: none; -webkit-user-select: none; }
 .crop-img { position: absolute; display: block; pointer-events: none; }
 .crop-win {
@@ -491,9 +494,11 @@
 }
 .crop-win.is-low { --crop-line: #ff3b30; }
 .crop-win:focus-visible { box-shadow: inset 0 0 0 1px var(--crop-line), 0 0 0 100vmax rgba(0, 0, 0, 0.5); }
-.crop-corner { position: absolute; width: 2px; height: 2px; background: var(--crop-line); }
-.crop-corner::before { content: ""; position: absolute; inset: -11px; } /* a 24px hold round the 2px mark */
-.crop-corner[data-c="nw"] { left: -1px; top: -1px; cursor: nwse-resize; }
-.crop-corner[data-c="ne"] { right: -1px; top: -1px; cursor: nesw-resize; }
-.crop-corner[data-c="sw"] { left: -1px; bottom: -1px; cursor: nesw-resize; }
-.crop-corner[data-c="se"] { right: -1px; bottom: -1px; cursor: nwse-resize; }
+.crop-win { --corner: 2px; --hold: 24px; } /* the corner's mark (Figma), and the hold round it */
+@media (pointer: coarse) { .crop-win { --corner: 6px; --hold: 44px; } } /* a finger (Bill, 2026-10-08): a mark to see, a hold to hit */
+.crop-corner { position: absolute; width: var(--corner); height: var(--corner); background: var(--crop-line); }
+.crop-corner::before { content: ""; position: absolute; inset: calc((var(--hold) - var(--corner)) / -2); }
+.crop-corner[data-c="nw"] { left: calc(var(--corner) / -2); top: calc(var(--corner) / -2); cursor: nwse-resize; }
+.crop-corner[data-c="ne"] { right: calc(var(--corner) / -2); top: calc(var(--corner) / -2); cursor: nesw-resize; }
+.crop-corner[data-c="sw"] { left: calc(var(--corner) / -2); bottom: calc(var(--corner) / -2); cursor: nesw-resize; }
+.crop-corner[data-c="se"] { right: calc(var(--corner) / -2); bottom: calc(var(--corner) / -2); cursor: nwse-resize; }
