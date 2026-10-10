@@ -522,6 +522,9 @@ ul { list-style: none; }
 .n-add .is-back { animation: fade-in 0.3s var(--ease) both; } /* the opener or the thanks coming back as the box folds (js/app.js → shutBox) */
 
 .n-topfade { display: none; }
+/* The notes' words laid out out of sight, so their fonts load early (js/app.js → warmNotesSoon):
+   off the left edge, no height (nothing to scroll to), never seen or read. */
+.n-warm { position: absolute; left: -10000px; top: 0; width: 320px; height: 0; overflow: hidden; visibility: hidden; pointer-events: none; }
 
 /* Video thumbnail */
 .thumb {
@@ -531,6 +534,10 @@ ul { list-style: none; }
   aspect-ratio: 160 / 284; /* always the Figma portrait crop, whatever the video's shape */
   overflow: hidden;
   /* no fill colour: a black box must never show while the image is (re)painting */
+  /* Its own layer from the start: Safari otherwise builds one as the scan's colour split comes
+     off (js: scanIn) and shows nothing in it for ~4 frames — the picture blinked out as notes
+     arrived (Bill's recording, 2026-10-10; reproduced in WebKit, gone with this). */
+  will-change: transform;
 }
 /* Desktop hover: a slight lift. (`scale` is separate from the pointer-lean's `translate`.) */
 @media (hover: hover) and (pointer: fine) {
