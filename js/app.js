@@ -1192,7 +1192,7 @@
     </div>`;
   }
   // A fold opens and shuts as on the form (js/form.js, js/admin.js → fold: change all three).
-  const FOLD_MS = 200;
+  const FOLD_MS = 200; // the folds' --fold-ms (css/form.css): the page's timed ease keeps step with it
   const foldTimers = new WeakMap();
   function fold(el, open) {
     clearTimeout(foldTimers.get(el));
@@ -1221,8 +1221,7 @@
       thanked().add(root.dataset.quote); session.set('wwk-thanked', [...thanked()].join(','));
       if (!root.isConnected) return;
       root.querySelector('.n-add-text').blur();
-      fold(root.querySelector('.n-add-box'), false);
-      setTimeout(() => { if (root.isConnected) root.querySelector('.n-thanks').hidden = false; }, reduceMotion.matches ? 0 : FOLD_MS);
+      shutBox(root, root.querySelector('.n-thanks'));
     } catch (err) {
       console.error(err);
       toast('That could not be sent. Please try again.');
@@ -1234,18 +1233,50 @@
   $('nBody').addEventListener('click', (e) => {
     const root = e.target.closest('.n-add'); if (!root) return;
     if (e.target.closest('.n-add-open')) {
+      const box = root.querySelector('.n-add-box');
       root.querySelector('.n-add-open').hidden = true;
-      fold(root.querySelector('.n-add-box'), true);
+      fold(box, true);
       root.querySelector('.n-add-text').focus({ preventScroll: true });
-      keyboardSoon(); // the box into view above the keyboard once it has unfolded
+      // As the box unfolds, the notes glide to their end in the same motion (Bill, 2026-10-09:
+      // open, then move, read as two steps): the end is where the page will be once the box
+      // is at its full height — measured now from the box's content — so the box, the name
+      // field and the button that unfold under it when there are words, and the column's own
+      // foot are all in view, and nothing moves while one types. On a phone the keyboard rises
+      // after this and the keyboard rule (keyboardSoon → keepAboveKeyboard) makes its room then.
+      // The name field and the button are still hidden (--fh, 1px, 1em, --fh): the notes hold
+      // that much room at their foot until the fields unfold into it, so the end is already
+      // where it will be then.
+      laterRoom = 2 * cssPx('--fh', 48) + 1 + cssPx('--text-size', 16);
+      notes.style.paddingBottom = `${(parseFloat(notes.style.paddingBottom) || 0) + laterRoom}px`;
+      const end = notes.scrollHeight - notes.clientHeight + box.firstElementChild.scrollHeight;
+      if (reduceMotion.matches) notes.scrollTop = end; else easeScrollBy(notes, end - notes.scrollTop, FOLD_MS);
+      keyboardSoon();
     } else if (e.target.closest('.n-add-close')) {
-      fold(root.querySelector('.n-add-box'), false);
-      setTimeout(() => { if (root.isConnected) root.querySelector('.n-add-open').hidden = false; }, reduceMotion.matches ? 0 : FOLD_MS);
+      root.querySelector('.n-add-text').blur();
+      shutBox(root, root.querySelector('.n-add-open'));
     } else if (e.target.closest('.n-add-send')) sendThought(root);
   });
+  // The box folds shut and `next` (the opener, or the thanks) fades in under it, rising into
+  // its place as the box goes. The notes hold the box's height of room while it folds, then
+  // glide back (releaseRoom): at the end of the page the fold alone dropped everything above.
+  let laterRoom = 0; // room held for the name field and the button while they are hidden (px)
+  function shutBox(root, next) {
+    const box = root.querySelector('.n-add-box');
+    const shrink = box.offsetHeight;
+    laterRoom = 0; // (released with the rest below)
+    next.hidden = false; next.classList.add('is-back');
+    notes.style.paddingBottom = `${(parseFloat(notes.style.paddingBottom) || 0) + shrink}px`;
+    keyboardRoom = null; // (any keyboard room is released with this one)
+    fold(box, false);
+    releaseRoom(notes, shrink);
+  }
   $('nBody').addEventListener('input', (e) => { // words typed: the name and the button unfold; none left: they fold away
     if (!e.target.classList.contains('n-add-text')) return;
-    fold(e.target.closest('.n-add').querySelector('.n-add-more'), !!e.target.value.trim());
+    const more = e.target.closest('.n-add').querySelector('.n-add-more'), opening = !!e.target.value.trim() && more.hidden;
+    fold(more, !!e.target.value.trim());
+    // They unfold into the room held for them since the box opened: once they fill it (the
+    // fold's 200ms), the room goes — the page does not move.
+    if (opening && laterRoom) { const give = laterRoom; laterRoom = 0; setTimeout(() => { const cur = parseFloat(notes.style.paddingBottom) || 0; notes.style.paddingBottom = cur - give > 1 ? `${cur - give}px` : ''; }, reduceMotion.matches ? 0 : FOLD_MS); }
   });
   // Return starts a new paragraph in the box, Shift+Return breaks the line (the form's and the
   // library's rule, js/form.js and js/admin.js: change all three).
@@ -1286,6 +1317,7 @@
     if (mqMobile.matches) { col.style.marginTop = ''; return; }
     const wrap = $('nQuoteWrap');
     col.style.marginTop = `${wrap.offsetTop + wrap.offsetHeight}px`; // the gap below is --notes-quote-gap
+    notes.style.setProperty('--quote-bottom', `${wrap.offsetTop + wrap.offsetHeight}px`); // a tablet's thumbnail sits this far down, pinned (css #nVideoPin)
   }
 
   let scrollIdle, pinBlur = -1;
@@ -3267,24 +3299,63 @@
   const scrollerOf = (el) => { for (el = el.parentElement; el && el !== document.body; el = el.parentElement) { if (/auto|scroll/.test(getComputedStyle(el).overflowY)) return el; } return null; };
   let keyboardRoom = null; // the scroller given room, while the keyboard is up
   const keyboardHeight = () => { const vv = window.visualViewport; const h = vv ? window.innerHeight - vv.height : 0; return h >= KEYBOARD_MIN ? h : 0; };
-  function keepAboveKeyboard(field) {
+  // `below`: room to keep in view under the field as well (what will unfold under it).
+  function keepAboveKeyboard(field, below = 0) {
     const sc = scrollerOf(field);
     if (!sc) { field.scrollIntoView({ block: 'nearest' }); return; } // nothing of ours scrolls here: the browser pans its visible area instead
     const kb = keyboardHeight();
     if (keyboardRoom && keyboardRoom !== sc) { keyboardRoom.style.paddingBottom = ''; keyboardRoom = null; }
-    if (kb) { sc.style.paddingBottom = `${kb}px`; keyboardRoom = sc; } else if (keyboardRoom) { keyboardRoom.style.paddingBottom = ''; keyboardRoom = null; }
+    if (kb) { sc.style.paddingBottom = `${kb + (sc === notes ? laterRoom : 0)}px`; keyboardRoom = sc; } else if (keyboardRoom) { keyboardRoom.style.paddingBottom = ''; keyboardRoom = null; }
     const vv = window.visualViewport, top = (vv ? vv.offsetTop : 0) + KEYBOARD_TOP, bottom = (vv ? vv.offsetTop + vv.height : window.innerHeight) - KEYBOARD_GAP;
     const r = field.getBoundingClientRect();
     let by = 0;
-    if (r.bottom > bottom) by = r.bottom - bottom;
+    if (r.bottom + below > bottom) by = r.bottom + below - bottom;
     if (r.top - by < top) by = r.top - top; // too tall for the room: its top wins
-    if (Math.abs(by) > 1) sc.scrollTop += by;
+    if (Math.abs(by) > 1) glideBy(sc, by);
+  }
+  // A scroller moves by `by` on the site's curve over `ms` (the thoughts box's fold: FOLD_MS, so
+  // the page and the box move as one — Bill's recordings, 2026-10-09: a jump first, then the
+  // wheel's longer exponential glide, which fought the fold and read as lag); any other scroller,
+  // the browser's smooth scroll. `then` runs once it is there. A wheel or touch meanwhile ends it.
+  function glideBy(sc, by, then, ms = FOLD_MS) {
+    if (sc === notes && !reduceMotion.matches) easeScrollBy(notes, by, ms, then);
+    else {
+      sc.scrollTo({ top: sc.scrollTop + by, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+      if (then) setTimeout(then, reduceMotion.matches ? 0 : 450);
+    }
+  }
+  let easeRun = null; // the one timed scroll under way: a new one takes over from where it is
+  function easeScrollBy(sc, by, ms, then) {
+    const curve = getComputedStyle(document.documentElement).getPropertyValue('--ease').trim();
+    const from = easeRun ? easeRun.to : sc.scrollTop, to = from + by, t0 = performance.now();
+    const run = { to, last: sc.scrollTop };
+    easeRun = run;
+    const step = (now) => {
+      if (easeRun !== run) return; // taken over
+      if (Math.abs(sc.scrollTop - run.last) > 1.5 && now - t0 > 32) { easeRun = null; return; } // someone else moved the page (the wheel): leave it
+      const p = Math.min(1, (now - t0) / ms);
+      sc.scrollTop = run.last = from + by * easeProgressAt(p, curve); // (clamped by the browser while the box is still growing: it keeps step with the fold)
+      run.last = sc.scrollTop;
+      if (p < 1) requestAnimationFrame(step); else { easeRun = null; if (then) then(); }
+    };
+    requestAnimationFrame(step);
+  }
+  // Takes the room at a scroller's foot away without a jump: first the page glides back by what
+  // it would lose, then the room goes. (Taking it away at once dropped everything above by that
+  // much: the box folding shut, the keyboard going — Bill's recording, 2026-10-09.)
+  // `going`: content still in the page that is about to fold away (the box), counted as gone.
+  function releaseRoom(sc, going = 0) {
+    const pad = parseFloat(sc.style.paddingBottom) || 0; if (!pad) return;
+    const lose = Math.max(0, sc.scrollTop - (sc.scrollHeight - pad - going - sc.clientHeight));
+    const done = () => { if ((parseFloat(sc.style.paddingBottom) || 0) === pad) sc.style.paddingBottom = ''; }; // unless something else has set new room since
+    if (lose <= 1) { done(); return; }
+    glideBy(sc, -lose, done);
   }
   let keyboardTimer = 0;
   const keyboardSettle = () => { // whatever has focus now (not an event's target: a window without focus fires no focus events)
     const f = document.activeElement;
-    if (f && f.matches && f.matches('input, textarea')) keepAboveKeyboard(f);
-    else if (keyboardRoom) { keyboardRoom.style.paddingBottom = ''; keyboardRoom = null; } // the keyboard went with the focus: the room goes too
+    if (f && f.matches && f.matches('input, textarea')) keepAboveKeyboard(f, f.classList.contains('n-add-text') ? laterRoom : 0); // the thoughts box: with the room held under it for the fields that unfold there
+    else if (keyboardRoom) { const sc = keyboardRoom; keyboardRoom = null; if (sc === notes) laterRoom = 0; releaseRoom(sc); } // the keyboard went with the focus: the room goes too, with a glide
   };
   const keyboardSoon = () => { clearTimeout(keyboardTimer); keyboardTimer = setTimeout(keyboardSettle, 350); }; // once the keyboard has risen (iOS: ~300ms) and a fold has opened
   document.addEventListener('focusin', (e) => { if (e.target.matches && e.target.matches('input, textarea')) keyboardSoon(); });
