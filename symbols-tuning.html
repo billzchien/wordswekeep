@@ -9,6 +9,7 @@
     /* A tuning page for the ribbon draw (assets/symbols). Nothing here is saved: the values
        shown at the bottom are what would go into the two JSON files. */
     * { box-sizing: border-box; margin: 0; }
+    html { -webkit-tap-highlight-color: transparent; } /* no grey box on tap, as every page (css/tokens.css) */
     body { background: #E6E6E6; color: #000; font: 14px/1.4 ui-sans-serif, system-ui, sans-serif; display: grid; grid-template-columns: 1fr 320px; min-height: 100vh; }
     .stage { display: grid; place-items: center; position: relative; }
     .stage svg { overflow: visible; }

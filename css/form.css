@@ -104,6 +104,9 @@
 .group--16 { gap: var(--gap-16); }
 .group--24 { gap: var(--gap-24); }
 .group--11 { gap: calc(11 * var(--u)); }
+/* A question (and its description) to its field: always 16, as on the first two steps — in a 12
+   group only the question gets the 4 more, so what follows the field keeps its 12 (Bill, 2026-10-10). */
+.group:not([class*="group--"]) > .q { margin-bottom: calc(var(--gap-16) - var(--gap-12)); }
 
 .q { display: flex; flex-direction: column; width: 100%; position: relative; }
 .q--pad { padding-right: var(--gap-40); gap: calc(2 * var(--u)); }
@@ -582,3 +585,9 @@ html.is-arriving .step:first-child .content > .group > *, html.is-arriving .step
 
 /* A dropdown picked from, never typed into (js: combo → select): the whole field opens it. */
 .combo--select .field { cursor: pointer; caret-color: transparent; }
+
+/* Under a send button — the form's "Add words", the notes' "Add thoughts" (Bill, 2026-10-10): what
+   happens next, in italics and the context's placeholder grey, ~12 under the button; "How we keep
+   them" opens the privacy page in a new tab, with the menu's dotted underline (css/app.css → .ann). */
+.send-note { margin-top: calc(12 * var(--u)); font-style: italic; color: var(--placeholder); white-space: normal; }
+.send-note [data-href] { white-space: nowrap; } /* "How we keep them" stays one piece: on a narrow screen it goes to the next line whole */

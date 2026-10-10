@@ -2,6 +2,11 @@
    Single source of truth; app.css and styleguide.html only reference these.
    Category palettes match the Figma "Colors" section (node 227:4163). */
 
+/* No grey box when a link or button is tapped (Safari, iOS), on every page: the property is
+   inherited, so one declaration here reaches every element of any page that loads this file —
+   every page of the site does (Bill, 2026-10-10: "so I don't need to tell you again"). */
+html { -webkit-tap-highlight-color: transparent; }
+
 :root {
   /* ---------- Color: base ---------- */
   --paper: #E6E6E6;   /* main + menu background */

@@ -117,22 +117,24 @@
       <!-- 5 · Reflection + name -->
       <section class="step" data-step="4" aria-label="Step 5 of 5">
         <div class="content content--40">
-          <div class="group group--24">
-            <div class="group">
-              <div class="q q--pad">
-                <div class="q-title"><p>Why did this quote resonate with you?</p><span class="icon req" aria-hidden="true"></span></div>
-                <p class="q-desc">Tell us what these words unlock for you — a turning point, a realization, a quiet recognition</p>
-              </div>
-              <div class="fw"><textarea class="field field--taller" id="fReflection" placeholder="" rows="7" required aria-label="Why did this quote resonate with you?"></textarea></div>
+          <!-- As the thoughts box (Bill, 2026-10-10): the name rides 1 under the words, with no question of
+               its own; it, then "Add words" and its line, unfold once there are words (js/form.js → refresh). -->
+          <div class="group">
+            <div class="q q--pad">
+              <div class="q-title"><p>Why did this quote resonate with you?</p><span class="icon req" aria-hidden="true"></span></div>
+              <p class="q-desc">A turning point, a realization, a quiet recognition</p>
             </div>
-            <div class="group">
-              <div class="q q--pad"><div class="q-title"><p>Leave your first name or pen name, if you want</p></div></div>
-              <div class="fw"><input class="field" id="fKeptBy" type="text" placeholder="" autocomplete="given-name" aria-label="First name or pen name"></div>
+            <div class="stack">
+              <div class="fw"><textarea class="field field--taller" id="fReflection" placeholder="" rows="7" required aria-label="Why did this quote resonate with you?"></textarea></div>
+              <div class="fold" id="fKeptByWrap" hidden><div><div class="fw"><input class="field" id="fKeptBy" type="text" placeholder="First name or nickname, optional" autocomplete="given-name" aria-label="First name or nickname, optional"></div></div></div>
             </div>
           </div>
           <!-- Honeypot: humans never see it; a bot that fills it is dropped by the worker. -->
           <div class="hp" aria-hidden="true"><input type="text" id="fWebsite" name="website" tabindex="-1" autocomplete="off"></div>
-          <button type="button" class="btn btn--primary" id="submitBtn" disabled>Add words</button>
+          <div class="fold" id="submitWrap" hidden><div>
+            <button type="button" class="btn btn--primary" id="submitBtn" disabled>Add words</button>
+            <p class="send-note">These words join the collection once approved. <span role="link" tabindex="0" data-href="privacy" data-out>How we keep them</span></p> <!-- the privacy page, in a new tab (css/form.css → .send-note) -->
+          </div></div>
         </div>
       </section>
 

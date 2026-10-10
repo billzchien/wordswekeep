@@ -17,7 +17,7 @@
   ];
   const ALL = {
     key: 'all', name: 'All words',
-    desc: 'Words We Keep is a collection of words from every culture, time, and corner of life, shared by the people who hold them close. Words that found you at the right time, changed how you see, and stayed engraved. It hopes to revive the good spirit of the internet, where wisdom from strangers can inspire and heal. A side project by Bill, a designer based in Brooklyn. Thoughts go to hello@wordswekeep.org',
+    desc: 'Words We Keep is a collection of words from every culture, time, and corner of life, shared by the people who hold them close. Words that found you at the right time, changed how you see, and stayed engraved. It hopes to revive the good spirit of the internet, where wisdom from strangers can inspire and heal. A project by Bill, a designer based in Brooklyn. Thoughts go to hello@wordswekeep.org',
     links: [ // the first of each text in desc becomes a link (js → setDesc)
       { text: 'Bill', href: 'https://www.billchien.net' },
       { text: 'hello@wordswekeep.org', href: 'mailto:hello@wordswekeep.org' },
@@ -1211,8 +1211,9 @@
       <div class="fold n-add-box" hidden><div class="stack">
         <div class="fw fw--closable"><textarea class="field n-add-text" placeholder="Your thoughts" rows="3" aria-label="Your thoughts" maxlength="2000"></textarea><button type="button" class="fw-close n-add-close" aria-label="Close"><span class="icon icon-x"></span></button></div>
         <div class="fold n-add-more" hidden><div>
-          <div class="fw"><input class="field n-add-name" type="text" placeholder="Your first name or nickname" autocomplete="nickname" maxlength="120" aria-label="Your first name or nickname"></div>
+          <div class="fw"><input class="field n-add-name" type="text" placeholder="First name or nickname, optional" autocomplete="nickname" maxlength="120" aria-label="First name or nickname, optional"></div>
           <button type="button" class="btn n-add-send"><span class="label">Add thoughts</span></button>
+          <p class="send-note">Thoughts appear here once approved. <span role="link" tabindex="0" data-href="privacy" data-out>How we keep them</span></p>
         </div></div>
       </div></div>
       <p class="n-thanks" hidden>${THANKS}</p>
@@ -1271,10 +1272,16 @@
       // foot are all in view, and nothing moves while one types. On a phone the keyboard rises
       // after this and the keyboard rule (keyboardSoon → keepAboveKeyboard) makes its room and
       // sets the page, at once, when it is up.
-      // The name field and the button are still hidden (--fh, 1px, 1em, --fh): the notes hold
-      // that much room at their foot until the fields unfold into it, so the end is already
-      // where it will be then.
-      laterRoom = 2 * cssPx('--fh', 48) + 1 + cssPx('--text-size', 16);
+      // The name field, the button and the line under it are still hidden: the notes hold their
+      // height (measured, with the 1px the fold opens by) at their foot until they unfold into
+      // it, so the end is already where it will be then. Measured, not summed from tokens: the
+      // fold's content changed twice on 2026-10-10 (the line, the form's 40 to the button).
+      const more = box.querySelector('.n-add-more');
+      if (more.hidden) {
+        more.hidden = false; // (read and hidden again before anything is drawn)
+        laterRoom = more.firstElementChild.scrollHeight + cssPx('--gap-1', 1);
+        more.hidden = true;
+      } else laterRoom = 0; // (words already there: they are open, nothing to hold)
       setRoom(notes, roomOf(notes) + laterRoom);
       const end = notes.scrollHeight - notes.clientHeight + box.firstElementChild.scrollHeight;
       if (reduceMotion.matches) notes.scrollTop = end; else easeScrollBy(notes, end - notes.scrollTop, FOLD_MS);

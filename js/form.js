@@ -202,6 +202,9 @@
       if (next) next.disabled = !valid[i]();
     });
     $('submitBtn').disabled = !valid[4]();
+    // Step 5, as the thoughts box: the name, then "Add words" and its line, unfold once there are
+    // words, and fold away if they are deleted (Bill, 2026-10-10).
+    fold($('fKeptByWrap'), valid[4]()); fold($('submitWrap'), valid[4]());
     // Step 4's button reads "Skip" until there is something to keep.
     $('ctxNext').textContent = (data.context.trim() || data.annotations.length) ? 'Next' : 'Skip';
     const n = data.annotations.length;
