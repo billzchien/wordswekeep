@@ -301,10 +301,10 @@
       "kind": "interview",
       "link": "https://youtu.be/xZFyT_8gukU?si=kSog6uCMQr85Grc8&t=88",
       "crop": {
-        "x": 0.3071,
-        "y": 0,
-        "w": 0.3169,
-        "h": 1
+        "x": 0.311,
+        "y": 0.0083,
+        "w": 0.3088,
+        "h": 0.9745
       }
     },
     "context": "Sheryl Lee Ralph got her 1st Emmy Nomination at the age of 65, and this was the advice for those who struggle with their dreams:  “Don’t you ever give up. Don’t you ever give up on you. Don’t you ever give up on your dreams. Because no matter what, if it is meant for you, it will not miss you… So you must believe in yourself. You must really get up off of the sidelines of your own life and get in there and fight for you.You’re the best person out there to put up a good fight for you. And just know, if you don’t make it at 10 you can make it at 30. You don’t make it at 30 you can make it at 50. You don’t make it at 50, you can make it at 60 and still give them goodness.”",
@@ -705,6 +705,15 @@
     "approvedAt": "2026-10-09T02:51:47.373Z",
     "submittedAt": "2026-10-08T23:35:31.545Z",
     "font": "instrument",
-    "id": 25
+    "id": 25,
+    "thoughts": [
+      {
+        "quote": 25,
+        "text": "Awesome just testing this out!",
+        "name": "Bill",
+        "submittedAt": "2026-10-09T22:01:04.738Z",
+        "approvedAt": "2026-10-10T01:22:02.170Z"
+      }
+    ]
   }
 ]
