@@ -2581,6 +2581,7 @@
   // The mark: the current category's symbol draws itself in (or, `animate` false, is simply there).
   let markStop = null;
   let markBusy = false; // the mark is drawing (in, out, or the hover's redraw); markStop alone stays set after a draw-in
+  let markDrawn = false; // the mark has been put on the page (drawn in, or simply there) — until then it stays empty
   function drawMark(animate = true) {
     const name = SYM[state.filter];
     markReady.then(({ lib, model, r }) => {
@@ -2588,6 +2589,7 @@
       markStop = null;
       $('menuBtn').classList.remove('is-static');
       markBusy = false;
+      markDrawn = true;
       if (!animate) return r.rest(name);
       r.drawIn(name, 0);
       markBusy = true;
@@ -2605,7 +2607,9 @@
       svg._r.rest(SYM[svg.dataset.sym]);
     });
     if (markSym) return make(); // at once: the scan starts in this same turn
-    markReady.then(make).catch(() => svgs.forEach((svg) => {
+    // The files came in after the scan had passed (notes opened that fast, or a slow line): the
+    // symbols draw in now rather than appearing whole (2026-10-10).
+    markReady.then(() => { make(); svgs.forEach((svg, i) => drawNoteSym(svg, i * NOTE_SYM_STAGGER_MS)); }).catch(() => svgs.forEach((svg) => {
       const still = document.createElement('span');
       still.className = 'icon icon-mark';
       still.dataset.sym = svg.dataset.sym;
@@ -2661,7 +2665,9 @@
     const svg = $('markSym');
     svg.replaceChildren();
     markSym.r = markSym.lib.createRenderer(svg, menuSym.model, { ...SYM_SMALL, drawInModel: markSym.model });
-    if (menuEl.hidden) markSym.r.rest(SYM[state.filter]); else markSym.r.drawIn(SYM[state.filter], 0); // (menu open: the mark is undrawn)
+    // (menu open: the mark is undrawn. Not drawn in yet: it stays empty for its draw-in — the
+    // morph file can arrive first, which showed the whole symbol before it drew in, 2026-10-10)
+    if (menuEl.hidden && markDrawn) markSym.r.rest(SYM[state.filter]); else markSym.r.drawIn(SYM[state.filter], 0);
     markMorph = true;
   }).catch(() => {});
   function hoverMark() {
