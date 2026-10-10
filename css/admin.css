@@ -8,7 +8,7 @@
   --ta-s: calc(3 * var(--fh) + 2 * var(--gap-1)); /* every large box (the words, context, personal note…): three rows of the grid, gaps included — 122 (Bill, 2026-10-04; it was 100) */
   --rule: #b2b2b2;                   /* table rules, the edit view's meta rule */
   --head: #5e5e5e;                   /* table column heads */
-  --meta: #707070;                   /* "Last published", No. / Published */
+  --meta: #676767;                   /* "Last published", No. / Published (#707070 until 2026-10-10: 3.97:1, short of AA; now 4.53 on the page, 5.0 on a field) */
   --soft: #ffc2c2;                   /* the pending view's Archive button */
   --popup-shadow: 0 0 20px rgba(0, 0, 0, 0.10);
   --btn-h: calc(32 * var(--u));      /* the small buttons on the top line */

@@ -24,7 +24,7 @@
   --field:        #f3f3f3;   /* input at rest */
   --field-hover:  #ffffff;   /* input hovered / focused */
   --placeholder:  #565656;   /* placeholders and question descriptions */
-  --cat-desc:     #696969;   /* category descriptions */
+  --cat-desc:     #676767;   /* category descriptions (#696969 until 2026-10-10: 4.40:1 on the page, short of AA; now 4.53) */
   --btn-line:     #757575;   /* outlined button border */
   --btn-off:      #757575;   /* disabled primary button */
   --btn-off-text: #a8a8a8;   /* disabled outlined button text */
