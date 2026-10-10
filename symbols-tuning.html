@@ -67,7 +67,7 @@
   <script type="module">
     import { createModel, createRenderer } from 'assets/symbols/ribbon-draw.js';
     const DIR = 'assets/symbols/';
-    const [TR, DI] = await Promise.all(['symbol-transitions.json', 'symbol-draw-in.json'].map((f) => fetch(DIR + f).then((r) => r.json())));
+    const [TR, DI] = await Promise.all(['symbol-transitions.json', 'symbol-draw-in.json'].map((f) => fetch('https://fonts.wordswekeep.org/s/' + f).then((r) => r.json())));
     const $ = (id) => document.getElementById(id);
     const names = Object.keys(TR.symbols);
 

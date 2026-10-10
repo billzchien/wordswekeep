@@ -2559,10 +2559,11 @@
      files. Two are drawn live: the mark at the top left (the current category's symbol; it
      draws in with the typing and as the menu closes) and the menu's one large symbol. The
      symbols elsewhere (notes, the form, the library) are still images: css .icon-mark. */
-  const SYM_DIR = 'assets/symbols/';
+  const SYM_DIR = 'assets/symbols/'; // the drawing code (no shapes in it)
+  const SYM_DATA = 'https://fonts.wordswekeep.org/s/'; // the symbols' shapes and motion: the fonts Worker, not the public repo (2026-10-10)
   const SYM = { all: 'All', perspective: 'Perspective', growth: 'Growth', drive: 'Drive', community: 'Community', romance: 'Romance' };
   const SYM_SMALL = { levels: 2, pieces: 10 }, SYM_SMALL_STRIDE = 3; // the 24px mark: the file's low-cost settings
-  const symJSON = (file) => fetch(SYM_DIR + file).then((r) => { if (!r.ok) throw new Error(`${file}: ${r.status}`); return r.json(); });
+  const symJSON = (file) => fetch(SYM_DATA + file).then((r) => { if (!r.ok) throw new Error(`${file}: ${r.status}`); return r.json(); });
   let markSym = null, menuSym = null; // { lib, model, r } once their files are in
   // The mark needs the draw-in file only, so it is ready first; the menu's symbol needs both.
   const markReady = Promise.all([import(new URL(SYM_DIR + 'ribbon-draw.js', document.baseURI).href), symJSON('symbol-draw-in.json')]).then(([lib, data]) => {

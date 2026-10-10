@@ -348,7 +348,7 @@ textarea.field::-webkit-scrollbar { display: none; }
 .done { --done-sym: calc(200 * var(--u)); }
 .done-sym { width: var(--done-sym); height: var(--done-sym); }
 .done-sym .sym { width: 100%; height: 100%; }
-.done-sym.is-static { background: currentColor; -webkit-mask: url(../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; mask: url(../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; } /* the symbols' files did not load: the still image */
+.done-sym.is-static { background: currentColor; -webkit-mask: url(https://fonts.wordswekeep.org/s/All.svg) center / 100% 100% no-repeat; mask: url(https://fonts.wordswekeep.org/s/All.svg) center / 100% 100% no-repeat; } /* the symbols' files did not load: the still image */
 .done-btns { display: flex; gap: var(--gap-4); width: 100%; }
 .done-btns .btn { flex: 1 1 0; min-width: 0; }
 .done > * { opacity: 0; }

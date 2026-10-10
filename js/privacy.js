@@ -54,7 +54,7 @@ const home = document.querySelector('.pv-home');
 try {
   const [lib, data] = await Promise.all([
     import('../assets/symbols/ribbon-draw.js'),
-    fetch('assets/symbols/symbol-draw-in.json').then((r) => { if (!r.ok) throw new Error(`symbols: ${r.status}`); return r.json(); }),
+    fetch('https://fonts.wordswekeep.org/s/symbol-draw-in.json').then((r) => { if (!r.ok) throw new Error(`symbols: ${r.status}`); return r.json(); }),
   ]);
   const model = lib.createModel(data);
   const r = lib.createRenderer(document.getElementById('pvSym'), model);

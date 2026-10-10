@@ -23,7 +23,7 @@ html.pv-page::-webkit-scrollbar { display: none; }
    the text is two columns to its right); a click goes back to the collection. */
 .pv-home { position: fixed; z-index: 2; left: var(--m); top: var(--m); width: var(--sym); height: var(--sym); }
 .pv-home .sym { width: 100%; height: 100%; }
-.pv-home.is-static { background: currentColor; -webkit-mask: url(../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; mask: url(../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; } /* the symbols' files did not load: the still image */
+.pv-home.is-static { background: currentColor; -webkit-mask: url(https://fonts.wordswekeep.org/s/All.svg) center / 100% 100% no-repeat; mask: url(https://fonts.wordswekeep.org/s/All.svg) center / 100% 100% no-repeat; } /* the symbols' files did not load: the still image */
 
 .pv-col {
   margin-left: var(--col3);

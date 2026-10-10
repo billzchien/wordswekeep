@@ -84,13 +84,13 @@ ul { list-style: none; }
   -webkit-mask: var(--src) center / 100% 100% no-repeat;
   mask: var(--src) center / 100% 100% no-repeat;
 }
-/* The category symbols as still images (assets/symbols/svg). With no data-sym it is "All": the logo. */
-.icon-mark  { --src: url(../assets/symbols/svg/All.svg); width: var(--mark); height: var(--mark); }
-.icon-mark[data-sym="perspective"] { --src: url(../assets/symbols/svg/Perspective.svg); }
-.icon-mark[data-sym="growth"]      { --src: url(../assets/symbols/svg/Growth.svg); }
-.icon-mark[data-sym="drive"]       { --src: url(../assets/symbols/svg/Drive.svg); }
-.icon-mark[data-sym="community"]   { --src: url(../assets/symbols/svg/Community.svg); }
-.icon-mark[data-sym="romance"]     { --src: url(../assets/symbols/svg/Romance.svg); }
+/* The category symbols as still images (served by the fonts Worker, /s/: not in the public repo — workers/fonts). With no data-sym it is "All": the logo. */
+.icon-mark  { --src: url(https://fonts.wordswekeep.org/s/All.svg); width: var(--mark); height: var(--mark); }
+.icon-mark[data-sym="perspective"] { --src: url(https://fonts.wordswekeep.org/s/Perspective.svg); }
+.icon-mark[data-sym="growth"]      { --src: url(https://fonts.wordswekeep.org/s/Growth.svg); }
+.icon-mark[data-sym="drive"]       { --src: url(https://fonts.wordswekeep.org/s/Drive.svg); }
+.icon-mark[data-sym="community"]   { --src: url(https://fonts.wordswekeep.org/s/Community.svg); }
+.icon-mark[data-sym="romance"]     { --src: url(https://fonts.wordswekeep.org/s/Romance.svg); }
 /* The symbols drawn live (js/app.js → "Symbols"): an <svg viewBox="0 0 60 60">, inked in the text colour. */
 .sym { display: block; overflow: visible; }
 .icon-arrow { --src: url(../assets/icons/arrow-up.svg); width: 12px; height: 12px; }
@@ -101,7 +101,7 @@ ul { list-style: none; }
 
 .chrome { position: absolute; z-index: 20; }
 .menu-btn .sym { width: var(--mark); height: var(--mark); }
-.menu-btn.is-static::before { content: ""; position: absolute; inset: 0; background: currentColor; -webkit-mask: url(../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; mask: url(../assets/symbols/svg/All.svg) center / 100% 100% no-repeat; } /* the still logo, until the drawn one is ready (back from the form; symbols' files missing) */
+.menu-btn.is-static::before { content: ""; position: absolute; inset: 0; background: currentColor; -webkit-mask: url(https://fonts.wordswekeep.org/s/All.svg) center / 100% 100% no-repeat; mask: url(https://fonts.wordswekeep.org/s/All.svg) center / 100% 100% no-repeat; } /* the still logo, until the drawn one is ready (back from the form; symbols' files missing) */
 .menu-btn  { top: var(--mark-top); left: var(--mark-top); } /* the same distance from the top and the left edge */ /* centred on the caps of No. / Notes; same spot as the first category mark in notes mode */
 .number    { top: calc(20px - var(--cap-offset)); left: var(--col2); white-space: nowrap; font-feature-settings: "ss01" 1, "ss07" 1, "lnum" 1, "pnum" 1; } /* caps on the mark's top edge; lining figures, proportional: tabular ones (--numeral-features) set a gap around the 1 of "16" */
 /* The number rolls on a change (js/app.js → setNumber): a box one line high, the old and the next

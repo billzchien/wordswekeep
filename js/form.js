@@ -1294,11 +1294,12 @@
      → "Symbols"). Fetched a moment after the page has loaded, well before anything is submitted.
      Without them the still images stand: the logo simply goes and comes, the large symbol is
      simply there. */
-  const SYM_DIR = 'assets/symbols/';
+  const SYM_DIR = 'assets/symbols/'; // the drawing code (no shapes in it)
+  const SYM_DATA = 'https://fonts.wordswekeep.org/s/'; // the symbols' shapes and motion: the fonts Worker, not the public repo (2026-10-10)
   const HOME_OUT_MS = 300; // the logo drawing itself out (the archive's MENU_ICON_MS)
   let sym = null;          // { lib, model, home, done } once the files are in
   const symReady = new Promise((r) => setTimeout(r, 1200))
-    .then(() => Promise.all([import(new URL(SYM_DIR + 'ribbon-draw.js', document.baseURI).href), fetch(SYM_DIR + 'symbol-draw-in.json').then((r) => { if (!r.ok) throw new Error(`symbols: ${r.status}`); return r.json(); })]))
+    .then(() => Promise.all([import(new URL(SYM_DIR + 'ribbon-draw.js', document.baseURI).href), fetch(SYM_DATA + 'symbol-draw-in.json').then((r) => { if (!r.ok) throw new Error(`symbols: ${r.status}`); return r.json(); })]))
     .then(([lib, data]) => {
       const model = lib.createModel(data);
       sym = { lib, model, home: lib.createRenderer($('homeSym'), model, { levels: 2, pieces: 10 }), done: lib.createRenderer($('doneSym'), model) };
