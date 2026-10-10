@@ -350,7 +350,7 @@
     tab = t;
     admin.dataset.tab = t;
     document.querySelectorAll('.tab').forEach((a) => a.classList.toggle('is-active', a.dataset.tab === t));
-    $('ctaLive').hidden = t !== 'live'; $('ctaArchive').hidden = t !== 'archive'; $('ctaFonts').hidden = true;
+    $('ctaLive').hidden = t !== 'live' && t !== 'thoughts'; $('ctaArchive').hidden = t !== 'archive'; $('ctaFonts').hidden = true; // Publish and "Last published" on Live and on Thoughts (an approved thought waits for Publish; Figma 524:518)
     if (t === 'pending' && store.pending.some((q) => !q.seen)) { store.pending.forEach((q) => { q.seen = true; }); persist(); } // read: the mark goes
     if (t === 'thoughts' && store.thoughts.some((q) => !q.seen)) { store.thoughts.forEach((q) => { q.seen = true; }); persist(); }
     renderList();
