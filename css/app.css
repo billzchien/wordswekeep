@@ -7,7 +7,6 @@
   --cols: 6;
   --colw: calc((100vw - 2 * var(--m) - (var(--cols) - 1) * var(--g)) / var(--cols));
   --step: calc(var(--colw) + var(--g));
-  --col1-mid: calc(var(--m) + var(--colw) / 2);
   --col2: calc(var(--m) + var(--step));
   --col3: calc(var(--m) + 2 * var(--step));
   --col4: calc(var(--m) + 3 * var(--step));
@@ -53,9 +52,11 @@ ul { list-style: none; }
 
 /* ---------- Shared bits ---------- */
 
-/* Focus: no ring for mouse/touch; a quiet hairline in the current color for Tab navigation. */
+/* Focus: no ring for mouse/touch; for Tab navigation a hairline box in the text's own colour —
+   black on the page, the theme colour in notes, white on white text (Bill, 2026-10-10). A filled
+   button takes its fill's colour instead (form.css: .btn--primary; .menu-apply below). */
 :focus { outline: none; }
-:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; }
+:focus-visible { outline: var(--hairline) solid currentColor; outline-offset: 3px; }
 
 /* Text links: hairline underline that redraws left → right on hover. */
 .link,
@@ -95,7 +96,6 @@ ul { list-style: none; }
 .icon-arrow { --src: url(../assets/icons/arrow-up.svg); width: 12px; height: 12px; }
 .icon-arrow--down { transform: rotate(180deg); }
 .icon-asterisk   { --src: url(../assets/icons/asterisk.svg); width: 8px; height: 8px; }
-.icon-arrow-left { --src: url(../assets/icons/arrow-left.svg); width: 8px; height: 8px; }
 
 /* ---------- Chrome ---------- */
 
@@ -770,6 +770,7 @@ ul { list-style: none; }
 }
 .cat-desc-line { flex: 0 0 auto; width: 0; border-left: var(--hairline) solid currentColor; transform-origin: 50% 50%; } /* height set by js/app.js → sizeDescLine; between items it stretches from its centre (the count stays put) */
 
+.menu-apply:focus-visible { outline-color: var(--ink); }
 .menu-apply {
   display: none;
   position: absolute;

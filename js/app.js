@@ -136,7 +136,7 @@
   }
   const RTL_SCRIPTS = new Set(['arab', 'hebr']);
   const DEFAULT_FONT = 'instrument', LONG_FONT = 'goudy'; // a quote with no face of its own: Instrument, or Goudy when it is long
-  const FONT_FILES = ['story', 'print', 'grotesk', 'poet', 'sketch', 'rose', 'author', 'fig', 'stone', 'rondeau']; // served by the fonts Worker; the rest come from Google
+  const FONT_FILES = ['story', 'print', 'grotesk', 'poet', 'sketch', 'rose', 'author', 'fig', 'stone', 'rondeau']; // the licensed faces, by name (the Google fonts come from the same Worker, by css2)
 
   // A shuffled copy (Fisher–Yates). The deck is dealt once per visit / per category, so ↑ and ↓
   // stay consistent within it, but the order is never the archive's numbering.
@@ -1206,7 +1206,7 @@
     const text = root.querySelector('.n-add-text').value.trim(), name = root.querySelector('.n-add-name').value.trim();
     const btn = root.querySelector('.n-add-send');
     if (!text) return;
-    const thought = { quote: Number(root.dataset.quote), text, name, website: '' };
+    const thought = { quote: Number(root.dataset.quote), text, name, website: '', elapsed: Math.round(performance.now()) }; // elapsed: the Worker keeps nothing sent sooner than a person could
     sendingThought = true;
     btn.classList.add('is-busy'); btn.setAttribute('aria-busy', 'true');
     try {
@@ -2289,6 +2289,24 @@
     return `translate(${tx}px, ${ty}px) scale(${scale})`;
   }
 
+  /* Keyboard focus in the menu and the overlays (Bill, 2026-10-10): opening one moves the focus
+     into it and makes everything else on the page inert (Tab stays inside, nothing behind it is
+     reached); closing it gives the focus back to what opened it. Nothing is drawn: the box shows
+     only for a keyboard (:focus-visible). */
+  const layerFocus = { back: null };
+  function focusInto(layer, first) {
+    const back = document.activeElement;
+    layerFocus.back = back && back !== document.body ? back : null;
+    [...app.children].forEach((c) => { if (c !== layer && c.id !== 'toast') c.inert = true; });
+    if (first) first.focus({ preventScroll: true });
+  }
+  function focusBack() {
+    [...app.children].forEach((c) => { c.inert = false; });
+    const back = layerFocus.back;
+    layerFocus.back = null;
+    if (back && back.isConnected && !back.hidden) back.focus({ preventScroll: true });
+  }
+
   function openAnnotation(el) {
     if (annBusy) return;
     const a = current().annotations[+el.dataset.ann];
@@ -2306,6 +2324,7 @@
     word.style.transform = '';
     overlay.hidden = false;
     dim(true);
+    focusInto(overlay, back);
 
     // Final layout: the enlarged word sits near where it was in the quote.
     const vw = window.innerWidth, vh = window.innerHeight, m = 20;
@@ -2341,6 +2360,7 @@
   function closeAnnotation({ instant = false } = {}) {
     const overlay = $('annOverlay'), word = $('annWord'), text = $('annText'), back = $('annBack');
     if (overlay.hidden) return;
+    focusBack();
     const source = annSource;
     const done = () => {
       overlay.hidden = true;
@@ -2427,6 +2447,7 @@
     frame.style.backgroundPosition = (!music && thumb.dataset.pos) || '';
     frame.style.backgroundColor = music ? VIDEO[video.platform].bg : '';
     $('videoOverlay').hidden = false;
+    focusInto($('videoOverlay'), $('videoClose'));
     const from = thumb.getBoundingClientRect(), to = box.getBoundingClientRect();
     thumb.style.visibility = 'hidden';
     dim(true);
@@ -2440,6 +2461,7 @@
 
   function closeVideo() {
     if ($('videoOverlay').hidden || videoBusy) return;
+    focusBack();
     const thumb = videoThumb, box = $('videoBox'), frame = $('videoFrame');
     const music = box.dataset.orientation === 'music';
     const poster = music ? '' : posterOf(thumb);
@@ -2463,6 +2485,7 @@
   function closeOverlays({ instant = false } = {}) {
     if (!$('annOverlay').hidden) return closeAnnotation({ instant });
     if (!$('videoOverlay').hidden && !instant) return closeVideo();
+    if (!$('videoOverlay').hidden) focusBack();
     $('videoOverlay').hidden = true;
     $('videoFrame').innerHTML = '';
     $('videoBox').classList.remove('is-ready');
@@ -2868,6 +2891,7 @@
       state.preview = state.filter;
       renderMenu();
       $('menu').hidden = false;
+      focusInto($('menu'), document.querySelector('#catList .cat-row.is-selected') || $('menuBack'));
       menuSymOpen(state.filter);
       sizeDescLine(true); // the hairline is at full length as the menu appears; it glides only between items
       if (state.mode === 'main') app.classList.add('is-typing'); // Notes and the arrows go under the menu already hidden: they type back in with the quote on close
@@ -2894,6 +2918,7 @@
   function closeMenu(changed = false) {
     const menu = $('menu');
     if (menu.hidden || menuBusy) return;
+    focusBack();
     const icon = $('markSym');
     let holdChrome = false; // the words are fading back in: Notes and the arrows wait for them
     const finish = () => {
@@ -3001,10 +3026,20 @@
       if (!$('annOverlay').hidden || !$('videoOverlay').hidden) return closeOverlays();
       if (state.mode === 'notes') return setMode('main');
     }
+    // Space opens notes and closes them, as Notes / Close does (Bill, 2026-10-10) — not while typing,
+    // and not on a control reached with Tab, which Space presses as usual.
+    if (e.key === ' ' && !e.defaultPrevented && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      const t = e.target;
+      if (t.matches && (t.matches('input, textarea, select, [contenteditable]') || t.matches('button:focus-visible, a:focus-visible, [role="link"]:focus-visible, [tabindex]:focus-visible'))) return;
+      if (!$('menu').hidden || !$('annOverlay').hidden || !$('videoOverlay').hidden) return;
+      e.preventDefault();
+      if (!e.repeat && !app.classList.contains('is-typing')) setMode(state.mode === 'notes' ? 'main' : 'notes'); // (while the quote types in, Notes is not there yet)
+      return;
+    }
     if (state.mode !== 'main' || !$('menu').hidden) return;
     // A held key changes the quote once: chained cut-ups are a long run of flashes.
     const held = e.repeat;
-    if (['ArrowDown', 'ArrowRight', 'PageDown', ' ', 'j'].includes(e.key)) { e.preventDefault(); if (!held) go(1); }
+    if (['ArrowDown', 'ArrowRight', 'PageDown', 'j'].includes(e.key)) { e.preventDefault(); if (!held) go(1); }
     if (['ArrowUp', 'ArrowLeft', 'PageUp', 'k'].includes(e.key)) { e.preventDefault(); if (!held) go(-1); }
   });
 
@@ -3293,7 +3328,7 @@
      view: its bottom KEYBOARD_GAP above the keyboard, its top below the chrome. Every page here
      is absolute boxes with an inner scroller, which iOS does not scroll for a focused field by
      itself (Bill, 2026-10-09: the thoughts box stayed under the keyboard). While the keyboard is
-     up the scroller is given the keyboard's height of room at its foot (padding), or a field at
+     up the scroller is given the keyboard's height of room at its foot (a spacer, below), or a field at
      the end of the page could never rise above it (Bill's second screenshot, the same day). The
      same in js/app.js, js/form.js and js/admin.js: change all three. */
   // Room at a scroller's foot: a spacer element, its last child (`.kb-room`), never padding on

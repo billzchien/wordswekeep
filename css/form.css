@@ -8,7 +8,7 @@
 /* Stand-ins for the field fonts (Bill, 2026-10-07): the "Field Noto …" copies (js: fieldFonts)
    load piece by piece as new letters are typed; while a piece loads, the letter shows in one of
    these system fonts — already at the field scale, nothing to download — never at full size (it
-   flashed big, then small). They stand in for good if Google can't be reached. Greek and Cyrillic (serif) go before Crimson Pro, the rest after the
+   flashed big, then small). They stand in for good if the fonts host can't be reached. Greek and Cyrillic (serif) go before Crimson Pro, the rest after the
    Notos (css: --font-field). */
 @font-face { font-family: 'Field Local Serif'; src: local('TimesNewRomanPSMT'), local('Times New Roman'); size-adjust: 78%; unicode-range: U+0370-03FF, U+1F00-1FFF, U+0400-052F; }
 @font-face { font-family: 'Field Local'; src: local('PingFangSC-Regular'), local('PingFang SC'), local('Microsoft YaHei'), local('Noto Sans CJK SC'), local('Source Han Sans SC'); size-adjust: 80%; unicode-range: U+2E80-2FFF, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF; }
@@ -128,7 +128,6 @@
 /* ---------- Fields ---------- */
 
 .stack { display: flex; flex-direction: column; gap: var(--gap-1); width: 100%; }
-.stack--4 { gap: var(--gap-4); }
 .row { display: flex; gap: var(--gap-1); width: 100%; }
 .row > * { flex: 1 1 0; min-width: 0; }
 .fw { position: relative; width: 100%; }
@@ -282,6 +281,7 @@ textarea.field::-webkit-scrollbar { display: none; }
 .btn:not(:disabled):active { border-color: var(--ink); box-shadow: inset 0 0 0 0.5px var(--ink); }
 .btn:disabled { color: var(--btn-off-text); border-color: var(--btn-off-line); cursor: default; }
 .btn--primary { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.btn--primary:focus-visible { outline-color: var(--ink); } /* its fill's colour: the text's white would vanish on the page */
 .btn .cell { display: inline-block; } /* one letter of the label; the typewriter hover (js/form.js) fades these */
 @media (hover: hover) { .btn--primary:not(:disabled):hover { box-shadow: none; } }
 .btn--primary:disabled { background: var(--btn-off); border-color: var(--btn-off); color: var(--white); }
