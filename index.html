@@ -24,7 +24,6 @@
   <meta property="og:image:alt" content="Words We Keep">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <link rel="icon" href="favicon.ico" sizes="32x32"> <!-- for browsers without SVG icons (older Safari) -->
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/app.css">
@@ -61,6 +60,7 @@
     </section>
     <!-- Mobile notes: the fading top bar (outside the scroller so it stays put; see .app in app.css) -->
     <div class="n-topfade" aria-hidden="true"></div>
+    <div class="n-warm" id="nWarm" aria-hidden="true"></div> <!-- the notes' words, out of sight: their fonts load before Notes is pressed (js/app.js → warmNotesSoon) -->
 
     <!-- Chrome -->
     <button class="chrome menu-btn" id="menuBtn" aria-label="Menu"><svg class="sym" id="markSym" viewBox="0 0 60 60" aria-hidden="true"></svg></button> <!-- the current category's symbol, drawn by js/app.js (Symbols) -->

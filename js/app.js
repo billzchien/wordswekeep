@@ -837,6 +837,7 @@
     fitDeck();
     const q = current();
     setNumber(q.id);
+    warmNotesSoon();
     const video = videoOf(q);
     if (video) { const info = lookupVideo(video); if (info.thumb) { const warm = new Image(); warm.src = info.thumb; } } // asked now, so the notes know what to show (and the thumbnail never pops in)
     else if (q.source && q.source.kind === 'book' && q.source.cover) { const warm = new Image(); warm.src = q.source.cover; } // a book's cover, likewise
@@ -1131,6 +1132,18 @@
       `<li><svg class="sym" viewBox="0 0 60 60" data-sym="${k}" aria-hidden="true"></svg><span>${esc(CAT_BY_KEY[k].name)}</span></li>`).join('');
     noteSyms();
 
+    $('nFrom').innerHTML = notesFrom(q);
+
+    renderNotesQuote();
+
+    const video = videoOf(q);
+    $('nVideoPin').innerHTML = $('nVideoCol').innerHTML = video ? thumbHTML(video) : coverHTML(q);
+
+    $('nKept').innerHTML = notesKept(q);
+    $('nBody').innerHTML = notesBody(q) + addThoughtsHTML(q);
+  }
+  // Under "Words from": who, then the source (a block: its own row).
+  function notesFrom(q) {
     let from = whoRows(q.author || {});
     const src = q.source || {}, link = videoLink(q);
     if (src.title) {
@@ -1145,21 +1158,35 @@
     } else if (src.year) {
       from += `<span class="n-source">${esc(src.year)}</span>`; // no name, no link of its own: the year alone
     }
-    $('nFrom').innerHTML = from;
-
-    renderNotesQuote();
-
-    const video = videoOf(q);
-    $('nVideoPin').innerHTML = $('nVideoCol').innerHTML = video ? thumbHTML(video) : coverHTML(q);
-
-    $('nKept').innerHTML = q.keptBy ? nativeRuns(esc(q.keptBy)) : 'a fellow human';
+    return from;
+  }
+  const notesKept = (q) => (q.keptBy ? nativeRuns(esc(q.keptBy)) : 'a fellow human');
+  function notesBody(q) {
     // The personal note first, under "Kept by" and with no title of its own — it reads as the
     // keeper's — then the context, titled "Context/" (Bill, 2026-10-09; "/Context/" from 2026-10-06; the other way round,
     // with the note titled "/Note/", from 2026-10-04).
     let body = q.reflection ? `<div>${paragraphs(q.reflection)}</div>` : '';
     if (q.context) body += `<div class="n-context"><p>Context/</p><div>${paragraphs(q.context)}</div></div>`;
-    body += thoughtsHTML(q) + addThoughtsHTML(q);
-    $('nBody').innerHTML = body;
+    return body + thoughtsHTML(q);
+  }
+
+  /* Notes' fonts, fetched before Notes is pressed (Bill, 2026-10-10: the best performance at every
+     step). Once a quote has settled, its notes' words are laid out out of sight with the notes'
+     own classes, so the browser picks and fetches exactly the font pieces they will need — the
+     text face, its italic, the Notos of a name or a word in another script. Opening notes then
+     finds them in hand instead of swapping faces mid-move. */
+  const WARM_MS = 600; // after the quote has arrived, out of the way of its own animation
+  let warmTimer = 0;
+  function warmNotesSoon() {
+    clearTimeout(warmTimer);
+    warmTimer = setTimeout(() => {
+      const q = current();
+      if (!q) return;
+      const hant = quoteHant;
+      quoteHant = quoteIsHant(q); // (as renderNotes sets it: which Chinese a run is drawn in)
+      $('nWarm').innerHTML = `<p>Words from Kept by Context/ Thoughts/ Add thoughts + ${esc(THANKS)}</p><div class="n-meta">${notesFrom(q)}</div><p>${notesKept(q)}</p><div class="n-body">${notesBody(q)}</div>`;
+      quoteHant = hant;
+    }, WARM_MS);
   }
 
   /* ---------- Thoughts (Figma 525:759, since 2026-10-09) ----------
