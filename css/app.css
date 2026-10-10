@@ -377,6 +377,11 @@ ul { list-style: none; }
   .lang { left: 0; top: -48px; --lang-to-x: 0px; } /* above the quote: it slips straight down towards it, and comes back up */
 }
 
+/* Room at a scroller's foot while the phone's keyboard is up, or while the thoughts box folds (js:
+   setRoom, in app.js, form.js and admin.js): a spacer, never padding on the scroller — iOS Safari
+   does not count a scroll container's own bottom padding as scrollable space. */
+.kb-room { flex-shrink: 0; width: 100%; }
+
 /* ---------- Notes mode ---------- */
 
 .notes {

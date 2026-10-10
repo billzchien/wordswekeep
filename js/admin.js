@@ -2481,6 +2481,13 @@
      up the scroller is given the keyboard's height of room at its foot (padding), or a field at
      the end of the page could never rise above it (Bill's second screenshot, the same day). The
      same in js/app.js, js/form.js and js/admin.js: change all three. */
+  // Room at a scroller's foot: a spacer element, its last child (`.kb-room`), never padding on
+  // the scroller — Safari on iOS does not count a scroll container's own bottom padding as
+  // scrollable space, so the page could not move into it (the simulator, 2026-10-09: a 486px
+  // move asked for, none taken; Chrome counts it, which is why the pane always passed).
+  const roomEl = (sc, make) => { let el = sc.querySelector(':scope > .kb-room'); if (!el && make) { el = document.createElement('div'); el.className = 'kb-room'; el.setAttribute('aria-hidden', 'true'); sc.appendChild(el); } return el; };
+  const roomOf = (sc) => { const el = roomEl(sc); return el ? parseFloat(el.style.height) || 0 : 0; };
+  const setRoom = (sc, px) => { const el = roomEl(sc, px > 0); if (el) el.style.height = px > 0 ? `${px}px` : '0px'; };
   const KEYBOARD_GAP = 20, KEYBOARD_TOP = 80, KEYBOARD_MIN = 100; // a visible area shorter than the window by this much = the keyboard is up
   const scrollerOf = (el) => { for (el = el.parentElement; el && el !== document.body; el = el.parentElement) { if (/auto|scroll/.test(getComputedStyle(el).overflowY)) return el; } return null; };
   let keyboardRoom = null; // the scroller given room, while the keyboard is up
@@ -2488,9 +2495,10 @@
   function keepAboveKeyboard(field) {
     const sc = scrollerOf(field);
     if (!sc) { field.scrollIntoView({ block: 'nearest' }); return; } // nothing of ours scrolls here: the browser pans its visible area instead
+    if (window.scrollY > 0 || (window.visualViewport && window.visualViewport.pageTop > 0)) window.scrollTo(0, 0); // iOS panned the whole page to reveal a tapped field: undone, the scroller does the work (js/app.js)
     const kb = keyboardHeight();
-    if (keyboardRoom && keyboardRoom !== sc) { keyboardRoom.style.paddingBottom = ''; keyboardRoom = null; }
-    if (kb) { sc.style.paddingBottom = `${kb}px`; keyboardRoom = sc; } else if (keyboardRoom) { keyboardRoom.style.paddingBottom = ''; keyboardRoom = null; }
+    if (keyboardRoom && keyboardRoom !== sc) { setRoom(keyboardRoom, 0); keyboardRoom = null; }
+    if (kb) { setRoom(sc, kb); keyboardRoom = sc; } else if (keyboardRoom) { setRoom(keyboardRoom, 0); keyboardRoom = null; }
     const vv = window.visualViewport, top = (vv ? vv.offsetTop : 0) + KEYBOARD_TOP, bottom = (vv ? vv.offsetTop + vv.height : window.innerHeight) - KEYBOARD_GAP;
     const r = field.getBoundingClientRect();
     let by = 0;
@@ -2502,7 +2510,7 @@
   const keyboardSettle = () => { // whatever has focus now (not an event's target: a window without focus fires no focus events)
     const f = document.activeElement;
     if (f && f.matches && f.matches('input, textarea')) keepAboveKeyboard(f);
-    else if (keyboardRoom) { keyboardRoom.style.paddingBottom = ''; keyboardRoom = null; } // the keyboard went with the focus: the room goes too
+    else if (keyboardRoom) { setRoom(keyboardRoom, 0); keyboardRoom = null; } // the keyboard went with the focus: the room goes too
   };
   const keyboardSoon = () => { clearTimeout(keyboardTimer); keyboardTimer = setTimeout(keyboardSettle, 350); }; // once the keyboard has risen (iOS: ~300ms) and a fold has opened
   document.addEventListener('focusin', (e) => { if (e.target.matches && e.target.matches('input, textarea')) keyboardSoon(); });

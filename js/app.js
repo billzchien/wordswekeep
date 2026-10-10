@@ -1242,16 +1242,13 @@
       // is at its full height — measured now from the box's content — so the box, the name
       // field and the button that unfold under it when there are words, and the column's own
       // foot are all in view, and nothing moves while one types. On a phone the keyboard rises
-      // meanwhile: the room it had last time is made now, in the same move (keyboardHeight with
-      // `expect`); the first time ever the keyboard rule (keyboardSoon → keepAboveKeyboard)
-      // moves the page once it is up.
-      const expected = keyboardHeight(true);
-      if (expected) { notes.style.paddingBottom = `${(parseFloat(notes.style.paddingBottom) || 0) + expected}px`; keyboardRoom = notes; }
+      // after this and the keyboard rule (keyboardSoon → keepAboveKeyboard) makes its room and
+      // sets the page, at once, when it is up.
       // The name field and the button are still hidden (--fh, 1px, 1em, --fh): the notes hold
       // that much room at their foot until the fields unfold into it, so the end is already
       // where it will be then.
       laterRoom = 2 * cssPx('--fh', 48) + 1 + cssPx('--text-size', 16);
-      notes.style.paddingBottom = `${(parseFloat(notes.style.paddingBottom) || 0) + laterRoom}px`;
+      setRoom(notes, roomOf(notes) + laterRoom);
       const end = notes.scrollHeight - notes.clientHeight + box.firstElementChild.scrollHeight;
       if (reduceMotion.matches) notes.scrollTop = end; else easeScrollBy(notes, end - notes.scrollTop, FOLD_MS);
       keyboardSoon();
@@ -1269,7 +1266,7 @@
     const shrink = box.offsetHeight;
     laterRoom = 0; // (released with the rest below)
     next.hidden = false; next.classList.add('is-back');
-    notes.style.paddingBottom = `${(parseFloat(notes.style.paddingBottom) || 0) + shrink}px`;
+    setRoom(notes, roomOf(notes) + shrink);
     keyboardRoom = null; // (any keyboard room is released with this one)
     fold(box, false);
     releaseRoom(notes, shrink);
@@ -1280,7 +1277,7 @@
     fold(more, !!e.target.value.trim());
     // They unfold into the room held for them since the box opened: once they fill it (the
     // fold's 200ms), the room goes — the page does not move.
-    if (opening && laterRoom) { const give = laterRoom; laterRoom = 0; setTimeout(() => { const cur = parseFloat(notes.style.paddingBottom) || 0; notes.style.paddingBottom = cur - give > 1 ? `${cur - give}px` : ''; }, reduceMotion.matches ? 0 : FOLD_MS); }
+    if (opening && laterRoom) { const give = laterRoom; laterRoom = 0; setTimeout(() => { const cur = roomOf(notes); setRoom(notes, cur - give > 1 ? cur - give : 0); }, reduceMotion.matches ? 0 : FOLD_MS); }
   });
   // Return starts a new paragraph in the box, Shift+Return breaks the line (the form's and the
   // library's rule, js/form.js and js/admin.js: change all three).
@@ -3299,33 +3296,52 @@
      up the scroller is given the keyboard's height of room at its foot (padding), or a field at
      the end of the page could never rise above it (Bill's second screenshot, the same day). The
      same in js/app.js, js/form.js and js/admin.js: change all three. */
+  // Room at a scroller's foot: a spacer element, its last child (`.kb-room`), never padding on
+  // the scroller — Safari on iOS does not count a scroll container's own bottom padding as
+  // scrollable space, so the page could not move into it (the simulator, 2026-10-09: a 486px
+  // move asked for, none taken; Chrome counts it, which is why the pane always passed).
+  const roomEl = (sc, make) => { let el = sc.querySelector(':scope > .kb-room'); if (!el && make) { el = document.createElement('div'); el.className = 'kb-room'; el.setAttribute('aria-hidden', 'true'); sc.appendChild(el); } return el; };
+  const roomOf = (sc) => { const el = roomEl(sc); return el ? parseFloat(el.style.height) || 0 : 0; };
+  const setRoom = (sc, px) => { const el = roomEl(sc, px > 0); if (el) el.style.height = px > 0 ? `${px}px` : '0px'; };
   const KEYBOARD_GAP = 20, KEYBOARD_TOP = 80, KEYBOARD_MIN = 100; // a visible area shorter than the window by this much = the keyboard is up
   const scrollerOf = (el) => { for (el = el.parentElement; el && el !== document.body; el = el.parentElement) { if (/auto|scroll/.test(getComputedStyle(el).overflowY)) return el; } return null; };
   let keyboardRoom = null; // the scroller given room, while the keyboard is up
-  // The keyboard's height, once it has risen; `expect`: before it has, the height it had last time
-  // (a touch screen), so the page can make its room and move in one go as the keyboard rises,
-  // not once more after it (Bill, 2026-10-09: two steps). The first time there is nothing to
-  // go by, and the move comes as the keyboard arrives.
-  let lastKeyboard = 0;
-  const touchScreen = window.matchMedia('(hover: none)');
-  const keyboardHeight = (expect = false) => {
-    const vv = window.visualViewport; const h = vv ? window.innerHeight - vv.height : 0;
-    if (h >= KEYBOARD_MIN) { lastKeyboard = h; return h; }
-    return expect && touchScreen.matches ? lastKeyboard : 0;
-  };
+  const keyboardHeight = () => { const vv = window.visualViewport; const h = vv ? window.innerHeight - vv.height : 0; return h >= KEYBOARD_MIN ? h : 0; };
   // `below`: room to keep in view under the field as well (what will unfold under it).
-  function keepAboveKeyboard(field, below = 0, expect = false) {
+  function keepAboveKeyboard(field, below = 0) {
     const sc = scrollerOf(field);
     if (!sc) { field.scrollIntoView({ block: 'nearest' }); return; } // nothing of ours scrolls here: the browser pans its visible area instead
-    const kb = keyboardHeight(expect);
-    if (keyboardRoom && keyboardRoom !== sc) { keyboardRoom.style.paddingBottom = ''; keyboardRoom = null; }
-    if (kb) { sc.style.paddingBottom = `${kb + (sc === notes ? laterRoom : 0)}px`; keyboardRoom = sc; } else if (keyboardRoom) { keyboardRoom.style.paddingBottom = ''; keyboardRoom = null; }
-    const vv = window.visualViewport, top = (vv ? vv.offsetTop : 0) + KEYBOARD_TOP, bottom = (vv ? vv.offsetTop + Math.min(vv.height, window.innerHeight - kb) : window.innerHeight - kb) - KEYBOARD_GAP; // (an expected keyboard counts as there already)
+    // A field tapped by hand (not focused by the script) has iOS reveal its caret by panning the
+    // whole page — the window, not the scroller — so the chrome slides off the top and the field
+    // still ends behind the keyboard (the simulator, 2026-10-09: the second open). That pan is
+    // undone first; the scroller then does the work, as always.
+    const vv0 = window.visualViewport;
+    if (window.scrollY > 0 || (vv0 && vv0.pageTop > 0)) { kbDebug(`unpan ${Math.round(window.scrollY)}/${vv0 ? Math.round(vv0.pageTop) : '-'}`); window.scrollTo(0, 0); }
+    const kb = keyboardHeight();
+    if (keyboardRoom && keyboardRoom !== sc) { setRoom(keyboardRoom, 0); keyboardRoom = null; }
+    if (kb) { setRoom(sc, kb + (sc === notes ? laterRoom : 0)); keyboardRoom = sc; } else if (keyboardRoom) { setRoom(keyboardRoom, 0); keyboardRoom = null; }
+    const vv = window.visualViewport, top = (vv ? vv.offsetTop : 0) + KEYBOARD_TOP, bottom = (vv ? vv.offsetTop + vv.height : window.innerHeight) - KEYBOARD_GAP;
     const r = field.getBoundingClientRect();
     let by = 0;
     if (r.bottom + below > bottom) by = r.bottom + below - bottom;
     if (r.top - by < top) by = r.top - top; // too tall for the room: its top wins
-    if (Math.abs(by) > 1) glideBy(sc, by);
+    kbDebug(`kb ${kb} vv ${vv ? `${Math.round(vv.height)}@${Math.round(vv.offsetTop)}` : '-'} win ${window.innerHeight} field ${Math.round(r.top)}–${Math.round(r.bottom)} by ${Math.round(by)} st ${Math.round(sc.scrollTop)} room ${roomOf(sc)}`);
+    if (Math.abs(by) <= 1) return;
+    // With the keyboard up the move is instant: iOS moves the page itself as its keyboard rises
+    // and on keystrokes (it reveals the caret's line, no more), and an eased move of ours was
+    // overtaken by it and lost (Bill's recordings, 2026-10-09: the box behind the keyboard, the
+    // page thrown to its top). Set at once, as often as iOS moves it, ours stands. Without a
+    // keyboard (desktop), the ease.
+    if (kb) { sc.scrollTop += by; kbDebug(`→ st ${Math.round(sc.scrollTop)} of ${sc.scrollHeight - sc.clientHeight}`); } else glideBy(sc, by);
+  }
+  // `?kb` in the address: the rule's numbers at the top of the window, to read off a phone.
+  const kbDebugOn = /[?&]kb\b/.test(location.search);
+  let kbDebugEl = null;
+  function kbDebug(line) {
+    if (!kbDebugOn) return;
+    if (!kbDebugEl) { kbDebugEl = document.createElement('pre'); kbDebugEl.style.cssText = 'position:absolute;left:0;top:0;z-index:99;margin:0;padding:4px 8px;font:11px/1.3 monospace;color:#fff;background:rgba(0,0,0,.7);white-space:pre-wrap;pointer-events:none'; document.body.appendChild(kbDebugEl); }
+    kbDebugEl.style.top = `${window.scrollY + (window.visualViewport ? window.visualViewport.offsetTop : 0)}px`; // stays in the visible area when iOS pans the page
+    kbDebugEl.textContent = `${new Date().toISOString().slice(14, 23)} ${line}\n${kbDebugEl.textContent}`.split('\n').slice(0, 6).join('\n');
   }
   // A scroller moves by `by` on the site's curve over `ms` (the thoughts box's fold: FOLD_MS, so
   // the page and the box move as one — Bill's recordings, 2026-10-09: a jump first, then the
@@ -3358,9 +3374,9 @@
   // much: the box folding shut, the keyboard going — Bill's recording, 2026-10-09.)
   // `going`: content still in the page that is about to fold away (the box), counted as gone.
   function releaseRoom(sc, going = 0) {
-    const pad = parseFloat(sc.style.paddingBottom) || 0; if (!pad) return;
+    const pad = roomOf(sc); if (!pad) return;
     const lose = Math.max(0, sc.scrollTop - (sc.scrollHeight - pad - going - sc.clientHeight));
-    const done = () => { if ((parseFloat(sc.style.paddingBottom) || 0) === pad) sc.style.paddingBottom = ''; }; // unless something else has set new room since
+    const done = () => { if (roomOf(sc) === pad) setRoom(sc, 0); }; // unless something else has set new room since
     if (lose <= 1) { done(); return; }
     glideBy(sc, -lose, done);
   }
@@ -3371,14 +3387,10 @@
     else if (keyboardRoom) { const sc = keyboardRoom; keyboardRoom = null; if (sc === notes) laterRoom = 0; releaseRoom(sc); } // the keyboard went with the focus: the room goes too, with a glide
   };
   const keyboardSoon = () => { clearTimeout(keyboardTimer); keyboardTimer = setTimeout(keyboardSettle, 350); }; // once the keyboard has risen (iOS: ~300ms) and a fold has opened
-  document.addEventListener('focusin', (e) => {
-    if (!e.target.matches || !e.target.matches('input, textarea')) return;
-    keepAboveKeyboard(e.target, e.target.classList.contains('n-add-text') ? laterRoom : 0, true); // at once, for the keyboard that is about to rise (its last height); then again once it has
-    keyboardSoon();
-  });
+  document.addEventListener('focusin', (e) => { if (e.target.matches && e.target.matches('input, textarea')) keyboardSoon(); });
   document.addEventListener('input', (e) => { if (e.target.matches && e.target.matches('input, textarea')) keyboardSettle(); }); // and as one types: the field is brought back if it slipped behind the keyboard (Bill, 2026-10-09: it did, once the keyboard had been put away and brought back)
   document.addEventListener('focusout', keyboardSoon);
-  if (window.visualViewport) ['resize', 'scroll'].forEach((t) => window.visualViewport.addEventListener(t, keyboardSettle));
+  if (window.visualViewport) ['resize', 'scroll'].forEach((t) => window.visualViewport.addEventListener(t, () => { kbDebug(`vv ${t}`); keyboardSettle(); }));
 
   /* ---------- Links ---------- */
   // Links are buttons with a data-href, not <a href>: a browser shows an <a>'s address in a
