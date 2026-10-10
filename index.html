@@ -5,17 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" id="themeColor" content="#E6E6E6"> <!-- kept in step with the page by js/app.js (syncChromeColor) -->
   <title>Words We Keep</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=Crimson+Pro:ital@0;1&family=Instrument+Serif:ital@0;1&family=Noto+Sans:wght@400;500&family=Noto+Sans+JP:wght@400;500&family=Noto+Sans+KR:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+SC:wght@500&family=Noto+Serif+TC:wght@500&family=Noto+Serif:ital@0;1&family=Noto+Sans+Arabic:wght@400;500&family=Noto+Sans+Hebrew&family=Noto+Sans+Thai&family=Noto+Sans+Devanagari&family=Noto+Serif+Hebrew&family=Noto+Serif+Thai&family=Noto+Serif+Devanagari&family=BIZ+UDPMincho&family=Gowun+Batang&family=Cormorant+Garamond&family=GFS+Didot&family=Scheherazade+New&family=Murecho:wght@700&family=IBM+Plex+Sans+KR:wght@700&family=Golos+Text:wght@600&family=Commissioner:wght@700&family=Alexandria:wght@700&family=IBM+Plex+Sans+Hebrew:wght@400;600&family=Bai+Jamjuree:wght@500;600&family=Poppins:wght@400;700&family=Sorts+Mill+Goudy&display=swap" rel="stylesheet">
-  <!-- The language button's own fonts (js/app.js → LANG_BUTTON), only the letters its labels use. -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500&family=Manrope:wght@600&family=IBM+Plex+Sans+Arabic:wght@400&family=Hind+Siliguri:wght@400&family=Noto+Sans+Tamil:wght@400&text=ABCDEFGHIJKLMNOPQRSTUVWXYZa%CE%95%CE%9B%D0%A0%D0%A3%D0%9A%D9%81%D8%A7%E0%A6%AC%E0%A6%BE%E0%A6%82%E0%AE%A4&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.wordswekeep.org"> <!-- every font, Google's included, comes from the site's fonts Worker (workers/fonts) -->
+  <link rel="preconnect" href="https://fonts.wordswekeep.org" crossorigin>
+  <link href="https://fonts.wordswekeep.org/css2?family=Cal+Sans&family=Crimson+Pro:ital@0;1&family=Instrument+Serif:ital@0;1&family=Noto+Sans:wght@400;500&family=Noto+Sans+JP:wght@400;500&family=Noto+Sans+KR:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+SC:wght@500&family=Noto+Serif+TC:wght@500&family=Noto+Serif:ital@0;1&family=Noto+Sans+Arabic:wght@400;500&family=Noto+Sans+Hebrew&family=Noto+Sans+Thai&family=Noto+Sans+Devanagari&family=Noto+Serif+Hebrew&family=Noto+Serif+Thai&family=Noto+Serif+Devanagari&family=BIZ+UDPMincho&family=Gowun+Batang&family=Cormorant+Garamond&family=GFS+Didot&family=Scheherazade+New&family=Murecho:wght@700&family=IBM+Plex+Sans+KR:wght@700&family=Golos+Text:wght@600&family=Commissioner:wght@700&family=Alexandria:wght@700&family=IBM+Plex+Sans+Hebrew:wght@400;600&family=Bai+Jamjuree:wght@500;600&family=Poppins:wght@400;700&family=Sorts+Mill+Goudy&display=swap" rel="stylesheet">
+  <!-- The language button's own fonts (js/app.js → LANG_BUTTON): only the pieces with its labels' letters load. -->
+  <link href="https://fonts.wordswekeep.org/css2?family=Inter:wght@500&family=Manrope:wght@600&family=IBM+Plex+Sans+Arabic:wght@400&family=Hind+Siliguri:wght@400&family=Noto+Sans+Tamil:wght@400&display=swap" rel="stylesheet">
   <!-- Search and link previews (the share image: 1200 × 630; the iPhone home-screen icon: 180 × 180) -->
   <meta name="description" content="A collection of words from every culture, time, and corner of life, shared by the people who hold them close. Discover them, or share the ones you keep.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Words We Keep">
   <meta property="og:title" content="Words We Keep">
   <meta property="og:description" content="A collection of words from every culture, time, and corner of life, shared by the people who hold them close. Discover them, or share the ones you keep.">
+  <link rel="canonical" href="https://wordswekeep.org/">
   <meta property="og:url" content="https://wordswekeep.org/">
   <meta property="og:image" content="https://wordswekeep.org/assets/share.png">
   <meta property="og:image:width" content="1200">
@@ -23,6 +24,7 @@
   <meta property="og:image:alt" content="Words We Keep">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="icon" href="favicon.ico" sizes="32x32"> <!-- for browsers without SVG icons (older Safari) -->
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/app.css">

@@ -33,6 +33,11 @@
     const at = s0 + add.length + na; ta.setSelectionRange(at, at);
   });
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  // A cover the site keeps (source.cover "assets/covers/…") is a path from the site's root: from
+  // here that is the folder above js/ — the root on the library's own address, the site's root
+  // above admin/ in the demo (where the bare path looked in admin/assets/ and found nothing).
+  const SITE_ROOT = new URL('../', document.currentScript.src);
+  const siteSrc = (src) => (src && !/^([a-z][a-z0-9+.-]*:|\/)/i.test(src) ? new URL(src, SITE_ROOT).href : src);
   const ms = (n) => (reduceMotion.matches ? 0 : n);
 
   const CATEGORIES = [
@@ -986,7 +991,7 @@
   document.addEventListener('input', (e) => { if (e.target.matches && e.target.matches('input.field[type="text"], textarea.field')) { e.target.dir = 'auto'; fieldLook(e.target); } });
   // Each script at the archive's size, letter by letter, in any field (Bill, 2026-10-07: 松 in an
   // English context, 一席话 in an annotation came out at full size). A field can't size single
-  // letters, so its Noto fonts are copies drawn smaller: the page reads Google's @font-face rules
+  // letters, so its Noto fonts are copies drawn smaller: the page reads the Google fonts' @font-face rules (served by workers/fonts)
   // and adds them again as "Field Noto …" with size-adjust — Chinese, Japanese, Korean at the
   // site's 80% (--quote-native-scale), every other script at the script scale (--script-scale):
   // Greek and Cyrillic in Noto Serif (ahead of Crimson Pro, as the archive sets them), Arabic,
@@ -994,17 +999,18 @@
   // the pages don't load them). Only each script's own letters are copied — Latin stays Crimson
   // Pro at full size. Nothing changes size while typing: while a piece of one loads, its letter
   // shows in a system font at the same scale (form.css: Field Local), never at full size; those
-  // stand in for good if Google can't be read. The same copies are made in js/form.js: change both.
+  // stand in for good if those can't be read. The same copies are made in js/form.js: change both.
   (function fieldFonts() {
     const CJK = ['Noto Sans SC', 'Noto Sans TC', 'Noto Sans JP', 'Noto Sans KR'];
     const SCRIPT = ['Noto Serif', 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Noto Sans Thai', 'Noto Sans Devanagari', // (as the archive: nativeRuns)
       'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Noto Sans Gujarati', 'Noto Sans Gurmukhi', 'Noto Sans Oriya', 'Noto Sans Sinhala', 'Noto Sans Georgian', 'Noto Sans Armenian', 'Noto Sans Ethiopic', 'Noto Sans Khmer', 'Noto Sans Lao', 'Noto Sans Myanmar']; // (any other script someone may type)
     const root = getComputedStyle(document.documentElement);
     const scaleOf = (fam) => (CJK.includes(fam) ? parseFloat(root.getPropertyValue('--quote-native-scale')) || 0.8 : SCRIPT.includes(fam) ? parseFloat(root.getPropertyValue('--script-scale')) || 0.78 : 0);
-    const hrefs = [...document.querySelectorAll('link[href*="fonts.googleapis.com/css2"]')].map((l) => l.href);
+    const hrefs = [...document.querySelectorAll('link[href*="fonts.wordswekeep.org/css2"]')].map((l) => l.href);
     const missing = [...CJK, ...SCRIPT].filter((fam) => !hrefs.some((h) => h.includes(`family=${fam.replace(/ /g, '+')}:`) || h.includes(`family=${fam.replace(/ /g, '+')}&`)));
-    if (missing.length) hrefs.push(`https://fonts.googleapis.com/css2?${missing.map((fam) => `family=${fam.replace(/ /g, '+')}`).join('&')}&display=swap`);
-    Promise.all(hrefs.map((h) => fetch(h).then((r) => (r.ok ? r.text() : '')).catch(() => ''))).then((sheets) => {
+    if (missing.length) hrefs.push(`https://fonts.wordswekeep.org/css2?${missing.map((fam) => `family=${fam.replace(/ /g, '+')}`).join('&')}&display=swap`);
+    const whole = (css, h) => css.replace(/url\((\/[^)]+)\)/g, (m, u) => `url(${new URL(u, h).href})`); // the sheets' /g/… addresses are on the fonts host, not this page's
+    Promise.all(hrefs.map((h) => fetch(h).then((r) => (r.ok ? r.text() : '')).then((css) => whole(css, h)).catch(() => ''))).then((sheets) => {
       const faces = [];
       for (const [, subset = '', body] of sheets.join('\n').matchAll(/(?:\/\*\s*([^*]*?)\s*\*\/\s*)?@font-face\s*\{([^}]*)\}/g)) {
         const fam = (body.match(/font-family:\s*'([^']+)'/) || [])[1], scale = scaleOf(fam);
@@ -1494,7 +1500,7 @@
       const img = new Image(), t = setTimeout(() => done('unknown'), 8000);
       img.onload = () => { clearTimeout(t); done('ok'); };
       img.onerror = () => { clearTimeout(t); done('gone'); };
-      img.src = src;
+      img.src = siteSrc(src);
     }));
     return healthCache.get(key);
   }
@@ -1574,7 +1580,7 @@
   }
   const coverTile = (c, picked) => `<button type="button" class="cover-pick" role="radio" aria-checked="${picked}" data-src="${esc(c.src)}" title="${esc([c.title, c.by].filter(Boolean).join(' · '))}" aria-label="${esc([c.title, c.by].filter(Boolean).join(', ') || 'Cover')}">
       <span class="chk-box" aria-hidden="true"><span class="icon icon-check"></span></span>
-      <span class="cover-img"><img src="${esc(coverPreview.get(c.src) || c.small || c.src)}" alt="" loading="lazy"></span>
+      <span class="cover-img"><img src="${esc(coverPreview.get(c.src) || siteSrc(c.small || c.src))}" alt="" loading="lazy"></span>
     </button>`;
   // The tiles, the picked one checked (a pasted or earlier pick that is not among them comes first).
   // The cover alone, no text under it (Bill, 2026-10-05): its title and author are on hover.
@@ -2478,7 +2484,7 @@
      view: its bottom KEYBOARD_GAP above the keyboard, its top below the chrome. Every page here
      is absolute boxes with an inner scroller, which iOS does not scroll for a focused field by
      itself (Bill, 2026-10-09: the thoughts box stayed under the keyboard). While the keyboard is
-     up the scroller is given the keyboard's height of room at its foot (padding), or a field at
+     up the scroller is given the keyboard's height of room at its foot (a spacer, below), or a field at
      the end of the page could never rise above it (Bill's second screenshot, the same day). The
      same in js/app.js, js/form.js and js/admin.js: change all three. */
   // Room at a scroller's foot: a spacer element, its last child (`.kb-room`), never padding on
@@ -2486,7 +2492,6 @@
   // scrollable space, so the page could not move into it (the simulator, 2026-10-09: a 486px
   // move asked for, none taken; Chrome counts it, which is why the pane always passed).
   const roomEl = (sc, make) => { let el = sc.querySelector(':scope > .kb-room'); if (!el && make) { el = document.createElement('div'); el.className = 'kb-room'; el.setAttribute('aria-hidden', 'true'); sc.appendChild(el); } return el; };
-  const roomOf = (sc) => { const el = roomEl(sc); return el ? parseFloat(el.style.height) || 0 : 0; };
   const setRoom = (sc, px) => { const el = roomEl(sc, px > 0); if (el) el.style.height = px > 0 ? `${px}px` : '0px'; };
   const KEYBOARD_GAP = 20, KEYBOARD_TOP = 80, KEYBOARD_MIN = 100; // a visible area shorter than the window by this much = the keyboard is up
   const scrollerOf = (el) => { for (el = el.parentElement; el && el !== document.body; el = el.parentElement) { if (/auto|scroll/.test(getComputedStyle(el).overflowY)) return el; } return null; };

@@ -168,6 +168,7 @@
       submittedAt: new Date().toISOString(),
       approvedAt: null,
       website: $('fWebsite').value, // honeypot: must be empty
+      elapsed: Math.round(performance.now()), // how long the page has been open: the Worker keeps nothing sent sooner than a person could
     };
   }
 
@@ -473,7 +474,7 @@
   document.addEventListener('input', (e) => { if (e.target.matches && e.target.matches('input.field[type="text"], textarea.field')) { e.target.dir = 'auto'; fieldLook(e.target); } });
   // Each script at the archive's size, letter by letter, in any field (Bill, 2026-10-07: 松 in an
   // English context, 一席话 in an annotation came out at full size). A field can't size single
-  // letters, so its Noto fonts are copies drawn smaller: the page reads Google's @font-face rules
+  // letters, so its Noto fonts are copies drawn smaller: the page reads the Google fonts' @font-face rules (served by workers/fonts)
   // and adds them again as "Field Noto …" with size-adjust — Chinese, Japanese, Korean at the
   // site's 80% (--quote-native-scale), every other script at the script scale (--script-scale):
   // Greek and Cyrillic in Noto Serif (ahead of Crimson Pro, as the archive sets them), Arabic,
@@ -481,17 +482,18 @@
   // the pages don't load them). Only each script's own letters are copied — Latin stays Crimson
   // Pro at full size. Nothing changes size while typing: while a piece of one loads, its letter
   // shows in a system font at the same scale (form.css: Field Local), never at full size; those
-  // stand in for good if Google can't be read. The same copies are made in js/admin.js: change both.
+  // stand in for good if those can't be read. The same copies are made in js/admin.js: change both.
   (function fieldFonts() {
     const CJK = ['Noto Sans SC', 'Noto Sans TC', 'Noto Sans JP', 'Noto Sans KR'];
     const SCRIPT = ['Noto Serif', 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Noto Sans Thai', 'Noto Sans Devanagari', // (as the archive: nativeRuns)
       'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Noto Sans Gujarati', 'Noto Sans Gurmukhi', 'Noto Sans Oriya', 'Noto Sans Sinhala', 'Noto Sans Georgian', 'Noto Sans Armenian', 'Noto Sans Ethiopic', 'Noto Sans Khmer', 'Noto Sans Lao', 'Noto Sans Myanmar']; // (any other script someone may type)
     const root = getComputedStyle(document.documentElement);
     const scaleOf = (fam) => (CJK.includes(fam) ? parseFloat(root.getPropertyValue('--quote-native-scale')) || 0.8 : SCRIPT.includes(fam) ? parseFloat(root.getPropertyValue('--script-scale')) || 0.78 : 0);
-    const hrefs = [...document.querySelectorAll('link[href*="fonts.googleapis.com/css2"]')].map((l) => l.href);
+    const hrefs = [...document.querySelectorAll('link[href*="fonts.wordswekeep.org/css2"]')].map((l) => l.href);
     const missing = [...CJK, ...SCRIPT].filter((fam) => !hrefs.some((h) => h.includes(`family=${fam.replace(/ /g, '+')}:`) || h.includes(`family=${fam.replace(/ /g, '+')}&`)));
-    if (missing.length) hrefs.push(`https://fonts.googleapis.com/css2?${missing.map((fam) => `family=${fam.replace(/ /g, '+')}`).join('&')}&display=swap`);
-    Promise.all(hrefs.map((h) => fetch(h).then((r) => (r.ok ? r.text() : '')).catch(() => ''))).then((sheets) => {
+    if (missing.length) hrefs.push(`https://fonts.wordswekeep.org/css2?${missing.map((fam) => `family=${fam.replace(/ /g, '+')}`).join('&')}&display=swap`);
+    const whole = (css, h) => css.replace(/url\((\/[^)]+)\)/g, (m, u) => `url(${new URL(u, h).href})`); // the sheets' /g/… addresses are on the fonts host, not this page's
+    Promise.all(hrefs.map((h) => fetch(h).then((r) => (r.ok ? r.text() : '')).then((css) => whole(css, h)).catch(() => ''))).then((sheets) => {
       const faces = [];
       for (const [, subset = '', body] of sheets.join('\n').matchAll(/(?:\/\*\s*([^*]*?)\s*\*\/\s*)?@font-face\s*\{([^}]*)\}/g)) {
         const fam = (body.match(/font-family:\s*'([^']+)'/) || [])[1], scale = scaleOf(fam);
@@ -1005,11 +1007,11 @@
     if (!has) return;
     const code = sheetOrig ? 'en' : detectLang(data.original);
     const b = LANG_BUTTON[code] || { ...LANG_BUTTON.en, label: /^[a-z]{2}$/.test(code) ? code.toUpperCase() : 'Aa' };
-    const key = `${b.font}:${b.weight}:${b.label}`;
-    if (!labelFonts.has(key)) { // just the label's letters of its face (Google Fonts' text=)
+    const key = `${b.font}:${b.weight}`;
+    if (!labelFonts.has(key)) { // the label's face (only the pieces with its letters load)
       labelFonts.add(key);
       const l = document.createElement('link'); l.rel = 'stylesheet';
-      l.href = `https://fonts.googleapis.com/css2?family=${b.font.replace(/ /g, '+')}:wght@${b.weight}&text=${encodeURIComponent(b.label)}&display=swap`;
+      l.href = `https://fonts.wordswekeep.org/css2?family=${b.font.replace(/ /g, '+')}:wght@${b.weight}&display=swap`;
       document.head.appendChild(l);
     }
     Object.entries({ '--lb-font': `'${b.font}'`, '--lb-weight': b.weight, '--lb-size': `${b.size}px`, '--lb-track': `${b.tracking / 100}em`, '--lb-nudge': `${b.nudge / 10}px` }).forEach(([k, v]) => btn.style.setProperty(k, v)); // (not cssText: that would undo the hiding while it is out)
@@ -1175,7 +1177,7 @@
      view: its bottom KEYBOARD_GAP above the keyboard, its top below the chrome. Every page here
      is absolute boxes with an inner scroller, which iOS does not scroll for a focused field by
      itself (Bill, 2026-10-09: the thoughts box stayed under the keyboard). While the keyboard is
-     up the scroller is given the keyboard's height of room at its foot (padding), or a field at
+     up the scroller is given the keyboard's height of room at its foot (a spacer, below), or a field at
      the end of the page could never rise above it (Bill's second screenshot, the same day). The
      same in js/app.js, js/form.js and js/admin.js: change all three. */
   // Room at a scroller's foot: a spacer element, its last child (`.kb-room`), never padding on
@@ -1183,7 +1185,6 @@
   // scrollable space, so the page could not move into it (the simulator, 2026-10-09: a 486px
   // move asked for, none taken; Chrome counts it, which is why the pane always passed).
   const roomEl = (sc, make) => { let el = sc.querySelector(':scope > .kb-room'); if (!el && make) { el = document.createElement('div'); el.className = 'kb-room'; el.setAttribute('aria-hidden', 'true'); sc.appendChild(el); } return el; };
-  const roomOf = (sc) => { const el = roomEl(sc); return el ? parseFloat(el.style.height) || 0 : 0; };
   const setRoom = (sc, px) => { const el = roomEl(sc, px > 0); if (el) el.style.height = px > 0 ? `${px}px` : '0px'; };
   const KEYBOARD_GAP = 20, KEYBOARD_TOP = 80, KEYBOARD_MIN = 100; // a visible area shorter than the window by this much = the keyboard is up
   const scrollerOf = (el) => { for (el = el.parentElement; el && el !== document.body; el = el.parentElement) { if (/auto|scroll/.test(getComputedStyle(el).overflowY)) return el; } return null; };
