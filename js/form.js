@@ -1193,7 +1193,7 @@
     let by = 0;
     if (r.bottom > bottom) by = r.bottom - bottom;
     if (r.top - by < top) by = r.top - top; // too tall for the room: its top wins
-    if (Math.abs(by) > 1) sc.scrollTop += by;
+    if (Math.abs(by) > 1) sc.scrollTo({ top: sc.scrollTop + by, behavior: reduceMotion.matches ? 'auto' : 'smooth' }); // a glide, not a jump (js/app.js: the notes' own)
   }
   let keyboardTimer = 0;
   const keyboardSettle = () => { // whatever has focus now (not an event's target: a window without focus fires no focus events)

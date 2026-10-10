@@ -497,7 +497,7 @@ ul { list-style: none; }
    unfold under it. Sent, the whole thing is replaced by one line of thanks. */
 .n-thoughts { display: flex; flex-direction: column; gap: 1em; } /* "Thoughts/" → the first, and thought → thought: 1em (Figma 15) */
 .n-thought p { white-space: normal; }
-.n-add { display: flex; flex-direction: column; width: calc(2 * var(--colw) + var(--g)); max-width: 100%; } /* on the grid, as the form's fields: two columns (four on a tablet, margin to margin on a phone — below); not the text's measure */
+.n-add { display: flex; flex-direction: column; width: calc(2 * var(--colw) + var(--g)); max-width: 100%; margin-top: 2em; } /* 4em (the column's 2em gap and 2em more) under whatever comes before — the note, the context, the thoughts — twice the gap between the blocks (Bill, 2026-10-09) */ /* on the grid, as the form's fields: two columns (four on a tablet, margin to margin on a phone — below); not the text's measure */
 .n-add .more { align-items: flex-start; height: auto; } /* the words and the + on the block's top line (Figma: a 32 row, both at its top) */
 .n-add {
   --field: rgba(255, 255, 255, 0.1);
@@ -511,6 +511,7 @@ ul { list-style: none; }
 .n-add .btn { color: var(--white); margin-top: 1em; } /* the name field 1px under the words; the button 1em under the name (Figma 15) */
 @media (hover: hover) { .n-add .btn:not(:disabled):hover { border-color: var(--white); box-shadow: inset 0 0 0 0.5px var(--white); } }
 .n-thanks { white-space: normal; }
+.n-add .is-back { animation: fade-in 0.3s var(--ease) both; } /* the opener or the thanks coming back as the box folds (js/app.js → shutBox) */
 
 .n-topfade { display: none; }
 
@@ -595,9 +596,11 @@ ul { list-style: none; }
 @media (max-width: 1023px) {
   .n-col { width: auto; margin-right: calc(var(--m) + var(--step)); max-width: none; }
   .n-add { width: calc(4 * var(--colw) + 3 * var(--g)); } /* the form's four columns */
-  #nVideoPin { display: none; }
-  #nVideoCol { display: block; position: absolute; top: var(--notes-quote-gap); left: calc(var(--m) - var(--col3)); }
-  #nVideoCol .thumb { width: 120px; }
+  /* The thumbnail stays with the pinned quote, as on desktop, in the left margin where the
+     column starts — not in the column, where it scrolled with the text (Bill, 2026-10-09).
+     --quote-bottom: the quote's foot, set by js/app.js → layoutNotes. */
+  #nVideoPin .thumb { top: calc(var(--quote-bottom, var(--notes-quote-top)) + var(--notes-quote-gap)); left: var(--m); width: 120px; }
+  #nVideoCol { display: none; }
 }
 
 @media (max-width: 599px) {
