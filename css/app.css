@@ -499,6 +499,9 @@ ul { list-style: none; }
 .n-thought p { white-space: normal; }
 .n-add { display: flex; flex-direction: column; width: calc(2 * var(--colw) + var(--g)); max-width: 100%; margin-top: 2em; } /* 4em (the column's 2em gap and 2em more) under whatever comes before — the note, the context, the thoughts — twice the gap between the blocks (Bill, 2026-10-09) */ /* on the grid, as the form's fields: two columns (four on a tablet, margin to margin on a phone — below); not the text's measure */
 .n-add .more { align-items: flex-start; height: auto; } /* the words and the + on the block's top line (Figma: a 32 row, both at its top) */
+.n-add .more { opacity: 0.6; transition: opacity 0.15s var(--ease); } /* at rest 60% of the palette's colour; full under the pointer and while pressed (Bill, 2026-10-09) */
+@media (hover: hover) { .n-add .more:hover { opacity: 1; } }
+.n-add .more:active { opacity: 1; }
 .n-add {
   --field: rgba(255, 255, 255, 0.1);
   --field-hover: rgba(255, 255, 255, 0.16);
