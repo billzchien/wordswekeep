@@ -614,6 +614,7 @@ ul { list-style: none; }
 @media (max-width: 599px) {
   /* Mobile: everything flows and scrolls together under a fading top bar. */
   .n-cats { position: absolute; top: var(--mark-top); }
+  .n-cats li { gap: calc(var(--m) + 2.667em - var(--mark-top) - var(--mark)); } /* the category names start where the indented names below do (.n-indent--from) */
   .n-pin { position: static; height: auto; padding: 124px var(--m) 0; filter: none !important; }
   .app.is-dim .n-pin { filter: blur(25px) !important; }
   .n-from { position: static; }
@@ -808,12 +809,28 @@ ul { list-style: none; }
     --menu-sym: clamp(96px, 18.8vh, 160px);   /* 160 in an 852 window */
     --row: clamp(50px, 7.75vh, 66px);         /* 66 */
     --list-top: calc(20px + var(--menu-sym) + min(40px, 4.7vh));
+  }
+  /* Only the list scrolls, under a top bar that holds Back and fades the rows out (as the notes'
+     .n-topfade does); the symbol stays put over both. */
+  .cat-list {
+    top: 0; bottom: 0; left: 0; right: 0;
+    padding: calc(var(--list-top) - (var(--row) - var(--lh)) / 2) var(--m) 20px;
     overflow-y: auto;
+    overscroll-behavior: contain;
     scrollbar-width: none;
   }
-  .menu::-webkit-scrollbar { display: none; }
+  .cat-list::-webkit-scrollbar { display: none; }
+  .menu::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 58px;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(to bottom, var(--paper) 30%, transparent);
+  }
+  .menu-back, .menu-sym { z-index: 2; }
   .menu-sym { left: auto; right: var(--m); top: 20px; translate: none; }
-  .cat-list { left: var(--m); right: var(--m); padding-bottom: 20px; }
   /* The hairline between rows belongs to the lower row. */
   li + li > .cat-row::before { content: ""; position: absolute; left: 0; right: 0; top: 0; border-top: var(--hairline) solid var(--rule); }
   .cat-row[data-empty] { opacity: 1; } /* the rule keeps its colour: only the name is dimmed */
