@@ -93,15 +93,18 @@
       "perspective"
     ],
     "author": {
+      "kind": "person",
       "name": "Chuck Palahniuk",
       "nativeName": null,
-      "country": "US"
+      "country": "US",
+      "origin": null
     },
     "source": {
       "title": "Invisible Monsters",
       "year": null,
       "kind": "book",
-      "link": "https://www.amazon.com/Invisible-Monsters-Novel-Chuck-Palahniuk/dp/0393355950"
+      "link": "https://www.amazon.com/Invisible-Monsters-Novel-Chuck-Palahniuk/dp/0393355950",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Publication211/v4/93/01/4b/93014bc6-15c2-8f1d-d292-717a89718482/1059201804.jpg/600x600bb.jpg"
     },
     "context": null,
     "annotations": [],
@@ -569,9 +572,11 @@
       "drive"
     ],
     "author": {
+      "kind": "person",
       "name": "Ray Bradbury",
       "nativeName": null,
-      "country": "US"
+      "country": "US",
+      "origin": null
     },
     "source": null,
     "context": null,
@@ -580,7 +585,7 @@
     "keptBy": "Petra Quilitz",
     "submittedAt": "2026-07-27T17:53:06",
     "approvedAt": "2026-07-27T17:53:06",
-    "font": "fig"
+    "font": "kid"
   },
   {
     "id": 22,
