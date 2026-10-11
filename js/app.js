@@ -1344,10 +1344,7 @@
     const gap = parseFloat(getComputedStyle($('nCol')).paddingTop) || 120;
     const least = parseFloat(getComputedStyle($('nPin')).getPropertyValue('--pin-dim-min')) || 0.26;
     const dim = Math.round((1 - (1 - least) * Math.min(1, notes.scrollTop / gap)) * 100) / 100;
-    if (dim !== pinDim) {
-      pinDim = dim; $('nPin').style.setProperty('--pin-dim', dim);
-      notes.classList.toggle('is-over', dim < 1 && !mqMobile.matches); // "Add thoughts +" at full strength over the faded quote (css .n-add .more)
-    }
+    if (dim !== pinDim) { pinDim = dim; $('nPin').style.setProperty('--pin-dim', dim); }
     notes.classList.add('is-scrolling');
     clearTimeout(scrollIdle);
     scrollIdle = setTimeout(() => notes.classList.remove('is-scrolling'), 150);
@@ -1669,7 +1666,6 @@
       $('nPin').style.setProperty('--pin-blur', '0px');
       $('nPin').classList.remove('is-blurred');
       $('nPin').style.setProperty('--pin-dim', 1);
-      notes.classList.remove('is-over');
       pinBlur = 0; pinDim = 1;
       layoutNotes();
     } else {

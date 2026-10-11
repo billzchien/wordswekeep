@@ -523,9 +523,6 @@ ul { list-style: none; }
 /* …75% where 60% falls short of AA (4.5:1) on its background: Perspective 3.67 → 5.19, Community
    3.44 → 4.68; Growth, Drive and Romance pass at 60% (Bill, 2026-10-10). */
 [data-theme="perspective"] .n-add .more, [data-theme="community"] .n-add .more { opacity: 0.75; }
-/* …and full once the notes scroll over the faded quote (js: .is-over), where a quieter link would
-   fall short of AA over the densest blur in every palette (Bill, 2026-10-10). */
-.notes.is-over .n-add .more { opacity: 1; }
 @media (hover: hover) { .n-add .more:hover { opacity: 1; } }
 .n-add .more:active { opacity: 1; }
 .n-add {
