@@ -46,7 +46,7 @@
     "source": {
       "title": "Nike Air Jordan Commercial",
       "year": null,
-      "kind": "commercial",
+      "kind": "other",
       "link": "https://www.youtube.com/watch?v=JA7G7AV-LT8"
     },
     "context": null,
@@ -120,15 +120,18 @@
       "perspective"
     ],
     "author": {
+      "kind": "person",
       "name": "Bill Watterson",
       "nativeName": null,
-      "country": "US"
+      "country": "US",
+      "origin": null
     },
     "source": {
       "title": "Calvin and Hobbes",
       "year": null,
-      "kind": "comic",
-      "link": "https://positron11.github.io/watterson/"
+      "kind": "book",
+      "link": "https://positron11.github.io/watterson/",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Publication5/v4/21/35/1d/21351d58-ab76-9c5f-76fa-3f7a6a26f438/9781449472108.jpg/600x600bb.jpg"
     },
     "context": null,
     "annotations": [],
@@ -233,7 +236,7 @@
     "source": {
       "title": "Letter to Fanny Bowditch",
       "year": 1916,
-      "kind": "letter",
+      "kind": "writing",
       "link": "https://www.angelikiyiassemides.com/en/news/misusing-jung-who-looks-outside-dreams-who-looks-inside-awakes"
     },
     "context": "“Your vision will become clear only when you can look into your own heart. Without, everything seems discordant; only within does it coalesce into unity. Who looks outside dreams; who looks inside awakes.”\n\nJung wrote this to a patient going through depression, urging her to stop projecting her inner turmoil outward and to withdraw her emotional dependency on him as her analyst — turning inward toward her own psyche instead.",
@@ -298,7 +301,7 @@
     "source": {
       "title": "Emmys Red Carpet Interview",
       "year": 2022,
-      "kind": "interview",
+      "kind": "speech",
       "link": "https://youtu.be/xZFyT_8gukU?si=kSog6uCMQr85Grc8&t=88",
       "crop": {
         "x": 0.311,
@@ -379,7 +382,7 @@
     "source": {
       "title": "Preface to the Poems Composed at the Orchid Pavilion",
       "year": null,
-      "kind": "essay",
+      "kind": "writing",
       "link": "https://www.classicalpoets.org/preface-to-the-poems-composed-at-the-orchid-pavilion-a-rhyming-poetry-translation/"
     },
     "context": "On the third day of the third lunar month of 353, Wang Xizhi invited a group of family and friends to his Orchid Pavilion for the Spring Purification Festival. Water and orchids were said to ward away the evil vapors of winter on this day, bringing good fortune in its place. The pavilion was surrounded on all sides by fresh bamboo and lofty mountains, and overlooked a winding stream. The day was sunny but cool—a refreshing breeze drifted through the air, and many of the guests settled themselves by the banks of the water.\n\nServants sent floating cups of wine flowing downstream, and where they stopped, the nearest guest had to compose a poem on the spot—or drink three cups as penalty. Of the 41 guests, 26 composed a total of 37 poems, inspiring Wang Xizhi to pen his famous Preface. Historical records state Wang used a weasel-whisker brush on cocoon paper.\n\nThis same work would be passed down in the Wang family for generations until its last surviving heir—a monk named Zhiyong—gave it to the care of his disciple Biancai. By that time, nearly three hundred years had passed and the Tang Dynasty (618-907) had just established its rule over China. Eventually, the manuscript found its way into the hands of Emperor Tang Taizong, who had previously only seen copies of the original.\n\nMore copies of the Preface were traced, written, and even engraved on stone, though legend states that the emperor took the original with him to the tomb.\n\nIn subject matter, the Preface is a simple description of the poet’s musings—but written so elegantly, so masterfully that it leaves a heavy impression on the reader. Many words appear in it multiple times: the character 之 (pronounced zhī, meaning “of,” and also part of his name, Wang Xizhi) shows up 20 times alone, but each time is written differently, carrying unique stylistic flavors.\n\nIn this work, too, lies an appeal to the present—and the future. A written prediction by the poet states that future generations “will look upon us just as we looked upon the past.” The joys and disappointments of living, the cherished memories of happiness, are but a blink of history’s eyes. But even though time may change, human sentiment will not. It is constant in its inconstancy, full of rhythm and cadence echoed in the Preface’s own handwritten characters.\n\nWang Xizhi writes, but not for history, and not wholly for himself. Rather, he observes life and shares it with us, his future readers, inviting us to live as he does in the past. The “causes for feelings and mood remain the same,” he says, metaphorically extending his hand to ours.\n\nFor a calligraphy sage, he is also a masterfully candid poet.\n\n“Read me and see,” the poet coaxes. “We are not so different, you and I.”",
@@ -409,7 +412,7 @@
     "source": {
       "title": "Imperfect Us",
       "year": null,
-      "kind": "series",
+      "kind": "film",
       "link": null
     },
     "context": null,
@@ -545,7 +548,7 @@
     "source": {
       "title": "Survival Series",
       "year": null,
-      "kind": "artwork",
+      "kind": "other",
       "link": null
     },
     "context": null,
