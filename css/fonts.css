@@ -107,8 +107,8 @@
    tuned by Bill on a temporary page (2026-10-06). js/app.js → quoteScript sets data-script;
    Arabic and Hebrew also read right to left (dir="rtl"). Without a script: the CJK values in
    tokens.css (--quote-native-*). */
-[data-native][data-script="hant"] { --qn-serif: 'Noto Serif TC', serif;        --qn-sans: 'Noto Sans TC', sans-serif; }
-[data-native][data-script="hans"] { --qn-serif: 'Noto Serif SC', serif;        --qn-sans: 'Noto Sans SC', sans-serif; }
+[data-native][data-script="hant"] { --qn-serif: 'Ming TC', serif;              --qn-sans: 'Noto Sans TC', sans-serif; }
+[data-native][data-script="hans"] { --qn-serif: 'Ming SC', serif;              --qn-sans: 'Noto Sans SC', sans-serif; }
 [data-native][data-script="jpan"] { --qn-serif: 'BIZ UDPMincho', serif;        --qn-sans: 'Murecho', sans-serif; }
 [data-native][data-script="kore"] { --qn-serif: 'Gowun Batang', serif;         --qn-sans: 'IBM Plex Sans KR', sans-serif; }
 [data-native][data-script="cyrl"] { --qn-serif: 'Cormorant Garamond', serif;   --qn-sans: 'Golos Text', sans-serif; }
@@ -118,9 +118,10 @@
 [data-native][data-script="thai"] { --qn-serif: 'Noto Serif Thai', serif;      --qn-sans: 'Bai Jamjuree', sans-serif; }
 [data-native][data-script="deva"] { --qn-serif: 'Noto Serif Devanagari', serif; --qn-sans: 'Poppins', sans-serif; }
 [data-native][data-script="latn"] { --qn-serif: 'Noto Serif', serif;              --qn-sans: 'Noto Sans', sans-serif; }
-/* The serif's sizes, then the sans' (Bill, 2026-10-06) */
-[data-native][data-script="hant"] { --qn-scale: 0.85; --qn-leading: 1.45; --qn-tracking: 0.02em; --qn-weight: 500; }
-[data-native][data-script="hans"] { --qn-scale: 0.85; --qn-leading: 1.45; --qn-tracking: 0.02em; --qn-weight: 500; }
+/* The serif's sizes, then the sans' (Bill, 2026-10-06; Chinese in 澹雅明体C — Ming SC / TC, one
+   weight — 2026-10-10: its characters are each 1.4% wider than Noto's, so no tracking) */
+[data-native][data-script="hant"] { --qn-scale: 0.85; --qn-leading: 1.4; --qn-tracking: 0em; --qn-weight: 400; }
+[data-native][data-script="hans"] { --qn-scale: 0.85; --qn-leading: 1.4; --qn-tracking: 0em; --qn-weight: 400; }
 [data-native][data-script="jpan"] { --qn-scale: 0.88; --qn-leading: 1.4; --qn-tracking: 0.02em; --qn-weight: 400; }
 [data-native][data-script="kore"] { --qn-scale: 0.95; --qn-leading: 1.4; --qn-tracking: 0em; --qn-weight: 400; }
 [data-native][data-script="cyrl"] { --qn-scale: 1.25; --qn-leading: 0.85; --qn-tracking: -0.02em; --qn-weight: 400; }
