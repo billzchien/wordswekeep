@@ -291,8 +291,10 @@
     try { sessionStorage.setItem(ROUTE_KEY, h); } catch (e) {}
     history.replaceState({ route: h }, '', cleanAddress());
   } else if (!history.state) history.replaceState({ route: currentRoute() }, '', cleanAddress());
+  let shownRoute = currentRoute(); // the view on screen (the browser's Back has already moved on when it says so)
   function route() {
     const h = currentRoute();
+    shownRoute = h;
     try { sessionStorage.setItem(ROUTE_KEY, h); } catch (e) {}
     if (h === 'reset' && !remote) { localStorage.removeItem(STORE_KEY); history.replaceState({ route: 'live' }, '', cleanAddress()); try { sessionStorage.setItem(ROUTE_KEY, 'live'); } catch (e) {} location.reload(); return; }
     const [view, id] = h.split('/');
@@ -301,7 +303,19 @@
     else if (view === 'fonts') showFonts(id);
     else showList(view in TABS ? view : 'live');
   }
-  window.addEventListener('popstate', route);
+  // The browser's Back / Forward (a trackpad swipe too) with unsaved changes asks first, as the
+  // arrows and Back do (leaveTo): the view stays put while it asks, and moves on only on Leave.
+  window.addEventListener('popstate', async () => {
+    if (!isDirty()) { route(); return; }
+    const to = currentRoute();
+    history.pushState({ route: shownRoute }, '', cleanAddress());
+    try { sessionStorage.setItem(ROUTE_KEY, shownRoute); } catch (e) {}
+    if (!(await ask('Leave without saving?', 'Leave', 'Keep editing'))) return;
+    edit = null; th = null;
+    go(to);
+  });
+  // A reload or closing the tab: the browser's own "Leave site?" (no page may word its own).
+  window.addEventListener('beforeunload', (e) => { if (isDirty()) { e.preventDefault(); e.returnValue = ''; } });
   // Links are buttons with a data-href, not <a href> (no address strip at the foot of the window
   // on hover; the archive and the form do the same). A click goes there, unless the button's
   // own handler has dealt with it; ⌘ / Ctrl or a middle click opens a new tab.
@@ -673,7 +687,7 @@
     q.source = (d.source.kind || d.source.year || d.source.title || d.source.link)
       ? { title: hasSource ? (t(d.source.title) || null) : null, year: d.source.year ? Number(d.source.year) : null, kind: d.source.kind || null, link: hasSource ? (t(d.source.link) || null) : null }
       : null;
-    if (q.source && d.source.kind === 'book' && t(d.source.cover || '')) q.source.cover = t(d.source.cover); // a book's cover: only ever present when picked
+    if (q.source && d.source.kind === 'book' && t(d.source.cover || '') && !plays(q.source.link)) q.source.cover = t(d.source.cover); // a book's cover: only ever present when picked
     if (q.source && q.source.link && d.source.crop && videoKey(q.source.link)) q.source.crop = { ...d.source.crop }; // a video's thumbnail window: only ever present when cropped
     q.context = t(d.context) || null;
     q.annotations = d.annotations.filter((a) => a.matched && a.word.trim() && (!a.orig || q.originalLanguage)).map((a) => ({ word: a.word.trim(), explanation: a.explanation.trim(), ...(a.orig ? { in: 'original' } : {}) })); // locked rows only
@@ -1222,6 +1236,9 @@
   // A vertical video (TikTok, Instagram, a Short, or a source marked vertical): its player is
   // drawn at a phone's size (css: 360 × VERTICAL_H, 9:16) and scaled to the box's height
   // (--fit), centred — Instagram's embed is a whole post and will not shrink to a sliver.
+  // A link the site plays (a video or music player, js/app.js → videoOf): its spot shows the
+  // player, never a book's cover — so the library offers no covers for it and keeps none.
+  const plays = (link) => Object.values(VIDEO).some((p) => p.match(String(link || '').trim()));
   const VERTICAL_H = 640;
   // The box is as near 16:9 as the edit view's grid allows: a whole number of rows (a row is a
   // field, --fh, and its 1px gap; --u is the page's unit, tokens.css), so what follows stays on
@@ -1245,6 +1262,7 @@
     const shown = d && !!d.source.kind && d.source.kind !== 'personal';
     let platform = null, id = null;
     for (const [name, p] of Object.entries(VIDEO)) { id = p.match(link); if (id) { platform = name; break; } }
+    if (!!platform !== !!drawCovers.played) { drawCovers.played = !!platform; drawCovers(instant); } // a link that plays folds the covers away; one that stops playing brings them back
     if (!shown || !platform) { cropFor('', instant); (instant ? foldNow : fold)(wrap, false); box.dataset.src = ''; box.innerHTML = ''; return; }
     if (id === 'short') { // a short TikTok link: ask TikTok for the video's id
       try { const r = await fetch(VIDEO.tiktok.lookup(link)); const j = r.ok ? await r.json() : null; id = j && j.embed_product_id ? String(j.embed_product_id) : null; } catch (e) { id = null; }
@@ -1631,7 +1649,7 @@
   async function drawCovers(instant = false) {
     clearTimeout(drawCovers.t);
     const d = edit && edit.draft, wrap = $('fCoverWrap');
-    const book = !!d && d.source.kind === 'book';
+    const book = !!d && d.source.kind === 'book' && !plays(d.source.link); // (a video's spot shows the video: no cover)
     (instant ? foldNow : fold)(wrap, book);
     if (!book) return;
     const title = d.source.title.trim(), author = d.author.name.trim();
