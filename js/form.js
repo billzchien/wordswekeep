@@ -25,14 +25,15 @@
   // "Personal" (something said to the submitter), or no kind chosen yet: no source name or link.
   // `hint`: what the empty source link field says for that kind — the platforms the site plays
   // (js/app.js → VIDEO). Any link is still taken. Without one: "Source link".
+  // `name`: what the empty source name field says ("Song title"…). Without one: "Source name".
   const KINDS = [
-    { value: 'book', label: 'Book' },
-    { value: 'film', label: 'Film / TV', hint: 'Link to YouTube, Vimeo, or another site' },
-    { value: 'song', label: 'Song', hint: 'Link to Apple Music, Spotify, YouTube, or other' },
-    { value: 'poem', label: 'Poem' },
-    { value: 'speech', label: 'Speech / Interview', hint: 'Link to YouTube, Vimeo, or another site' },
-    { value: 'writing', label: 'Writing' },
-    { value: 'social', label: 'Social media', hint: 'Link to YouTube, TikTok, Instagram, or other' },
+    { value: 'book', label: 'Book', name: 'Book title' },
+    { value: 'film', label: 'Film / TV', name: 'Film or show title', hint: 'Link to YouTube, Vimeo, or another site' },
+    { value: 'song', label: 'Song', name: 'Song title', hint: 'Link to Apple Music, Spotify, YouTube, or other' },
+    { value: 'poem', label: 'Poem', name: 'Poem title' },
+    { value: 'speech', label: 'Speech / Interview', name: 'Event or show name', hint: 'Link to YouTube, Vimeo, or another site' },
+    { value: 'writing', label: 'Writing', name: 'Title of the piece' },
+    { value: 'social', label: 'Social media', name: 'Post or video title', hint: 'Link to YouTube, TikTok, Instagram, or other' },
     { value: 'personal', label: 'Personal' },
     { value: 'other', label: 'Other' },
   ];
@@ -804,9 +805,10 @@
     else { fold(link, false); showSourceFields.t = setTimeout(() => fold(name, false), SOURCE_STAGGER_MS); }
   }
   // The link field's hint (and what a screen reader hears) follows the kind.
-  function linkHint(v) {
-    const hint = (KINDS.find((k) => k.value === v) || {}).hint || 'Source link';
+  function linkHint(v) { // (and the name field's: "Song title", "Event or show name"…; Bill, 2026-10-10)
+    const k = KINDS.find((x) => x.value === v) || {}, hint = k.hint || 'Source link', name = k.name || 'Source name';
     $('fSourceLink').placeholder = hint; $('fSourceLink').setAttribute('aria-label', hint);
+    $('fTitle').placeholder = name; $('fTitle').setAttribute('aria-label', name);
   }
   const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', label: 'Source category', onChange: (v) => { data.source.kind = v; linkHint(v); showSourceFields(!!v && v !== 'personal'); } });
   const year = combo($('fYear'), { options: YEARS, placeholder: 'Year', free: true, onChange: (v) => { data.source.year = /^\d{1,4}$/.test(v) ? v : ''; } });
