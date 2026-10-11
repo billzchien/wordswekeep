@@ -714,5 +714,35 @@
     "submittedAt": "2026-10-08T23:35:31.545Z",
     "font": "instrument",
     "id": 25
+  },
+  {
+    "status": "live",
+    "text": "Over here we measure success by how many people successful next to you.",
+    "originalLanguage": null,
+    "categories": [
+      "drive",
+      "community"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "The Carters",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": {
+      "title": "BOSS",
+      "year": 2018,
+      "kind": "song",
+      "link": "https://music.apple.com/us/album/boss/1400115721?i=1400116359"
+    },
+    "context": "“BOSS” is track 3 on Everything Is Love, the first joint album from Beyoncé and Jay‑Z as The Carters. They released it as a surprise on June 16, 2018. It finished a trilogy that started with Lemonade and Jay‑Z’s 4:44, two albums that dealt openly with infidelity in their marriage. Those records were raw. This one is a victory lap from a couple who made it through, celebrating love, family and Black wealth. It won the Grammy for Best Urban Contemporary Album, and the video for its lead single, “APES**T,” was filmed inside the Louvre.\n\nOn “BOSS,” they trade lines about ownership and legacy: building wealth their great‑grandchildren will inherit, and running their own empire instead of working for someone else’s. This line comes from the verse they share, and it turns all that bragging outward. What counts is how many people around you are winning too.",
+    "annotations": [],
+    "reflection": "When I first heard this line, I was nodding my head. It defines success for the group, not just for one person. I come from a culture that leans toward collectivism, so it really resonated with me. If your success lifts others and helps them succeed too, you have my deepest respect. But if you got there by stabbing people in the back, there’s no honor in that.",
+    "keptBy": "Bill",
+    "approvedAt": "2026-10-11T02:56:00.890Z",
+    "submittedAt": "2026-10-11T02:54:18.638Z",
+    "font": "round",
+    "id": 26
   }
 ]
