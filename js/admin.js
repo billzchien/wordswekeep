@@ -2505,7 +2505,17 @@
     return false;
   }
   scroll.addEventListener('wheel', (e) => {
-    if (reduceMotion.matches || e.ctrlKey || scrollsInside(e.target, e.deltaY)) return; // ctrl+wheel = pinch zoom
+    if (e.ctrlKey) return; // pinch zoom
+    // A field that scrolls (a long text box, a dropdown's list) owns the wheel, even at its top or
+    // bottom: it stops there, never moving the page behind (as the form; Bill, 2026-10-10 — the
+    // glide below took over at the field's end, going round its overscroll-behavior: contain).
+    const field = e.target.closest('textarea, .combo-list');
+    if (field && field.scrollHeight > field.clientHeight + 1) {
+      const room = e.deltaY < 0 ? field.scrollTop > 0 : field.scrollTop + field.clientHeight < field.scrollHeight - 1;
+      if (!room) e.preventDefault();
+      return;
+    }
+    if (reduceMotion.matches || scrollsInside(e.target, e.deltaY)) return;
     e.preventDefault();
     const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? scroll.clientHeight : 1; // lines / pages → px
     if (!glide.raf) glide.pos = glide.target = glide.at = scroll.scrollTop;

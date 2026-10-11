@@ -1322,7 +1322,13 @@
     notes.style.setProperty('--quote-bottom', `${wrap.offsetTop + wrap.offsetHeight}px`); // a tablet's thumbnail sits this far down, pinned (css #nVideoPin)
   }
 
-  let scrollIdle, pinBlur = -1;
+  // The pinned layer ("Words from", the quote, the thumbnail) also fades as the notes scroll up
+  // over it, to its palette's --pin-dim-min by the time their first line reaches the quote's last
+  // (the column's top gap, --notes-quote-gap): blurred, the quote can be as dense as the text's own
+  // colour, and the notes must keep AA over it. Each palette fades only as far as AA needs — the
+  // more the quote shows, the more depth (Bill, 2026-10-10; css/app.css). All of it fades, so the
+  // blur is evenly faint. Desktop and tablet only: on a phone it scrolls away with the notes.
+  let scrollIdle, pinBlur = -1, pinDim = -1;
   notes.addEventListener('scroll', () => {
     app.classList.toggle('is-scrolled', notes.scrollTop > 2); // the mobile top fade only exists once something can slide under it
     // Blur in half-pixel steps, and only touch the style when the step changes: a blur filter is
@@ -1334,6 +1340,13 @@
       $('nPin').style.setProperty('--pin-blur', `${blur}px`);
       $('nPin').classList.toggle('is-blurred', blur > 0);
       $('nPin').style.pointerEvents = blur > 4 && !mqMobile.matches ? 'none' : ''; // phone: nothing is pinned or blurred, and the thumbnail lives in here
+    }
+    const gap = parseFloat(getComputedStyle($('nCol')).paddingTop) || 120;
+    const least = parseFloat(getComputedStyle($('nPin')).getPropertyValue('--pin-dim-min')) || 0.26;
+    const dim = Math.round((1 - (1 - least) * Math.min(1, notes.scrollTop / gap)) * 100) / 100;
+    if (dim !== pinDim) {
+      pinDim = dim; $('nPin').style.setProperty('--pin-dim', dim);
+      notes.classList.toggle('is-over', dim < 1 && !mqMobile.matches); // "Add thoughts +" at full strength over the faded quote (css .n-add .more)
     }
     notes.classList.add('is-scrolling');
     clearTimeout(scrollIdle);
@@ -1655,7 +1668,9 @@
       app.classList.remove('is-scrolled');
       $('nPin').style.setProperty('--pin-blur', '0px');
       $('nPin').classList.remove('is-blurred');
-      pinBlur = 0;
+      $('nPin').style.setProperty('--pin-dim', 1);
+      notes.classList.remove('is-over');
+      pinBlur = 0; pinDim = 1;
       layoutNotes();
     } else {
       app.classList.remove('is-scrolled');

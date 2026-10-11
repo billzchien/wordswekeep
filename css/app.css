@@ -423,6 +423,18 @@ ul { list-style: none; }
 /* Filtered only while scrolled: an always-on filter rasterizes the quote differently, which
    showed as a flicker when the travelling quote handed over to it. */
 .n-pin.is-blurred { filter: blur(var(--pin-blur, 0px)); }
+/* …and fades as the notes reach it — all of it, the thumbnail too, so the blurred background is
+   evenly faint (Bill, 2026-10-10). Each palette fades only as far as AA needs: at --pin-dim-min the
+   notes text keeps 4.5:1 even where the blurred quote is as dense as solid text (the more it
+   shows, the more depth). Contrast there: perspective 4.50, growth 4.50, drive 4.62, community
+   4.60, romance 4.56. js/app.js sets --pin-dim as the notes scroll. */
+.n-pin { opacity: var(--pin-dim, 1); }
+[data-theme="perspective"] { --pin-dim-min: 0.34; }
+[data-theme="growth"]      { --pin-dim-min: 0.40; }
+[data-theme="drive"]       { --pin-dim-min: 0.42; }
+[data-theme="community"]   { --pin-dim-min: 0.26; }
+[data-theme="romance"]     { --pin-dim-min: 0.38; }
+.notes:not(.is-scrolling) .n-pin { transition: filter 0.4s var(--ease), opacity 0.4s var(--ease); }
 .notes.is-scrolling .n-pin { transition: none; }
 
 .n-meta p { white-space: nowrap; }
@@ -511,6 +523,9 @@ ul { list-style: none; }
 /* …75% where 60% falls short of AA (4.5:1) on its background: Perspective 3.67 → 5.19, Community
    3.44 → 4.68; Growth, Drive and Romance pass at 60% (Bill, 2026-10-10). */
 [data-theme="perspective"] .n-add .more, [data-theme="community"] .n-add .more { opacity: 0.75; }
+/* …and full once the notes scroll over the faded quote (js: .is-over), where a quieter link would
+   fall short of AA over the densest blur in every palette (Bill, 2026-10-10). */
+.notes.is-over .n-add .more { opacity: 1; }
 @media (hover: hover) { .n-add .more:hover { opacity: 1; } }
 .n-add .more:active { opacity: 1; }
 .n-add {
@@ -629,6 +644,7 @@ ul { list-style: none; }
   .n-cats { position: absolute; top: var(--mark-top); }
   .n-cats li { gap: calc(var(--m) + 2.667em - var(--mark-top) - var(--mark)); } /* the category names start where the indented names below do (.n-indent--from) */
   .n-pin { position: static; height: auto; padding: 124px var(--m) 0; filter: none !important; }
+  .n-pin { opacity: 1 !important; } /* nothing scrolls over it here: no fading */
   .app.is-dim .n-pin { filter: blur(25px) !important; }
   .n-from { position: static; }
   .n-source { max-width: none; margin-right: 40px; } /* as wide as the notes body below */
