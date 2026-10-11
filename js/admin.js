@@ -47,19 +47,35 @@
     { key: 'community',   name: 'Community' },
     { key: 'romance',     name: 'Romance' },
   ];
-  // The form's kinds, plus the ones already in quotes.json (the converter's SOURCES), so every
-  // live quote shows its kind.
-  // `hint`: what the empty source link field says (the form's, js/form.js; the older kinds follow
-  // their nearest form kind). Without one: "Source link".
+  // The form's kinds, exactly (js/form.js → KINDS; Bill, 2026-10-10: the library offered more).
+  // `hint`: what the empty source link field says. Without one: "Source link".
   const VIDEO_HINT = 'Link to YouTube, Vimeo, or another site';
   const KINDS = [
-    { value: 'book', label: 'Book' }, { value: 'film', label: 'Film & TV', hint: VIDEO_HINT }, { value: 'series', label: 'Series', hint: VIDEO_HINT },
-    { value: 'song', label: 'Song', hint: 'Link to Apple Music, Spotify, YouTube, or other' }, { value: 'poem', label: 'Poem' }, { value: 'speech', label: 'Speech & interview', hint: VIDEO_HINT },
-    { value: 'interview', label: 'Interview', hint: VIDEO_HINT }, { value: 'writing', label: 'Writing' }, { value: 'essay', label: 'Essay' },
-    { value: 'letter', label: 'Letter' }, { value: 'scripture', label: 'Scripture' }, { value: 'comic', label: 'Comic' },
-    { value: 'artwork', label: 'Artwork' }, { value: 'commercial', label: 'Commercial', hint: VIDEO_HINT }, { value: 'social', label: 'Social media', hint: 'Link to YouTube, TikTok, Instagram, or other' }, { value: 'personal', label: 'Personal' },
+    { value: 'book', label: 'Book' },
+    { value: 'film', label: 'Film / TV', hint: VIDEO_HINT },
+    { value: 'song', label: 'Song', hint: 'Link to Apple Music, Spotify, YouTube, or other' },
+    { value: 'poem', label: 'Poem' },
+    { value: 'speech', label: 'Speech / Interview', hint: VIDEO_HINT },
+    { value: 'writing', label: 'Writing' },
+    { value: 'social', label: 'Social media', hint: 'Link to YouTube, TikTok, Instagram, or other' },
+    { value: 'personal', label: 'Personal' },
     { value: 'other', label: 'Other' },
   ];
+  // The kinds the library had before (the converter's), each moved to the form's nearest when the
+  // store is loaded; a live quote so moved waits for the next Publish. Comic → Book (a strip
+  // collection or graphic novel is a book; its title in italics), Series → Film / TV; a
+  // commercial or an artwork → Other (no italics).
+  const OLD_KINDS = { series: 'film', interview: 'speech', essay: 'writing', letter: 'writing', scripture: 'writing', comic: 'book', artwork: 'other', commercial: 'other' };
+  function moveOldKinds() {
+    let moved = 0;
+    ['live', 'pending', 'archive'].forEach((tab) => (store[tab] || []).forEach((q) => {
+      const to = q.source && OLD_KINDS[q.source.kind];
+      if (!to) return;
+      q.source.kind = to; moved++;
+      if (tab === 'live') { if (!q.dirty) q.updated = true; q.dirty = true; store.publishDirty = true; }
+    }));
+    return moved;
+  }
   function linkHint(v) {
     const hint = (KINDS.find((k) => k.value === v) || {}).hint || 'Source link';
     $('fLink').placeholder = hint; $('fLink').setAttribute('aria-label', hint);
@@ -184,12 +200,14 @@
       remote = true;
       if (!r.ok) { await signIn(); return load(); }
       adopt(await r.json());
+      if (moveOldKinds()) persist();
       return;
     }
     const raw = localStorage.getItem(STORE_KEY);
-    if (raw) { try { store = JSON.parse(raw); if (store && store.live && store.live.every((q) => q.key)) { if (!store.thoughts) store.thoughts = seedThoughts(store.live); return; } } catch (e) { /* fall through */ } } // no keys = an older demo store: re-seed (no thoughts = a demo from before them: given some)
+    if (raw) { try { store = JSON.parse(raw); if (store && store.live && store.live.every((q) => q.key)) { if (!store.thoughts) store.thoughts = seedThoughts(store.live); if (moveOldKinds()) persist(); return; } } catch (e) { /* fall through */ } } // no keys = an older demo store: re-seed (no thoughts = a demo from before them: given some)
     const res = await fetch('../data/quotes.json');
     store = seed(await res.json());
+    moveOldKinds();
     persist();
   }
 
