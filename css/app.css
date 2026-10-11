@@ -241,6 +241,7 @@ ul { list-style: none; }
    element it started on, and the quote's nodes are replaced mid-change (the swap), which stranded
    the finger (the scrub froze scattered). Only the language button takes pointer events. */
 .track .lang { pointer-events: auto; }
+.app.is-over-quote .deck { cursor: pointer; } /* tapping the quote opens notes (js/app.js → quoteTap) */
 .slide { position: absolute; left: 0; width: 100%; height: 100%; }
 .slide[data-pos="-1"] { top: -100%; }
 .slide[data-pos="0"]  { top: 0; }

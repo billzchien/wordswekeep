@@ -828,6 +828,7 @@
   let cut = null; // the cut-up in progress
   function startCut(dir) {
     flushLanding();
+    if (rgbLens) rgbLens.off(); // (the RGB lens: off before the quote is cut up)
     const c = { dir, n: 0, leaving: buildScraps(currentWrap(), false), arriving: null, playing: false, ended: false };
     currentWrap().style.visibility = 'hidden';
     state.animating = true;
@@ -1907,6 +1908,7 @@
   function setMode(mode) {
     flushLanding();
     if (modeBusy || langBusy || state.animating || mode === state.mode) return;
+    if (rgbLens) rgbLens.off(); // (the RGB lens: off before the quote is measured and carried into notes)
     if (reduceMotion.matches) return applyMode(mode);
     modeBusy = true;
     const toNotes = mode === 'notes';
@@ -2184,6 +2186,7 @@
     if (reduceMotion.matches) return render();
 
     langBusy = true;
+    if (rgbLens) rgbLens.off(); // (the RGB lens: off before the outgoing words are copied)
     const wrap = inNotes ? $('nQuoteWrap') : track.querySelector('.slide[data-pos="0"] .q-wrap');
     // The button sets the change off (Bill, 2026-10-06): it slips 10px towards the quote, down and
     // to the right, fading as it goes (LANG_BTN_OUT_MS), and only then does the paragraph change.
@@ -2257,7 +2260,190 @@
     if (ann) return openAnnotation(ann);
     const thumb = e.target.closest('[data-video]');
     if (thumb) return openVideo(thumb);
+    if (quoteTap(e)) { app.classList.remove('is-over-quote'); setMode('notes'); }
   });
+
+  /* Tapping the quote on the main page opens notes (Bill, 2026-10-11): a shortcut beside Notes,
+     which stays. In notes only Close closes them (Bill, the same day: tapping the quote there
+     was taken out). Only the words count, not the empty end of a line: the point is tested
+     against the quote's own line boxes (the track takes no pointer events, so the tap lands on
+     the deck and is placed by geometry). Nothing about the quote's setting is touched. */
+  const QUOTE_DRAG_PX = 6; // a mouse that moved further between press and release made no tap
+  function overQuote(x, y) {
+    if (state.mode !== 'main' || modeBusy || langBusy || state.animating || app.classList.contains('is-typing') || app.classList.contains('is-dim') || !$('menu').hidden) return false;
+    const q = track.querySelector('.slide[data-pos="0"] .q-wrap .quote:not(.quote-ghost)');
+    if (!q) return false;
+    const range = document.createRange();
+    range.selectNodeContents(q);
+    return [...range.getClientRects()].some((r) => r.width > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
+  }
+  let pressAt = null;
+  app.addEventListener('pointerdown', (e) => { pressAt = { x: e.clientX, y: e.clientY, mouse: e.pointerType === 'mouse' }; });
+  function quoteTap(e) {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.target.closest('button, [data-href], input, textarea')) return false;
+    if (pressAt && pressAt.mouse && Math.hypot(e.clientX - pressAt.x, e.clientY - pressAt.y) > QUOTE_DRAG_PX) return false;
+    return overQuote(e.clientX, e.clientY);
+  }
+  // A mouse over the quote gets the pointing hand (a class on .app: the cursor only, nothing else).
+  if (matchMedia('(hover: hover)').matches) {
+    let hoverFrame = 0, hoverAt = null;
+    app.addEventListener('mousemove', (e) => {
+      hoverAt = e;
+      if (!hoverFrame) hoverFrame = requestAnimationFrame(() => { hoverFrame = 0; app.classList.toggle('is-over-quote', overQuote(hoverAt.clientX, hoverAt.clientY)); });
+    });
+    app.addEventListener('mouseleave', () => app.classList.remove('is-over-quote'));
+  }
+
+  /* ---------- RGB lens (Bill, 2026-10-11; tuned on rgb-hover-tuning, md/handoff.md) ----------
+     Around the mouse, over the quote on the main page, the letters split into red and green
+     copies pushed away from the cursor, strongest a little way out from it and fading to nothing
+     at the lens's edge. An SVG filter on the drawn quote: its text, lines, kerning and ligatures
+     are never touched. Desktop with a mouse only; never in notes; off while anything else moves
+     (arrival, a change of quote, the language switch, notes coming or going, the menu) and back
+     once it is done. Every check of it against those: md/checks/rgb-hover (run after any change). */
+  const RGB_HOVER = { radius: 240, strength: 4, core: 0.3, falloff: 2, red: 0.8, green: 0.4, blue: 0, follow: 0.5, fade: 520 };
+  // (var: the functions above call rgbLens && rgbLens.off() and may run before this line has)
+  var rgbLens = (() => {
+    if (window.self !== window.top || !matchMedia('(hover: hover) and (pointer: fine)').matches) return { off() {} }; // (in a frame: the tuning page draws its own)
+    const v = RGB_HOVER, NS = 'http://www.w3.org/2000/svg';
+    // The push at a distance from the cursor, 0–1: none at the cursor, the peak at core × radius,
+    // none again at the radius.
+    const push = (dist) => {
+      const R = v.radius, core = v.core * R;
+      if (dist >= R) return 0;
+      return dist < core ? dist / core : Math.pow(1 - (dist - core) / (R - core), v.falloff);
+    };
+    // How far out the push still moves anything (¼ px): the filter works only in that square.
+    // (Safari draws an SVG filter on the processor, every step over its whole area, each frame.)
+    let half = v.radius;
+    for (let d = v.core * v.radius; d < v.radius; d += 1) if (v.strength * push(d) < 0.25) { half = Math.ceil(d); break; }
+    const shift = Math.ceil(v.strength * Math.max(1, Math.abs(v.red), Math.abs(v.green), Math.abs(v.blue))) + 1; // the furthest any copy moves
+    const border = shift + 6; // "still" around the field picture: whatever a browser does to an image's edge happens outside every step that reads it
+    // The field: a picture 2 × (half + border) across, centred on the cursor. Red and green carry
+    // the way each point is pushed (128 = still), away from the cursor; feDisplacementMap reads a
+    // point from where the colour says, so the picture stores the opposite of the push.
+    const size = 2 * (half + border), canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d'), img = ctx.createImageData(size, size), px = img.data;
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const dx = x + 0.5 - half - border, dy = y + 0.5 - half - border, dist = Math.hypot(dx, dy), m = dist >= half ? 0 : push(dist);
+      const i = (y * size + x) * 4;
+      px[i] = Math.round(128 - (dist ? dx / dist : 0) * m * 127);
+      px[i + 1] = Math.round(128 - (dist ? dy / dist : 0) * m * 127);
+      px[i + 2] = 128; px[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    const field = canvas.toDataURL();
+
+    // The filter. Inside the lens's square: the quote laid on its page colour (so black ink splits
+    // into colour as the eye sees it), one shifted copy per colour that moves (a colour at 0 is
+    // the quote as it is), each colour kept from its own copy, added up. Outside: the quote itself.
+    const el = (tag, attrs, parent) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+    const svg = el('svg', { width: 0, height: 0, 'aria-hidden': 'true', focusable: 'false', style: 'position:absolute' });
+    const filter = el('filter', { id: 'rgbHover', 'color-interpolation-filters': 'sRGB', filterUnits: 'userSpaceOnUse', primitiveUnits: 'userSpaceOnUse' }, el('defs', {}, svg));
+    const fieldImg = el('feImage', { preserveAspectRatio: 'none', result: 'push', href: field }, filter);
+    fieldImg.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', field);
+    const paper = el('feFlood', { 'flood-color': '#E6E6E6', result: 'paper' }, filter);
+    el('feComposite', { in: 'SourceGraphic', in2: 'paper', operator: 'over', result: 'flat' }, filter);
+    const only = { r: '1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0', g: '0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0', b: '0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0' };
+    const share = { r: v.red, g: v.green, b: v.blue }, maps = {};
+    for (const c of ['r', 'g', 'b']) {
+      if (share[c]) maps[c] = el('feDisplacementMap', { in: 'flat', in2: 'push', scale: 0, xChannelSelector: 'R', yChannelSelector: 'G', result: `d${c}` }, filter);
+      el('feColorMatrix', { in: share[c] ? `d${c}` : 'flat', type: 'matrix', values: only[c], result: c }, filter); // (a colour that does not move skips its copy)
+    }
+    el('feComposite', { in: 'r', in2: 'g', operator: 'arithmetic', k2: 1, k3: 1, result: 'rg' }, filter);
+    el('feComposite', { in: 'rg', in2: 'b', operator: 'arithmetic', k2: 1, k3: 1, result: 'lens' }, filter);
+    const steps = [...filter.children];
+    // The last step spans the whole filter area, always: left to itself its area follows the
+    // others', and with the lens off the quote Safari then drew nothing at all.
+    const merge = el('feMerge', {}, filter);
+    el('feMergeNode', { in: 'SourceGraphic' }, merge); el('feMergeNode', { in: 'lens' }, merge);
+    document.body.appendChild(svg);
+
+    const mouse = { x: 0, y: 0, in: false }, lens = { x: 0, y: 0, amt: 0 };
+    let target = null, raf = 0, last = 0, lastKey = '';
+    // The quote the lens may work on: the main page's, at rest — nothing else moving.
+    function liveQuote() {
+      if (state.mode !== 'main' || modeBusy || langBusy || state.animating || reduceMotion.matches || !$('menu').hidden
+        || app.classList.contains('is-typing') || app.classList.contains('is-revealing') || app.classList.contains('is-dim') || document.querySelector('.dada')) return null;
+      const wrap = track.querySelector('.slide[data-pos="0"] .q-wrap');
+      const q = wrap && wrap.querySelector('.quote:not(.quote-ghost)');
+      if (!q || q.querySelector('.q-word') || wrap.style.visibility === 'hidden' || wrap.querySelector('.quote-ghost, .lang.is-out')
+        || wrap.classList.contains('is-typing') || wrap.classList.contains('is-wiping')) return null;
+      return q;
+    }
+    function off() {
+      lastKey = ''; lens.amt = 0;
+      if (target) { target.style.filter = target.style.transform = ''; target = null; }
+    }
+    function tick(now) {
+      raf = 0;
+      const dt = Math.min(64, now - (last || now)); last = now;
+      const q = liveQuote();
+      if (q !== target) {
+        off();
+        if (q) {
+          target = q; lens.x = mouse.x; lens.y = mouse.y;
+          // Safari counts a filter's pixels from the nearest layer above the element, not from
+          // the element (in notes: the page's corner — the quote vanished there). A transform
+          // that moves nothing makes the quote its own frame of reference; its pixels are the
+          // same with and without (compared in WebKit).
+          target.style.transform = 'translate(0px)';
+          paper.setAttribute('flood-color', getComputedStyle(document.body).backgroundColor);
+        }
+      }
+      if (!target) { if (mouse.in) raf = requestAnimationFrame(tick); return; } // (something is moving: back once it is done, the mouse resting or not)
+      const r = target.getBoundingClientRect();
+      const near = mouse.in && mouse.x > r.left - half && mouse.x < r.right + half && mouse.y > r.top - half && mouse.y < r.bottom + half;
+      const step = v.fade ? dt / v.fade : 1;
+      lens.amt = Math.max(0, Math.min(1, lens.amt + (near ? step : -step)));
+      const k = 1 - Math.pow(1 - v.follow, dt / 16.7);
+      lens.x += (mouse.x - lens.x) * k; lens.y += (mouse.y - lens.y) * k;
+      if (lens.amt <= 0) { target.style.filter = ''; lastKey = ''; if (near) raf = requestAnimationFrame(tick); return; }
+      // Room around the quote's box: an italic letter hangs out of it, and the filter cuts off
+      // whatever lies outside its area.
+      const pad = 32 + shift;
+      // The lens's square, inside the filter's area.
+      const fx = Math.round(lens.x - r.left - half), fy = Math.round(lens.y - r.top - half);
+      const lx = Math.max(-pad, fx), ly = Math.max(-pad, fy);
+      const lw = Math.min(r.width + pad, fx + 2 * half) - lx, lh = Math.min(r.height + pad, fy + 2 * half) - ly;
+      const ix = Math.max(lx, 0), iy = Math.max(ly, 0);
+      const iw = Math.min(lx + lw, r.width) - ix, ih = Math.min(ly + lh, r.height) - iy;
+      // The lens not on the quote's box: no filter at all (Safari draws nothing for a filter
+      // whose steps all lie outside its area).
+      if (lw < 1 || lh < 1 || iw < 1 || ih < 1) { target.style.filter = ''; lastKey = ''; raf = requestAnimationFrame(tick); return; }
+      // Only what changed is set: any change makes Safari redraw the whole filter, so a mouse at
+      // rest, or a lens that has caught up, costs nothing.
+      const s = Math.round(40 * v.strength * lens.amt) / 20; // (the scale, in steps of 1/20 px)
+      const key = [fx, fy, s, Math.round(r.width), Math.round(r.height)].join();
+      if (key !== lastKey || !target.style.filter) {
+        lastKey = key;
+        filter.setAttribute('x', -pad); filter.setAttribute('y', -pad);
+        filter.setAttribute('width', r.width + 2 * pad); filter.setAttribute('height', r.height + 2 * pad);
+        merge.setAttribute('x', -pad); merge.setAttribute('y', -pad);
+        merge.setAttribute('width', r.width + 2 * pad); merge.setAttribute('height', r.height + 2 * pad);
+        // Three areas (a step reads nothing outside its own area: a copy at the edge of it lost
+        // its red — the blue line): the copies a shift inside the filter's edge; the quote on its
+        // page colour a shift further than the copies on every side, so a copy always reads real
+        // pixels; the last step, which only adds the colours up, within the quote's own box, so
+        // the margin around it (the language button) is never painted over.
+        const mx = Math.max(lx, -pad + shift), my = Math.max(ly, -pad + shift);
+        const mw = Math.min(lx + lw, r.width + pad - shift) - mx, mh = Math.min(ly + lh, r.height + pad - shift) - my;
+        const area = (n, a) => { n.setAttribute('x', a[0]); n.setAttribute('y', a[1]); n.setAttribute('width', Math.max(1, a[2])); n.setAttribute('height', Math.max(1, a[3])); };
+        steps.forEach((n, i) => area(n, i < 3 ? [mx - shift, my - shift, mw + 2 * shift, mh + 2 * shift] : i < steps.length - 1 ? [mx, my, mw, mh] : [ix, iy, iw, ih]));
+        area(fieldImg, [fx - border, fy - border, 2 * (half + border), 2 * (half + border)]);
+        for (const c in maps) maps[c].setAttribute('scale', s * share[c]);
+        target.style.filter = 'url(#rgbHover)';
+      }
+      raf = requestAnimationFrame(tick);
+    }
+    const wake = () => { if (!raf) { last = 0; raf = requestAnimationFrame(tick); } };
+    document.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.in = true; wake(); });
+    document.documentElement.addEventListener('mouseleave', () => { mouse.in = false; wake(); });
+    // Off at once when something is about to move (before it copies or measures the quote: the
+    // language switch's copy of the outgoing words took the filter with it); back by itself.
+    return { off() { off(); if (mouse.in) wake(); } };
+  })();
 
   app.addEventListener('keydown', (e) => {
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-ann]')) { e.preventDefault(); openAnnotation(e.target); }
