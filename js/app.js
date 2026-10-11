@@ -2727,7 +2727,11 @@
 
   /* ---------- Menu ---------- */
 
-  const countFor = (key) => (key === 'all' ? state.all.length : state.all.filter((q) => q.categories.includes(key)).length);
+  const quotesFor = (key) => (key === 'all' ? state.all : state.all.filter((q) => q.categories.includes(key)));
+  const countFor = (key) => quotesFor(key).length;
+  // How many countries or regions the words come from: the author's country, each counted once
+  // (a saying's origin is not a country, and "Unknown" has none; Bill, 2026-10-10).
+  const regionsFor = (key) => new Set(quotesFor(key).map((q) => q.author && q.author.country).filter(Boolean)).size;
 
   function renderMenu() {
     // The description may be inside a list row (phone); the list is about to be rebuilt.
@@ -2778,7 +2782,8 @@
     const n = countFor(key);
     placeDesc(key, () => {
       setDesc($('catDescText'), cat);
-      $('catCount').textContent = `${n} quote${n === 1 ? '' : 's'} total`;
+      const r = regionsFor(key);
+      $('catCount').textContent = `${n} quote${n === 1 ? '' : 's'}${r ? `, ${r} region${r === 1 ? '' : 's'}` : ''}`;
       sizeDescLine();
     });
     menuSymTo(key);
