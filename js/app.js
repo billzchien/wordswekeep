@@ -62,8 +62,6 @@
   const FONTS = [
     { key: 'instrument', name: 'Instrument', not: [],
       latin: 'A1-A3 A5 A7-AB AE-B0 B4 B6-B8 BA-BB BF-107 10A-113 116-11B 11E-123 126-127 12A-12B 12E-133 136-137 139-13E 141-148 14A-14D 150-15B 15E-161 164-165 16A-17E 1CD-1CE 218-21B 237 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2022 2026 2039-203A 20AC' },
-    { key: 'story',      name: 'Story',      not: [],
-      latin: 'A1-AC AE-B4 B6-13E 141-148 14A-17E 181 186 18A 18E-190 192 197-199 19D 1A0-1A1 1AF-1B0 1B3-1B4 1CD-1DD 1E2-1E3 1E6-1E7 218-21B 232-233 237 245 1E04-1E05 1E0C-1E0F 1E20-1E21 1E24-1E2B 1E32-1E3B 1E40-1E49 1E56-1E5F 1E62-1E63 1E6C-1E6F 1E80-1E85 1E88-1E89 1E8C-1E8F 1E92-1E96 1E9E 1EA0-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2039-203A 2044 2070 2074-2079 2080-2089 20A1 20A6 20A9-20AC' },
     { key: 'print',      name: 'Print',      not: [],
       latin: 'A1-AC AE-B4 B6-131 134-137 139-13E 141-148 14A-165 168-17E 181 186 18A 18E-190 197-199 19D 1A0-1A1 1AF-1B0 1B3-1B4 1CD-1DD 1E2-1E3 1E6-1E7 218-21B 232-233 237 245 1E04-1E05 1E0C-1E0F 1E20-1E21 1E24-1E2B 1E32-1E3B 1E40-1E49 1E56-1E5F 1E62-1E63 1E6C-1E6F 1E80-1E85 1E88-1E89 1E8C-1E8F 1E92-1E96 1E9E 1EA0-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2039-203A 2044 2070 2074-2079 2080-2089 20A1 20A6 20A9 20AB-20AC' },
     { key: 'grotesk',    name: 'Grotesk',    not: [],
@@ -76,8 +74,6 @@
       latin: 'A1-137 139-149 14C-17F 192 218-21B 237 2013-2014 2018-201A 201C-201E 2020 2022 2026 2039-203A 2044 20AC' },
     { key: 'sketch',     name: 'Sketch',     not: [],
       latin: 'A1-B4 B6-12B 12E-149 14C-17E 192 218-21B 237 1E80-1E85 1E9E 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 2044 20A3-20A4 20AC' },
-    { key: 'rose',       name: 'Rose',       not: [],
-      latin: 'A1-A9 AB-AC AE-B1 B4 B6-B8 BB BF-DD DF-FD FF-107 10C-10F 112-113 116-11B 122-123 12A-12B 12E-12F 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-17E 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
     { key: 'author',     name: 'Author',     not: [],
       latin: 'A1-A9 AB AE-B1 B4 B6-B8 BB BF-107 10C-113 116-11B 122-123 12A-12B 12E-12F 131-133 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-17E 237 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
     { key: 'fig',        name: 'Fig',        not: [],
@@ -86,6 +82,10 @@
       latin: 'A1-A9 AB AE-B1 B4 B6-B8 BB BF-EF F1-107 10A-113 116-11B 11E-123 126-127 12A-12B 12E-131 136-137 139-13E 141-148 14A-14D 150-15B 15E-167 16A-16B 16E-17E 218-21B 1E80-1E85 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
     { key: 'rondeau',    name: 'Rondeau',    not: [],
       latin: 'A1-AB AE-B4 B6-148 14A-17E 1E6-1E7 1FC-1FF 218-21B 232-233 237 1E80-1E85 1E9E 1EBC-1EBD 1EF2-1EF3 1EF8-1EF9 2010 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2032-2033 2039-203A 2044 2070 2074-2079 2080-2089 20AC' },
+    { key: 'curly',      name: 'Curly',     not: [],
+      latin: 'A1-107 10C-113 116-11B 11E-11F 122-123 12A-12B 12E-131 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-173 178-17E 192 218-21B 2010-2027 202F-203A 2044 205F 20A9 20AC' },
+    { key: 'kid',        name: 'Kid',       not: [],
+      latin: 'A1-107 10C-113 116-11B 11E-11F 122-123 12A-12B 12E-131 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-173 178-17E 192 218-21B 2010-2027 202F-203A 2044 205F 20A9 20AC' },
   ];
   const FONT_BY_KEY = Object.fromEntries(FONTS.map((f) => [f.key, f]));
   // An original-language quote written in Latin letters (Spanish, French, Vietnamese, pinyin…)
@@ -136,7 +136,7 @@
   }
   const RTL_SCRIPTS = new Set(['arab', 'hebr']);
   const DEFAULT_FONT = 'instrument', LONG_FONT = 'goudy'; // a quote with no face of its own: Instrument, or Goudy when it is long
-  const FONT_FILES = ['story', 'print', 'grotesk', 'poet', 'sketch', 'rose', 'author', 'fig', 'stone', 'rondeau']; // the licensed faces, by name (the Google fonts come from the same Worker, by css2)
+  const FONT_FILES = ['print', 'grotesk', 'poet', 'sketch', 'author', 'fig', 'stone', 'rondeau', 'curly', 'kid']; // the licensed faces, by name (the Google fonts come from the same Worker, by css2)
 
   // A shuffled copy (Fisher–Yates). The deck is dealt once per visit / per category, so ↑ and ↓
   // stay consistent within it, but the order is never the archive's numbering.
@@ -174,39 +174,6 @@
     const own = FONT_BY_KEY[q.font];
     if (own && !own.not.includes(t)) return own.key;
     return t === 's' || t === 'xs' ? LONG_FONT : DEFAULT_FONT;
-  }
-
-  // Rose holds back an r's swash by what follows it (the font's own rule: ss06, built in
-  // workers/fonts/tools/convert.py). A copy of one letter or of a scrap — the typing, the
-  // cut-up, the language sweep — has lost what follows it, and would show the swash until the
-  // real quote takes over. So the rule is repeated here, and such an r is asked for by itself
-  // in the font's plain shape: a y within four characters, an r within two, or a q next.
-  const ROSE_TAIL = /[yYýÿÝŸ]/, ROSE_PLAIN = '"ss04" 1';
-  function plainLetters(quoteEl, text) {
-    const at = new Set();
-    if (!quoteEl || quoteEl.dataset.font !== 'rose' || quoteEl.hasAttribute('data-native')) return at;
-    for (let i = 0; i < text.length; i++) {
-      if (text[i] !== 'r') continue;
-      const next = text.slice(i + 1, i + 5);
-      if (ROSE_TAIL.test(next) || /r/.test(next.slice(0, 2)) || /[qQ]/.test(next[0] || '')) at.add(i);
-    }
-    return at;
-  }
-  // Fill `el` with `text` (which starts at `start` in the quote's text), plain letters apart.
-  function setFaceText(el, text, plain, start) {
-    if (![...plain].some((i) => i >= start && i < start + text.length)) { el.textContent = text; return; }
-    el.textContent = '';
-    let run = '';
-    const flush = () => { if (run) { el.appendChild(document.createTextNode(run)); run = ''; } };
-    for (let k = 0; k < text.length; k++) {
-      if (!plain.has(start + k)) { run += text[k]; continue; }
-      flush();
-      const one = document.createElement('span');
-      one.style.fontFeatureSettings = ROSE_PLAIN;
-      one.textContent = text[k];
-      el.appendChild(one);
-    }
-    flush();
   }
 
   // `cjkWeight`: what a CJK character counts as — 4 for the English words and the form's limits
@@ -1517,7 +1484,7 @@
     const pieces = scraps.map((scrap) => {
       const el = document.createElement('span');
       el.className = 'dada-scrap';
-      setFaceText(el, scrap.text, plainLetters(quoteEl, scrap.node.data), scrap.start);
+      el.textContent = scrap.text;
       el.style.left = `${scrap.left}px`;
       el.style.top = `${scrap.top}px`;
       layer.appendChild(el);
@@ -2167,13 +2134,9 @@
     const byWord = WORD_SWEEP.has(quoteEl.dataset.script);
     nodes.forEach((node) => {
       const frag = document.createDocumentFragment();
-      const plain = plainLetters(quoteEl, node.data);
-      let at = 0;
       (byWord ? node.data.match(/\s|\S+/g) || [] : [...node.data]).forEach((ch) => {
-        const i = at; at += ch.length;
         if (/\s/.test(ch)) { frag.appendChild(document.createTextNode(ch)); return; }
         const span = document.createElement('span');
-        if (plain.has(i)) span.style.fontFeatureSettings = ROSE_PLAIN;
         span.textContent = ch;
         frag.appendChild(span);
         chars.push(span);
@@ -3230,15 +3193,14 @@
     return at;
   }
   function measureLetters(quoteEl) {
-    const letters = [], range = document.createRange(), plainOf = new Map();
+    const letters = [], range = document.createRange();
     letters.words = []; // each word whole: its text and place (the typing swaps a typed word's letters for it)
     measureWords(quoteEl).forEach((w, word) => {
       letters.words.push({ text: w.text, left: w.left, top: w.top });
-      if (!plainOf.has(w.node)) plainOf.set(w.node, plainLetters(quoteEl, w.node.data));
       for (let i = w.start; i < w.end; i++) {
         range.setStart(w.node, i); range.setEnd(w.node, i + 1);
         const r = inkRect(range);
-        if (r) letters.push({ text: w.node.data[i], left: r.left, top: r.top, wordStart: i === w.start, plain: plainOf.get(w.node).has(i), word });
+        if (r) letters.push({ text: w.node.data[i], left: r.left, top: r.top, wordStart: i === w.start, word });
       }
     });
     return letters;
@@ -3312,11 +3274,7 @@
         if (own) { el.style.left = `${2 * left - own.left}px`; el.style.top = `${2 * top - own.top}px`; }
         return el;
       };
-      const typed = letters.map((l) => {
-        const el = place(l.text, l.left, l.top);
-        if (l.plain) el.style.fontFeatureSettings = ROSE_PLAIN;
-        return el;
-      });
+      const typed = letters.map((l) => place(l.text, l.left, l.top));
       // Letters set one by one have no ligatures and none of the face's letter-to-letter
       // shaping, so a word settles as its last letter lands, not when the whole quote is done:
       // with that letter the word's letters are swapped for the word set whole.

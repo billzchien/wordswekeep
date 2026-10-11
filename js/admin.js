@@ -93,8 +93,6 @@
   const FONTS = [
     { value: 'instrument', label: 'Instrument', not: [],
       latin: 'A1-A3 A5 A7-AB AE-B0 B4 B6-B8 BA-BB BF-107 10A-113 116-11B 11E-123 126-127 12A-12B 12E-133 136-137 139-13E 141-148 14A-14D 150-15B 15E-161 164-165 16A-17E 1CD-1CE 218-21B 237 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2022 2026 2039-203A 20AC' },
-    { value: 'story',      label: 'Story',      not: [],
-      latin: 'A1-AC AE-B4 B6-13E 141-148 14A-17E 181 186 18A 18E-190 192 197-199 19D 1A0-1A1 1AF-1B0 1B3-1B4 1CD-1DD 1E2-1E3 1E6-1E7 218-21B 232-233 237 245 1E04-1E05 1E0C-1E0F 1E20-1E21 1E24-1E2B 1E32-1E3B 1E40-1E49 1E56-1E5F 1E62-1E63 1E6C-1E6F 1E80-1E85 1E88-1E89 1E8C-1E8F 1E92-1E96 1E9E 1EA0-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2039-203A 2044 2070 2074-2079 2080-2089 20A1 20A6 20A9-20AC' },
     { value: 'print',      label: 'Print',      not: [],
       latin: 'A1-AC AE-B4 B6-131 134-137 139-13E 141-148 14A-165 168-17E 181 186 18A 18E-190 197-199 19D 1A0-1A1 1AF-1B0 1B3-1B4 1CD-1DD 1E2-1E3 1E6-1E7 218-21B 232-233 237 245 1E04-1E05 1E0C-1E0F 1E20-1E21 1E24-1E2B 1E32-1E3B 1E40-1E49 1E56-1E5F 1E62-1E63 1E6C-1E6F 1E80-1E85 1E88-1E89 1E8C-1E8F 1E92-1E96 1E9E 1EA0-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2039-203A 2044 2070 2074-2079 2080-2089 20A1 20A6 20A9 20AB-20AC' },
     { value: 'grotesk',    label: 'Grotesk',    not: [],
@@ -107,8 +105,6 @@
       latin: 'A1-137 139-149 14C-17F 192 218-21B 237 2013-2014 2018-201A 201C-201E 2020 2022 2026 2039-203A 2044 20AC' },
     { value: 'sketch',     label: 'Sketch',     not: [],
       latin: 'A1-B4 B6-12B 12E-149 14C-17E 192 218-21B 237 1E80-1E85 1E9E 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 2044 20A3-20A4 20AC' },
-    { value: 'rose',       label: 'Rose',       not: [],
-      latin: 'A1-A9 AB-AC AE-B1 B4 B6-B8 BB BF-DD DF-FD FF-107 10C-10F 112-113 116-11B 122-123 12A-12B 12E-12F 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-17E 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
     { value: 'author',     label: 'Author',     not: [],
       latin: 'A1-A9 AB AE-B1 B4 B6-B8 BB BF-107 10C-113 116-11B 122-123 12A-12B 12E-12F 131-133 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-17E 237 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
     { value: 'fig',       label: 'Fig',       not: [], fresh: true, // fresh = still being tuned: in ink, and first, in the Fonts tab's list
@@ -117,8 +113,12 @@
       latin: 'A1-A9 AB AE-B1 B4 B6-B8 BB BF-EF F1-107 10A-113 116-11B 11E-123 126-127 12A-12B 12E-131 136-137 139-13E 141-148 14A-14D 150-15B 15E-167 16A-16B 16E-17E 218-21B 1E80-1E85 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 20AC' },
     { value: 'rondeau',   label: 'Rondeau',   not: [], fresh: true,
       latin: 'A1-AB AE-B4 B6-148 14A-17E 1E6-1E7 1FC-1FF 218-21B 232-233 237 1E80-1E85 1E9E 1EBC-1EBD 1EF2-1EF3 1EF8-1EF9 2010 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2032-2033 2039-203A 2044 2070 2074-2079 2080-2089 20AC' },
+    { value: 'curly',      label: 'Curly',     not: [], fresh: true,
+      latin: 'A1-107 10C-113 116-11B 11E-11F 122-123 12A-12B 12E-131 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-173 178-17E 192 218-21B 2010-2027 202F-203A 2044 205F 20A9 20AC' },
+    { value: 'kid',        label: 'Kid',       not: [], fresh: true,
+      latin: 'A1-107 10C-113 116-11B 11E-11F 122-123 12A-12B 12E-131 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-173 178-17E 192 218-21B 2010-2027 202F-203A 2044 205F 20A9 20AC' },
   ];
-  const FONT_FILES = ['story', 'print', 'grotesk', 'poet', 'sketch', 'rose', 'author', 'fig', 'stone', 'rondeau'];
+  const FONT_FILES = ['print', 'grotesk', 'poet', 'sketch', 'author', 'fig', 'stone', 'rondeau', 'curly', 'kid'];
   // An original-language quote written in Latin letters (Spanish, French, Vietnamese, pinyin…)
   // is set in the quote's own face when the face has every character it needs; anything else —
   // another script, or a letter the face lacks — is set in Noto. `latin`: what a face has beyond
