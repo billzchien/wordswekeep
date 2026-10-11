@@ -1,8 +1,9 @@
 /* Words We Keep — "Add words" submission form. Plain JS.
    Five steps + a thank-you screen, one screen each, slid like Typeform: Next, the arrows, the
    wheel, a swipe, ↑/↓ keys. Going back is always free; going forward is gated by the step's
-   required fields (Next is disabled until they are filled; an arrow/wheel/key attempt marks the
-   empty ones with the warning state).
+   required fields: Next unfolds once they are filled (the down arrow stays grey till then), and
+   an arrow/wheel/key attempt marks the empty ones with the warning state — only once something
+   has been entered on the step: an untouched step just stays put (Bill, 2026-10-11).
 
    The payload matches data/quotes.json + the schema in md/handoff.md. submit()
    posts the entry to SUBMIT_URL (Worker #1); with SUBMIT_URL empty it keeps it in localStorage
@@ -131,8 +132,8 @@
       kind,
       name: named ? t(a.name) || null : null,
       nativeName: kind === 'person' && NON_LATIN.has(a.country) ? (t(a.nativeName) || null) : null,
-      country: named ? a.country || null : null,
-      origin: kind === 'saying' ? t(a.origin) || null : null,
+      country: named ? sure(a.country) : null,
+      origin: kind === 'saying' ? sure(t(a.origin)) : null,
     };
   }
   // Each kind's own check: a known person needs a name — the English or the one in its original
@@ -200,12 +201,15 @@
   function refresh() {
     steps.forEach((s, i) => {
       const next = s.querySelector('[data-next]');
-      if (next) next.disabled = !valid[i]();
+      if (!next) return;
+      next.disabled = !valid[i]();
+      const wrap = next.closest('.next-wrap');
+      if (wrap) wrap.classList.toggle('is-in', valid[i]()); // steps 1–3: Next appears once there is what it needs, in its kept space
     });
     $('submitBtn').disabled = !valid[4]();
-    // Step 5, as the thoughts box: the name, then "Add words" and its line, unfold once there are
-    // words, and fold away if they are deleted (Bill, 2026-10-10).
-    fold($('fKeptByWrap'), valid[4]()); fold($('submitWrap'), valid[4]());
+    // Step 5, as the thoughts box: the name, then "Add words" and its line, appear once there are
+    // words, and go if they are deleted (Bill, 2026-10-10) — in space kept for them (css .reveal).
+    $('fKeptByWrap').classList.toggle('is-in', valid[4]()); $('submitWrap').classList.toggle('is-in', valid[4]());
     // Step 4's button reads "Skip" until there is something to keep.
     $('ctxNext').textContent = (data.context.trim() || data.annotations.length) ? 'Next' : 'Skip';
     const n = data.annotations.length;
@@ -230,6 +234,14 @@
     $('pageCur').style.setProperty('--p', n - 1); // css slides the roll by that many lines
   }
 
+  // Has anything been entered on the step? A fresh step is never warned about (its Next is not
+  // there yet, the arrow is grey): the warning is for a step begun and left short. "Who said or
+  // wrote it?" starts picked, so it does not count; a ticked category does.
+  function touched(step) {
+    const el = steps[step];
+    return [...el.querySelectorAll('.field')].some((f) => !f.closest('#fWho') && f.value.trim())
+      || !!el.querySelector('input[type="checkbox"]:checked, [aria-checked="true"]');
+  }
   function warn(step) {
     const fields = required[step]().filter((f) => f && !f.value.trim());
     fields.forEach((f) => f.closest('.fw').classList.add('is-warn'));
@@ -254,6 +266,23 @@
     });
   }
 
+  // Desktop: once a step is in, the cursor waits in its first empty required field (Bill,
+  // 2026-10-11: one sees where to type) — and on step 4 in the context, optional as it is (Skip
+  // is right there). Only a typing field — never a dropdown, whose list focus
+  // would open — and only if nothing else has been clicked into meanwhile. Not with a touch
+  // screen: a phone would throw its keyboard up over every step.
+  const FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)');
+  function focusStep(step, wait) {
+    clearTimeout(focusStep.t);
+    if (!FINE_POINTER.matches || step >= STEPS) return;
+    focusStep.t = setTimeout(() => {
+      const a = document.activeElement;
+      if (cur !== step || !sheet.hidden || (a && a !== document.body)) return;
+      const field = (step === 3 ? [$('fContext')] : required[step]()).find((f) => f && f.matches('input, textarea') && !f.closest('.combo') && !f.value.trim() && f.offsetParent);
+      if (field) field.focus({ preventScroll: true });
+    }, wait);
+  }
+
   let sliding = false;
   // The step with the source link: going on waits for its check (LINK_WAIT_MS at most; no answer
   // = no warning). A warning keeps the visitor here; the next Next goes on (the link is gone).
@@ -262,7 +291,7 @@
   function go(i, { force = false } = {}) {
     if (i < 0 || i > STEPS || i === cur || sliding) return;
     if (i > cur && !force) {
-      if (!valid[cur]()) { warn(cur); return; }
+      if (!valid[cur]()) { if (touched(cur)) warn(cur); return; }
       if (cur === LINK_STEP && !linkGate && !$('fSourceLinkWrap').hidden && $('fSourceLink').value.trim()) {
         linkGate = true;
         Promise.race([checkSourceLink(), new Promise((done) => setTimeout(() => done(false), LINK_WAIT_MS))])
@@ -279,6 +308,7 @@
     reqIn(steps[cur]); // its asterisks come in once the step has slid in
     sliding = !reduceMotion.matches;
     setTimeout(() => { sliding = false; }, reduceMotion.matches ? 0 : 600);
+    focusStep(cur, reduceMotion.matches ? 0 : 600); // once it has slid in
     refresh();
   }
 
@@ -781,11 +811,15 @@
     if (!guess.ownCountry && data.author.country !== c) { guess.country = c; country.set(c); }
     if (!guess.ownOrigin && data.author.origin !== o) { guess.origin = o; origin.set(o); }
   }
-  const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Country or region', label: 'Country or region', onChange: (v) => { if (v !== guess.country) guess.ownCountry = true; data.author.country = v; fold($('fNativeWrap'), data.author.kind === 'person' && NON_LATIN.has(v)); refresh(); } });
+  // "Not sure", last in the country and the origin lists (Bill, 2026-10-11): stored as no country /
+  // no origin — the site then shows none ("A proverb" for a saying) and the region count skips it.
+  const UNSURE = 'unsure', NOT_SURE = { value: UNSURE, label: 'Not sure' };
+  const sure = (v) => (v && v !== UNSURE ? v : null); // what is stored: "Not sure" is none
+  const country = combo($('fCountry'), { options: [...REGIONS, NOT_SURE], placeholder: 'Country or region', label: 'Country or region', onChange: (v) => { if (v !== guess.country) guess.ownCountry = true; data.author.country = v; fold($('fNativeWrap'), data.author.kind === 'person' && NON_LATIN.has(v)); refresh(); } });
   // Who said it: the fields follow the kind. A name and a country for a person (the native name
   // too, for a known person from a country not written in Latin letters); where it is from for a
   // saying; nothing for "Not sure". What was typed stays, should the kind be changed back.
-  const origin = combo($('fOrigin'), { options: ORIGINS, placeholder: 'Where is it from', label: 'Where is it from', free: true, onChange: (v) => { if (v !== guess.origin) guess.ownOrigin = true; data.author.origin = v; refresh(); } });
+  const origin = combo($('fOrigin'), { options: [...ORIGINS, NOT_SURE], placeholder: 'Where is it from', label: 'Where is it from', onChange: (v) => { if (v !== guess.origin) guess.ownOrigin = true; data.author.origin = v; refresh(); } });
   function showWho(kind) {
     const w = WHO.find((x) => x.value === kind) || WHO[0], named = !!w.name;
     $('fName').placeholder = w.name || 'Name'; $('fName').setAttribute('aria-label', w.name || 'Name');
@@ -1445,5 +1479,6 @@
     form.classList.add('is-arriving');
     reqIn(steps[0]); // the asterisk, once the blocks have landed
     setTimeout(() => { form.classList.remove('is-arriving'); document.documentElement.classList.remove('is-arriving'); }, blocksDone + 600);
-  } else reqIn(steps[0]); // opened directly: the same wait
+    focusStep(0, blocksDone); // the cursor, once the blocks have landed
+  } else { reqIn(steps[0]); focusStep(0, 0); } // opened directly: the asterisk the same wait; the cursor at once
 })();

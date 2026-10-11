@@ -670,7 +670,9 @@
   const toDraft = (q) => ({
     text: q.text || '', original: q.originalLanguage ? q.originalLanguage.text : '', lang: q.originalLanguage ? q.originalLanguage.lang : '',
     categories: [...q.categories],
-    author: { kind: q.author?.kind || 'person', name: q.author?.name || '', nativeName: q.author?.nativeName || '', country: q.author?.country || '', origin: q.author?.origin || '' },
+    author: { kind: q.author?.kind || 'person', name: q.author?.name || '', nativeName: q.author?.nativeName || '',
+      country: q.author?.country || (['person', 'acquaintance', 'self'].includes(q.author?.kind || 'person') ? UNSURE : ''), // none: "Not sure"
+      origin: q.author?.origin || (q.author?.kind === 'saying' ? UNSURE : '') },
     source: { kind: q.source?.kind || '', year: q.source?.year ? String(q.source.year) : '', title: q.source?.title || '', link: q.source?.link || '', cover: q.source?.cover || '', crop: q.source?.crop ? { ...q.source.crop } : null },
     context: q.context || '', annotations: q.annotations.map((a) => ({ word: a.word, explanation: a.explanation, orig: a.in === 'original', matched: false, at: -1 })), // orig: a word of the original-language words
     reflection: q.reflection || '', keptBy: q.keptBy || '',
@@ -685,7 +687,7 @@
     q.categories = CATEGORIES.map((c) => c.key).filter((k) => d.categories.includes(k));
     const named = ['person', 'acquaintance', 'self'].includes(d.author.kind); // who said it: only the fields its kind has (as the form sends)
     q.author = { kind: d.author.kind || 'person', name: named ? t(d.author.name) || null : null, nativeName: d.author.kind === 'person' && NON_LATIN.has(d.author.country) ? (t(d.author.nativeName) || null) : null,
-      country: named ? d.author.country || null : null, origin: d.author.kind === 'saying' ? t(d.author.origin) || null : null };
+      country: named ? sure(d.author.country) : null, origin: d.author.kind === 'saying' ? sure(t(d.author.origin)) : null };
     q.source = (d.source.kind || d.source.year || d.source.title || d.source.link)
       ? { title: hasSource ? (t(d.source.title) || null) : null, year: d.source.year ? Number(d.source.year) : null, kind: d.source.kind || null, link: hasSource ? (t(d.source.link) || null) : null }
       : null;
@@ -1098,7 +1100,11 @@
     updateDirty();
   });
 
-  const country = combo($('fCountry'), { options: REGIONS, placeholder: 'Country or region', onChange: (v) => { if (!edit) return; mark('country'); edit.draft.author.country = v; fold($('fNativeWrap'), edit.draft.author.kind === 'person' && NON_LATIN.has(v)); updateDirty(); } });
+  // "Not sure", last in the country and the origin lists (Bill, 2026-10-11; as js/form.js): stored as no country /
+  // no origin, and a named author or a saying with none opens as "Not sure" — the site then shows none ("A proverb" for a saying) and the region count skips it.
+  const UNSURE = 'unsure', NOT_SURE = { value: UNSURE, label: 'Not sure' };
+  const sure = (v) => (v && v !== UNSURE ? v : null); // what is stored: "Not sure" is none
+  const country = combo($('fCountry'), { options: [...REGIONS, NOT_SURE], placeholder: 'Country or region', onChange: (v) => { if (!edit) return; mark('country'); edit.draft.author.country = v; fold($('fNativeWrap'), edit.draft.author.kind === 'person' && NON_LATIN.has(v)); updateDirty(); } });
   // Who said it, as on the form (js/form.js → WHO, ORIGINS: keep the lists in step): the fields
   // follow the kind; a saying is where it is from ("Chinese" → "Chinese proverb" on the site).
   const WHO = [{ value: 'person', label: 'A known person', name: 'Author' }, { value: 'acquaintance', label: 'Someone I know', name: 'A friend' },
@@ -1119,7 +1125,7 @@
     f($('fOriginWrap'), kind === 'saying');
   }
   const who = combo($('fWho'), { options: WHO, placeholder: 'Who said or wrote it', keep: true, select: true, onChange: (v) => { if (!edit || !v || edit.draft.author.kind === v) return; mark('who'); edit.draft.author.kind = v; showWho(v); updateDirty(); autoSong(); } });
-  const origin = combo($('fOrigin'), { options: ORIGINS, placeholder: 'Where is it from', free: true, onChange: (v) => { if (!edit) return; mark('origin'); edit.draft.author.origin = v; updateDirty(); } });
+  const origin = combo($('fOrigin'), { options: [...ORIGINS, NOT_SURE], placeholder: 'Where is it from', onChange: (v) => { if (!edit) return; mark('origin'); edit.draft.author.origin = v; updateDirty(); } });
   const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', onChange: (v) => { linkHint(v); if (!edit) return; mark('kind'); edit.draft.source.kind = v; showSourceFields(!!v && v !== 'personal'); updateDirty(); autoSong(); } });
   const lang = combo($('fLang'), { options: LANGUAGES, placeholder: 'Language', onChange: (v) => {
     if (!edit) return;
@@ -1466,6 +1472,71 @@
     mark(); edit.draft.source.link = found; edit.songLink = found;
     $('fLink').value = found; warnLink(''); drawVideo(); updateDirty();
     if (found) toast('Apple Music link found.');
+  }
+
+  /* ---------- Where it is from, when the visitor was not sure ----------
+     (Bill, 2026-10-11; free sources only.) A known person with "Not sure" for a country: the
+     name looked up on Wikidata — a human, the best match — and their country taken from a single
+     present-day citizenship, else from where they were born, as it is today (a citizenship of a
+     state long gone — Eastern Jin, the old United Kingdom of Great Britain and Ireland — has no
+     country code). Failing that, the original language, where it belongs to one country
+     (Japanese → Japan, simplified Chinese → China). A saying with "Not sure" for its origin: the
+     original language (Chinese → Chinese), as the form guesses. Found: filled in, as a change to
+     review (the toast says from where). Nothing found: it stays "Not sure". Tried once per name /
+     words an opening. Not for someone the visitor knows, or themselves: no lookup for them. */
+  const LANG_COUNTRY = { ja: 'JP', ko: 'KR', th: 'TH', he: 'IL', el: 'GR', hi: 'IN', it: 'IT', vi: 'VN', pl: 'PL', tr: 'TR' }; // (as js/form.js)
+  const LANG_ORIGIN = { ja: 'Japanese', ko: 'Korean', zh: 'Chinese', th: 'Thai', he: 'Hebrew', el: 'Greek', hi: 'Indian', it: 'Italian', vi: 'Vietnamese', pl: 'Polish', tr: 'Turkish', la: 'Latin', ar: 'Arabic' }; // (as js/form.js)
+  const WD = 'https://www.wikidata.org/w/api.php?format=json&origin=*';
+  const wdGet = (params) => fetch(`${WD}&${params}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  const claimIds = (e, p) => ((e && e.claims && e.claims[p]) || [])
+    .filter((c) => c.rank !== 'deprecated' && !(c.qualifiers && c.qualifiers.P582)) // (not one that ended)
+    .map((c) => c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value && c.mainsnak.datavalue.value.id).filter(Boolean);
+  const isoOf = (e) => { const c = e && e.claims && e.claims.P297; const v = c && c[0] && c[0].mainsnak.datavalue && c[0].mainsnak.datavalue.value; return REGION_CODES.includes(v) ? v : ''; };
+  async function wikidataCountry(name) {
+    const found = await wdGet(`action=wbsearchentities&language=en&uselang=en&type=item&limit=3&search=${encodeURIComponent(name)}`);
+    const ids = ((found && found.search) || []).map((h) => h.id);
+    if (!ids.length) return '';
+    const people = await wdGet(`action=wbgetentities&props=claims&ids=${ids.join('|')}`);
+    const person = ids.map((id) => people && people.entities && people.entities[id]).find((e) => claimIds(e, 'P31').includes('Q5')); // the best match that is a human
+    if (!person) return '';
+    const states = claimIds(person, 'P27'), born = claimIds(person, 'P19')[0];
+    const first = await wdGet(`action=wbgetentities&props=claims&ids=${[...states, born].filter(Boolean).join('|')}`);
+    const ent = (id) => first && first.entities && first.entities[id];
+    const isos = [...new Set(states.map((id) => isoOf(ent(id))).filter(Boolean))];
+    if (isos.length === 1) return isos[0];
+    const today = claimIds(ent(born), 'P17')[0]; // the birthplace's country now
+    if (!today) return '';
+    const country = await wdGet(`action=wbgetentities&props=claims&ids=${today}`);
+    return isoOf(country && country.entities && country.entities[today]);
+  }
+  function languagePlace(text) {
+    const t = (text || '').trim();
+    if (!t) return { country: '', origin: '' };
+    const lang = detectLang(t), hans = lang === 'zh' && quoteScript(t, '') === 'hans';
+    return { country: hans ? 'CN' : LANG_COUNTRY[lang] || '', origin: LANG_ORIGIN[lang] || '' };
+  }
+  async function autoPlace() {
+    const d = edit && edit.draft;
+    if (!d) return;
+    const kind = d.author.kind, by = languagePlace(d.original);
+    if (kind === 'saying' && d.author.origin === UNSURE) {
+      if (!by.origin || edit.placeTried === `o|${d.original}`) return;
+      edit.placeTried = `o|${d.original}`;
+      mark(); d.author.origin = by.origin; origin.set(by.origin); updateDirty();
+      toast(`Where it is from: ${by.origin}, by its original language.`);
+      return;
+    }
+    if (kind !== 'person' || d.author.country !== UNSURE) return;
+    const name = (d.author.name.trim() || d.author.nativeName.trim());
+    const key = `c|${name}|${d.original}`;
+    if (edit.placeTried === key) return;
+    edit.placeTried = key;
+    let found = name ? await wikidataCountry(name) : '', from = 'Wikidata';
+    if (!found && by.country) { found = by.country; from = 'its original language'; }
+    if (!found || !edit || edit.draft !== d || d.author.kind !== 'person' || d.author.country !== UNSURE) return; // nothing, or changed meanwhile
+    mark(); d.author.country = found; country.set(found);
+    fold($('fNativeWrap'), NON_LATIN.has(found)); updateDirty();
+    toast(`Country: ${regionName(found)}, from ${from}. Check it before you save.`);
   }
 
   /* ---------- What no longer works ----------
@@ -1839,6 +1910,7 @@
     foldNow($('fVideoWrap'), false); $('fVideo').dataset.src = ''; $('fVideo').innerHTML = ''; drawVideo(true); // (the quote's own video, if it has one)
     drawCovers(true); // (a book: its covers, the picked one checked)
     autoSong(); // (a song with no link: its Apple Music link)
+    autoPlace(); // ("Not sure" where it is from: found if it can be)
     healthWarn = false; warnCover(''); warnLink('');
     fieldHealth(); linkFieldHealth(); // (a link or cover that no longer works: its field says so)
     $('fContext').value = d.context; $('fReflection').value = d.reflection; $('fKeptBy').value = d.keptBy;

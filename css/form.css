@@ -109,7 +109,6 @@
 .group:not([class*="group--"]) > .q { margin-bottom: calc(var(--gap-16) - var(--gap-12)); }
 
 .q { display: flex; flex-direction: column; width: 100%; position: relative; }
-.q--pad { padding-right: var(--gap-40); gap: calc(2 * var(--u)); }
 .q-title { display: flex; justify-content: space-between; align-items: center; }
 .q-desc { color: var(--placeholder); }
 /* Required: the asterisk glyph as an icon (Figma "required"), off the question's top left
@@ -526,6 +525,13 @@ textarea.field::-webkit-scrollbar { display: none; }
 @media (prefers-reduced-motion: reduce) { .ann-mark { transition: none; } }
 .ann-sheet .btn:disabled { color: rgba(255, 255, 255, 0.4); border-color: rgba(255, 255, 255, 0.25); } /* Save annotation until every word is explained */
 .content > .fold { --fold-gap: var(--gap-40); }
+/* What appears as one types (steps 1–3's Next, step 5's name and "Add words") keeps its space all
+   along and only fades and rises into it: the step's content is centred, so anything that grew
+   under the field would push the field up mid-word (Bill, 2026-10-11: a field never moves while
+   one types; the thoughts box keeps its room the same way). Unseen and unreachable until then. */
+.reveal { opacity: 0; translate: 0 calc(-8 * var(--u)); visibility: hidden; transition: opacity var(--fold-ms, 200ms) var(--ease), translate var(--fold-ms, 200ms) var(--ease), visibility 0s linear var(--fold-ms, 200ms); }
+.reveal.is-in { opacity: 1; translate: 0 0; visibility: visible; transition: opacity var(--fold-ms, 200ms) var(--ease), translate var(--fold-ms, 200ms) var(--ease), visibility 0s; }
+@media (prefers-reduced-motion: reduce) { .reveal, .reveal.is-in { transition: none; } }
 
 /* ---------- Arriving from the archive ----------
    The archive fades everything but the logo out (100ms) and opens this page; here the chrome

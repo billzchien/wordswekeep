@@ -2729,9 +2729,24 @@
 
   const quotesFor = (key) => (key === 'all' ? state.all : state.all.filter((q) => q.categories.includes(key)));
   const countFor = (key) => quotesFor(key).length;
-  // How many countries or regions the words come from: the author's country, each counted once
-  // (a saying's origin is not a country, and "Unknown" has none; Bill, 2026-10-10).
-  const regionsFor = (key) => new Set(quotesFor(key).map((q) => q.author && q.author.country).filter(Boolean)).size;
+  // How many countries or regions the words come from, each counted once: the author's country,
+  // or a saying's origin where it names one nation ("Chinese" → China; Bill, 2026-10-11). An
+  // origin that is a culture, faith or language of several countries (African, Arabic, Buddhist,
+  // Jewish, Latin, Sanskrit, Tamil, Zen…) and "Unknown" count for none. The origins are picked
+  // from the form's list, never typed (js/form.js → ORIGINS): a nation added there goes here too.
+  const ORIGIN_COUNTRY = {
+    afghan: 'AF', albanian: 'AL', american: 'US', armenian: 'AM', 'aboriginal australian': 'AU', brazilian: 'BR',
+    bulgarian: 'BG', burmese: 'MM', cambodian: 'KH', chinese: 'CN', croatian: 'HR', czech: 'CZ', danish: 'DK',
+    dutch: 'NL', estonian: 'EE', ethiopian: 'ET', filipino: 'PH', finnish: 'FI', french: 'FR', georgian: 'GE',
+    german: 'DE', ghanaian: 'GH', greek: 'GR', hawaiian: 'US', hungarian: 'HU', icelandic: 'IS', indian: 'IN',
+    indonesian: 'ID', irish: 'IE', italian: 'IT', jamaican: 'JM', japanese: 'JP', kenyan: 'KE', korean: 'KR',
+    latvian: 'LV', lithuanian: 'LT', malay: 'MY', 'māori': 'NZ', mexican: 'MX', mongolian: 'MN', 'native american': 'US',
+    nepali: 'NP', nigerian: 'NG', norwegian: 'NO', persian: 'IR', polish: 'PL', portuguese: 'PT', romanian: 'RO',
+    russian: 'RU', scottish: 'GB', serbian: 'RS', slovak: 'SK', somali: 'SO', spanish: 'ES', swedish: 'SE',
+    thai: 'TH', turkish: 'TR', ukrainian: 'UA', vietnamese: 'VN', welsh: 'GB',
+  };
+  const regionOf = (q) => (q.author && (q.author.country || ORIGIN_COUNTRY[String(q.author.origin || '').trim().toLowerCase()])) || '';
+  const regionsFor = (key) => new Set(quotesFor(key).map(regionOf).filter(Boolean)).size;
 
   function renderMenu() {
     // The description may be inside a list row (phone); the list is about to be rebuilt.
