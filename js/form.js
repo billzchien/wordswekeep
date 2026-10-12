@@ -562,10 +562,116 @@
     }
   }
 
+  /* ---------- Already in the collection (Bill, 2026-10-11) ----------
+     Two cases, both against the live quotes (data/quotes.json; a quote still waiting in the
+     library is not looked at — the library sees those):
+     · The same words (step 1): the words, or the words in their original language, against
+       every live quote's, loosely — a line typed a little differently, or only part of one,
+       still counts. "We found matching or similar words. Add thoughts instead" shows under
+       Next (sameWords); the link takes them, in this tab, to that quote with its notes and
+       the thoughts box open (js/app.js → wwk-thought). Nothing is blocked: Next still goes on,
+       and the library warns about such an entry (js/admin.js → sameWords, a copy: keep in step).
+     · The same source, another line (step 3): the source link, or the source name with the same
+       author, matches a live quote's. What they have left empty of the source (year, name,
+       link) is filled from it, and a grey line unfolds under the source to say so (no space kept:
+       these are one-line fields, nothing is being typed out under it — Bill); "already in the
+       collection" opens that quote in a new tab (sameSource). */
+  const SAME_MIN = 5;     // fewer words than this (CJK: characters) is never a match
+  const SAME_RUN = 3;     // words are compared in runs of this many…
+  const SAME_SHARE = 0.6; // …and a match is this share of the shorter one's runs found in the other
+  let liveQuotes = [];
+  fetch('data/quotes.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : [])).then((list) => { liveQuotes = list.filter((q) => q.status === 'live'); showSameWords(); }).catch(() => {});
+  // Words, case and punctuation aside; a CJK character is a word of its own.
+  const unitsOf = (s) => ((s || '').normalize('NFKC').toLowerCase().replace(/[‘’ʼ`´]/g, "'")
+    .match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]|[\p{L}\p{N}']+/gu) || [])
+    .map((w) => w.replace(/^'+|'+$/g, '')).filter(Boolean);
+  function runsOf(units) {
+    const out = new Set();
+    for (let i = 0; i + SAME_RUN <= units.length; i++) out.add(units.slice(i, i + SAME_RUN).join(' '));
+    return out;
+  }
+  function likeness(a, b) {
+    const ua = unitsOf(a), ub = unitsOf(b);
+    if (Math.min(ua.length, ub.length) < SAME_MIN) return 0;
+    const ra = runsOf(ua), rb = runsOf(ub);
+    const [small, big] = ra.size <= rb.size ? [ra, rb] : [rb, ra];
+    let common = 0;
+    small.forEach((r) => { if (big.has(r)) common++; });
+    return common / small.size;
+  }
+  // → the live quote these words are, or null
+  function sameWords(text, original) {
+    let best = null, top = 0;
+    liveQuotes.forEach((q) => {
+      const theirs = [q.text, q.originalLanguage && q.originalLanguage.text];
+      [text, original].forEach((mine) => theirs.forEach((t) => {
+        if (!mine || !t) return;
+        const v = likeness(mine, t);
+        if (v >= SAME_SHARE && v > top) { top = v; best = q; }
+      }));
+    });
+    return best;
+  }
+  let sameQuote = null;
+  function showSameWords() {
+    sameQuote = sameWords(data.text, data.original);
+    $('dupNote').classList.toggle('is-in', !!sameQuote);
+  }
+  // "Add thoughts instead": home, in this tab, the way the logo goes (the form fades out around
+  // it), with that quote and the word to open its thoughts box.
+  $('dupGo').addEventListener('click', (e) => {
+    e.preventDefault();
+    if (!sameQuote) return;
+    session.set('wwk-quote', String(sameQuote.id));
+    session.set('wwk-thought', String(sameQuote.id));
+    session.set('wwk-home', '1');
+    form.classList.add('is-leaving');
+    setTimeout(() => { location.href = './'; }, reduceMotion.matches ? 0 : 100);
+  });
+  $('dupGo').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.stopPropagation(); e.target.click(); } });
+
+  // A link, as a key that ignores what does not change the page: www., a YouTube video by its
+  // id (youtu.be, watch, shorts, embed; the time and tracking dropped), Apple Music's song (?i=).
+  function linkKey(raw) {
+    let u;
+    try { u = new URL((raw || '').trim()); } catch (e) { return ''; }
+    const host = u.hostname.toLowerCase().replace(/^(www|m)\./, '');
+    const yt = host === 'youtu.be' ? u.pathname.slice(1) : /(^|\.)youtube\.com$/.test(host) ? (u.searchParams.get('v') || (u.pathname.match(/^\/(shorts|embed|live)\/([^/]+)/) || [])[2]) : '';
+    if (yt) return `yt:${yt}`;
+    if (host === 'music.apple.com' && u.searchParams.get('i')) return `am:${u.searchParams.get('i')}`;
+    return host + u.pathname.replace(/\/+$/, '').toLowerCase();
+  }
+  const nameKey = (s) => unitsOf(s).join(' ');
+  // → the live quote with this source, or null
+  function sameSource() {
+    const src = data.source;
+    if (!src.kind || src.kind === 'personal') return null;
+    const link = linkKey(src.link), title = nameKey(src.title), who = nameKey(data.author.name);
+    return liveQuotes.find((q) => {
+      const s = q.source; if (!s) return false;
+      if (link && s.link && linkKey(s.link) === link) return true;
+      const theirs = nameKey(q.author && q.author.name);
+      return !!title && nameKey(s.title) === title && (!who || !theirs || who === theirs);
+    }) || null;
+  }
+  let sourceFrom = null; // the quote the source was last filled from: filled once, so a field they empty stays empty
+  function showSameSource() {
+    const q = sameSource();
+    fold($('sourceNote'), !!q);
+    if (q === sourceFrom) return;
+    sourceFrom = q;
+    if (!q) return;
+    $('sourceGo').dataset.href = `./${q.id}`; // the quote's own address, in a new tab
+    const s = q.source;
+    if (!data.source.year && s.year) { year.set(String(s.year)); data.source.year = String(s.year); }
+    if (!$('fTitle').value.trim() && s.title) { $('fTitle').value = data.source.title = s.title; fieldLook($('fTitle')); }
+    if (!$('fSourceLink').value.trim() && s.link) { $('fSourceLink').value = data.source.link = s.link; fieldLook($('fSourceLink')); }
+  }
+
   /* ---------- Step 1 ---------- */
 
-  $('fText').addEventListener('input', (e) => { data.text = e.target.value; refresh(); });
-  $('fOriginal').addEventListener('input', (e) => { data.original = e.target.value; clearTimeout(guessWhere.t); guessWhere.t = setTimeout(guessWhere, 400); }); // (once the typing pauses: where it is from)
+  $('fText').addEventListener('input', (e) => { data.text = e.target.value; refresh(); showSameWords(); });
+  $('fOriginal').addEventListener('input', (e) => { data.original = e.target.value; showSameWords(); clearTimeout(guessWhere.t); guessWhere.t = setTimeout(guessWhere, 400); }); // (once the typing pauses: where it is from)
   // Figma frame 1-2: the toggle row goes away and the second field appears under the first.
   // The toggle and the field fold in opposite directions at the same time, so the column's
   // height only ever changes smoothly and nothing below it jumps.
@@ -742,9 +848,9 @@
 
   /* ---------- Step 3 ---------- */
 
-  $('fName').addEventListener('input', (e) => { data.author.name = e.target.value; refresh(); });
+  $('fName').addEventListener('input', (e) => { data.author.name = e.target.value; refresh(); showSameSource(); });
   $('fNative').addEventListener('input', (e) => { data.author.nativeName = e.target.value; if (e.target.value.trim()) $('fName').closest('.fw').classList.remove('is-warn'); refresh(); });
-  $('fTitle').addEventListener('input', (e) => { data.source.title = e.target.value; });
+  $('fTitle').addEventListener('input', (e) => { data.source.title = e.target.value; showSameSource(); });
   // A link's shape: http(s), a real domain, no bare IP address or localhost, no user name or
   // password (workers/lib/link.js → shapeOf, which the Workers check again: keep in step).
   function linkShapeOk(raw) {
@@ -791,6 +897,7 @@
   $('fSourceLink').addEventListener('input', (e) => {
     data.source.link = e.target.value;
     if (e.target.closest('.fw').classList.contains('is-warn')) warnLink('');
+    showSameSource();
   });
   $('fSourceLink').addEventListener('change', checkSourceLink); // on leaving the field
   /* Where the words are from, guessed from the original language (Bill, 2026-10-08): once the
@@ -844,7 +951,7 @@
     $('fSourceLink').placeholder = hint; $('fSourceLink').setAttribute('aria-label', hint);
     $('fTitle').placeholder = name; $('fTitle').setAttribute('aria-label', name);
   }
-  const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', label: 'Source category', onChange: (v) => { data.source.kind = v; linkHint(v); showSourceFields(!!v && v !== 'personal'); } });
+  const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', label: 'Source category', onChange: (v) => { data.source.kind = v; linkHint(v); showSourceFields(!!v && v !== 'personal'); showSameSource(); } });
   const year = combo($('fYear'), { options: YEARS, placeholder: 'Year', free: true, onChange: (v) => { data.source.year = /^\d{1,4}$/.test(v) ? v : ''; } });
   year.input.inputMode = 'numeric';
 
@@ -1295,6 +1402,7 @@
     document.querySelectorAll('.fw.is-warn').forEach((w) => w.classList.remove('is-warn'));
     warnLink('');
     country.set(''); kind.set(''); year.set(''); linkHint('');
+    sameQuote = null; sourceFrom = null; $('dupNote').classList.remove('is-in'); fold($('sourceNote'), false);
     Object.assign(guess, { country: '', origin: '', ownCountry: false, ownOrigin: false });
     // From "Words submitted", a fresh step 1 comes in from below (one slide down, like every
     // other step), not by rewinding up through all five. Step 1 is parked under the done screen

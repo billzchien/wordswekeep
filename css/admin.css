@@ -311,6 +311,14 @@
   transition: opacity var(--toast-ms) var(--ease), transform var(--toast-ms) var(--ease);
 }
 .toast.is-in { opacity: 1; transform: translate(-50%, 0); }
+/* The lasting one (a pending entry already live, js/admin.js → showSame): the same toast, with
+   its action as the site's dashed‑underline link (css/app.css → .ann); it can be pressed. */
+.toast--same { display: flex; align-items: baseline; gap: calc(16 * var(--u)); pointer-events: auto; }
+.toast-act {
+  flex: none; padding: 0; border: 0; font: inherit; color: inherit; cursor: pointer;
+  background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 4px) left bottom 0.08em / 100% 1px no-repeat;
+}
+@media (min-resolution: 2dppx) { .toast-act { background-size: 100% 0.5px; } }
 
 /* ---------- Breakpoints ---------- */
 

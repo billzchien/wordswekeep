@@ -51,7 +51,9 @@
             </div>
             <div class="fold is-open" id="origToggleWrap"><div><button type="button" class="more" id="origToggle"><span>In original language</span><span class="icon icon-plus"></span></button></div></div>
           </div>
-          <div class="reveal next-wrap"><button type="button" class="btn" data-next disabled>Next</button></div> <!-- appears in its own kept space once the step's required fields are filled (js/form.js → refresh) -->
+          <div class="reveal next-wrap"><button type="button" class="btn" data-next disabled>Next</button>
+            <p class="reveal dup-note" id="dupNote">We found matching or similar words. <span role="link" tabindex="0" data-href="./" id="dupGo">Add thoughts instead</span></p> <!-- the words are already in the collection: under Next, taking no room (js/form.js → sameWords) -->
+          </div> <!-- appears in its own kept space once the step's required fields are filled (js/form.js → refresh) -->
         </div>
       </section>
 
@@ -94,6 +96,7 @@
               <div class="fold" id="fTitleWrap" hidden><div class="fw"><input class="field" id="fTitle" type="text" placeholder="Source name" autocomplete="off" aria-label="Source name"></div></div>
               <div class="fold" id="fSourceLinkWrap" hidden><div class="fw"><input class="field" id="fSourceLink" type="url" placeholder="Source link" autocomplete="off" inputmode="url" aria-label="Source link"></div></div>
             </div>
+            <div class="fold" id="sourceNote" hidden><div><p class="send-note source-note">We filled in the source for you, since it’s <span role="link" tabindex="0" data-href="./" data-out id="sourceGo">already in the collection</span>.</p></div></div> <!-- the source matches a quote already here: it unfolds under the source (one-line fields, so no space is kept; js/form.js → sameSource) -->
           </div>
           <div class="reveal next-wrap"><button type="button" class="btn" data-next disabled>Next</button></div> <!-- appears in its own kept space once the step's required fields are filled (js/form.js → refresh) -->
         </div>

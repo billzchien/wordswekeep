@@ -126,6 +126,7 @@ ul { list-style: none; }
    page changes; the form page fades its content in around the same logo (js/form.js). */
 .app.is-leaving > :not(.menu-btn) { opacity: 0; transition: opacity 0.1s var(--ease); }
 .app.is-arriving > .chrome:not(.menu-btn):not(.notes-btn):not(.arrows) { animation: fade-in var(--chrome-in) var(--ease) both; } /* back from the form (Notes and the arrows wait for the typing) */
+.app.is-into-thoughts > .notes, .app.is-into-thoughts > .notes-btn { animation: fade-in var(--chrome-in) var(--ease) both; } /* back from the form's "Add thoughts instead": straight into notes, no typing (js/app.js → intoThoughts) */
 /* While the quote types itself in (js/app.js → arrive), Notes and the arrows are held back; as
    the last letter lands they fade in like "Add words" does coming back from the form
    (js/app.js → showChrome sets .chrome-in for the length of the fade). */
@@ -486,13 +487,14 @@ ul { list-style: none; }
 .ann,
 .cat-desc [data-href],
 .pv-mail,
-.send-note [data-href] {
+.send-note [data-href],
+.dup-note [data-href] {
   cursor: pointer;
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone; /* an underlined phrase may now wrap: each line gets its own full underline */
   background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 4px) left bottom 0.08em / 100% 1px no-repeat;
 }
-@media (min-resolution: 2dppx) { .ann, .cat-desc [data-href], .pv-mail, .send-note [data-href] { background-size: 100% 0.5px; } }
+@media (min-resolution: 2dppx) { .ann, .cat-desc [data-href], .pv-mail, .send-note [data-href], .dup-note [data-href] { background-size: 100% 0.5px; } }
 
 .n-col {
   position: relative;

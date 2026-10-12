@@ -533,6 +533,16 @@ textarea.field::-webkit-scrollbar { display: none; }
 .reveal.is-in { opacity: 1; translate: 0 0; visibility: visible; transition: opacity var(--fold-ms, 200ms) var(--ease), translate var(--fold-ms, 200ms) var(--ease), visibility 0s; }
 @media (prefers-reduced-motion: reduce) { .reveal, .reveal.is-in { transition: none; } }
 
+/* Already in the collection (Bill, 2026-10-11; js/form.js → sameWords / sameSource).
+   Step 1: the same words — one line under Next, ~12 below it as the send note, in the ink, with
+   the dashed underline (css/app.css → .ann); placed under the button, so it takes no room and
+   the centred step never moves. Step 3: the same source — the send note's grey italics under
+   the source fields, unfolding (the group's 12 above it; Bill: no space kept for one-line fields). */
+.next-wrap { position: relative; }
+.dup-note { position: absolute; left: 0; right: 0; top: calc(100% + 12 * var(--u)); margin: 0; }
+.dup-note [data-href] { white-space: nowrap; }
+.send-note.source-note { margin-top: 0; }
+
 /* ---------- Arriving from the archive ----------
    The archive fades everything but the logo out (100ms) and opens this page; here the chrome
    fades in and, 50ms behind it, the form fades up. The logo never moves. */

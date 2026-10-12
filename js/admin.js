@@ -228,6 +228,8 @@
         author: { name: 'Will Durant', nativeName: null, country: 'US' }, source: { title: 'The Story of Philosophy', year: 1926, kind: 'book', link: null },
         context: 'Often attributed to Aristotle; Durant was summarising him.', annotations: [{ word: 'habit', explanation: 'From the Greek hexis: a settled disposition, something you have rather than something you do.' }],
         reflection: 'It took the pressure off. I don’t have to be excellent today, I have to show up today.', keptBy: null, submittedAt: daysAgo(5), seen: true }),
+      ...(live[0] ? [base({ text: live[0].text.replace(/[.!?]?$/, '').toLowerCase(), categories: [...live[0].categories], author: clone(live[0].author), source: live[0].source ? clone(live[0].source) : null, // already live: the lasting toast, "Change to thoughts"
+        reflection: 'I think about this every time I look at the night sky.', keptBy: 'Jo', submittedAt: daysAgo(0), seen: false })] : []),
     ];
     const archive = [
       base({ status: 'archived', text: 'Live, laugh, love.', categories: ['perspective'], author: { name: 'Unknown', nativeName: null, country: 'US' }, source: null,
@@ -335,6 +337,7 @@
   let viewTimer = 0;
   function switchView(view) {
     const cur = admin.dataset.view;
+    if (view !== 'edit') showSame(null);
     if (cur === view) return Promise.resolve();
     const from = $(VIEWS[cur]), to = $(VIEWS[view]);
     from.classList.add('is-out');
@@ -654,15 +657,82 @@
   function toast(text) {
     const el = $('toast');
     clearTimeout(toastTimer);
+    $('sameToast').classList.remove('is-in'); // the lasting one (showSame) steps aside, and comes back after
     el.textContent = text;
     el.hidden = false;
     void el.offsetHeight;
     el.classList.add('is-in');
     toastTimer = setTimeout(() => {
       el.classList.remove('is-in');
-      toastTimer = setTimeout(() => { el.hidden = true; }, ms(300));
+      toastTimer = setTimeout(() => { el.hidden = true; if (sameAs) $('sameToast').classList.add('is-in'); }, ms(300));
     }, ms(300) + TOAST_STAY_MS);
   }
+
+  /* ---------- Already live (Bill, 2026-10-11) ----------
+     A pending entry whose words (or words in their original language) are a live quote's,
+     loosely — the form's test, copied from js/form.js (sameWords: keep in step). While it is
+     open, a lasting toast says which, with "Change to thoughts": the entry's personal note
+     becomes a waiting thought under that quote (its name the entry's "kept by"), the entry
+     goes to Archive (from there it can be put back), and the thoughts of that quote open. */
+  const SAME_MIN = 5, SAME_RUN = 3, SAME_SHARE = 0.6; // as js/form.js
+  const unitsOf = (s) => ((s || '').normalize('NFKC').toLowerCase().replace(/[‘’ʼ`´]/g, "'")
+    .match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]|[\p{L}\p{N}']+/gu) || [])
+    .map((w) => w.replace(/^'+|'+$/g, '')).filter(Boolean);
+  function runsOf(units) {
+    const out = new Set();
+    for (let i = 0; i + SAME_RUN <= units.length; i++) out.add(units.slice(i, i + SAME_RUN).join(' '));
+    return out;
+  }
+  function likeness(a, b) {
+    const ua = unitsOf(a), ub = unitsOf(b);
+    if (Math.min(ua.length, ub.length) < SAME_MIN) return 0;
+    const ra = runsOf(ua), rb = runsOf(ub);
+    const [small, big] = ra.size <= rb.size ? [ra, rb] : [rb, ra];
+    let common = 0;
+    small.forEach((r) => { if (big.has(r)) common++; });
+    return common / small.size;
+  }
+  function sameWords(q) {
+    let best = null, top = 0;
+    const mine = [q.text, q.originalLanguage && q.originalLanguage.text];
+    store.live.forEach((l) => {
+      if (l.key === q.key) return;
+      const theirs = [l.text, l.originalLanguage && l.originalLanguage.text];
+      mine.forEach((a) => theirs.forEach((b) => {
+        if (!a || !b) return;
+        const v = likeness(a, b);
+        if (v >= SAME_SHARE && v > top) { top = v; best = l; }
+      }));
+    });
+    return best;
+  }
+  let sameAs = null; // the live quote the open pending entry repeats
+  function showSame(live) {
+    sameAs = live;
+    const el = $('sameToast');
+    if (live) {
+      $('sameText').textContent = `Already live as No. ${live.id}`;
+      el.hidden = false;
+      void el.offsetHeight;
+      el.classList.add('is-in');
+    } else if (!el.hidden) {
+      el.classList.remove('is-in');
+      setTimeout(() => { if (!sameAs) el.hidden = true; }, ms(300));
+    }
+  }
+  $('sameChange').addEventListener('click', async () => {
+    if (!edit || !sameAs || edit.tab !== 'pending') return;
+    const f = findItem(edit.key), live = sameAs;
+    if (!f) return;
+    if (!(await ask(`Change this entry to a thought under No. ${live.id}? The entry goes to Archive.`, 'Change', 'Not yet'))) return;
+    const q = f.q;
+    store.thoughts.push({ key: `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, quote: live.id, text: q.reflection || '', name: q.keptBy || null, submittedAt: q.submittedAt, seen: true });
+    archiveItem(q.key); // (saves)
+    edit = null;
+    showSame(null);
+    go(`#thoughts/${live.key}`);
+    toast('Changed to thoughts');
+  });
 
   /* ---------- The edit view ---------- */
 
@@ -826,6 +896,7 @@
     }
     stepDir = 0;
     await switchView('edit');
+    showSame(f.tab === 'pending' ? sameWords(f.q) : null);
   }
 
   // Leaving the edit view with unsaved changes asks first.

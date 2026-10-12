@@ -3349,7 +3349,7 @@
       }
       state.idx = found >= 0 ? found : 0;
       renderDeck();
-      arrive();
+      if (thoughtFor) intoThoughts(); else arrive();
     })
     .catch((err) => {
       console.error(err);
@@ -3427,6 +3427,7 @@
   // drawn, and CHROME_IN_WAIT_MS more: the swap from the typed letters to the real quote is a
   // heavy frame, and a fade begun in or right after it is over by the time it shows — they
   // jumped in (50ms was not enough on a phone).
+  const THOUGHT_OPEN_MS = 300; // from the form's "Add thoughts instead": notes are in, then the thoughts box opens this much later
   const CHROME_IN_MS = 600, CHROME_IN_WAIT_MS = 400; // CHROME_IN_MS: css --chrome-in
   function showChrome() {
     if (!app.classList.contains('is-typing')) return;
@@ -3536,6 +3537,25 @@
     $('menuBtn').classList.add('is-static'); // the still logo holds the place until the drawn one is ready
     app.classList.add('is-arriving');
     setTimeout(() => app.classList.remove('is-arriving'), CHROME_IN_MS + 100);
+  }
+  // From the form's "Add thoughts instead" (Bill, 2026-10-11; js/form.js → sameWords): the
+  // words they were adding are already here. The form left that quote in wwk-quote; the page
+  // opens straight into its notes — no typing in (Bill: they have just typed it themselves) —
+  // fading in as the chrome does back from the form, and its thoughts box opens as
+  // "Add thoughts +" opens it (the notes gliding to their end).
+  const thoughtFor = session.get('wwk-thought');
+  session.remove('wwk-thought');
+  function intoThoughts() {
+    const q = state.list[state.idx];
+    if (!q || String(q.id) !== thoughtFor) { arrive(); return; } // that quote is no longer on the site: the usual arrival
+    markStill = false;
+    drawMark(false); // the logo never left
+    app.classList.remove('is-typing');
+    app.classList.add('is-into-thoughts');
+    setTimeout(() => app.classList.remove('is-into-thoughts'), CHROME_IN_MS + 100);
+    applyMode('notes');
+    const open = $('nBody').querySelector('.n-add-open'); // (none once they have sent a thought on it this visit: the thanks stands there)
+    if (open && !open.hidden) setTimeout(() => open.click(), reduceMotion.matches ? 0 : THOUGHT_OPEN_MS);
   }
 
   /* ---------- A field above the phone's keyboard ----------

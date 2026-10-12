@@ -246,6 +246,9 @@
 
     <!-- Toast (Figma 314:5664): what was just done, at the bottom of the window. -->
     <p class="toast" id="toast" role="status" aria-live="polite" hidden></p>
+    <!-- A pending entry whose words are already live (Bill, 2026-10-11): stays while the entry is
+         open, with the way to make it a thought under that quote (js/admin.js → showSame). -->
+    <div class="toast toast--same" id="sameToast" role="status" aria-live="polite" hidden><span id="sameText"></span><button type="button" class="toast-act" id="sameChange">Change to thoughts</button></div>
 
     <!-- "Are you sure?" (Figma 303:2108) -->
     <div class="popup-layer" id="popup" hidden>
