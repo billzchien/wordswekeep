@@ -213,13 +213,17 @@ ul { list-style: none; }
   transform: scaleY(var(--band));
   transform-origin: 50% 100%;
 }
-.scan-edge::before { background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--fg) 16%, transparent)); }
+.scan-edge::before { background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--fg) 20%, transparent)); } /* the tint (20%; 16 until 2026-10-12) */
 .scan-edge::after {
-  -webkit-backdrop-filter: blur(10px) brightness(1.35) saturate(1.5);
-  backdrop-filter: blur(10px) brightness(1.35) saturate(1.5);
-  /* only the top third is feathered, so most of the band blurs at full strength */
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 35%);
-  mask-image: linear-gradient(to bottom, transparent, #000 35%);
+  /* Bill's values, 2026-10-12, set on md/checks/scan (until then blur 10px, brightness 1.35, saturate 1.5) */
+  -webkit-backdrop-filter: blur(2px) brightness(1.2) saturate(1.7);
+  backdrop-filter: blur(2px) brightness(1.2) saturate(1.7);
+  /* Feathered on a curve over the whole band, full strength only at the edge (Bill, 2026-10-12: on
+     Romance's deep red the brightened band read as a block with a hard top; until then the top third,
+     in a straight line). */
+  --scan-feather: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1) 16.7%, rgba(0, 0, 0, 0.35) 38.9%, rgba(0, 0, 0, 0.7) 62.5%, rgba(0, 0, 0, 0.92) 83.3%, #000);
+  -webkit-mask-image: var(--scan-feather);
+  mask-image: var(--scan-feather);
 }
 
 /* The quote's line-by-line stand-in during the scan (js/app.js → scanQuoteLines). */
