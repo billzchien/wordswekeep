@@ -11,7 +11,7 @@
   const SRC = LOCAL ? '/assets/music/r2/' : 'https://media.wordswekeep.org/';
   const RATE = 44100;      // the files' sample rate; the context runs at it, so nothing is resampled
   const PRIMING = 1024;    // AAC encoder delay, for a browser that keeps it
-  const FADE_S = 4;        // every fade in and out (Bill, 2026-10-12)
+  const FADE_S = 3;        // every fade in and out (Bill, 2026-10-12; 4 at first)
   let VOLUME = 0.2;        // the music's level, 0–1 (Bill, 2026-10-12, with md/checks/music)
 
   let ctx = null, master = null, list = null, voice = null, lastFile = {};

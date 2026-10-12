@@ -3769,7 +3769,7 @@
 
   /* ---------- Music (Figma 555:563; js/music.js plays it) ----------
      Each category's own loop, on the main page and under the menu, never in notes. Whatever
-     starts or stops it — the player, notes, a new category, the tab hidden — it fades over 4
+     starts or stops it — the player, notes, a new category, the tab hidden — it fades over 3
      seconds (music.js), never sudden. On desktop it starts on landing: a browser lets sound start
      only after a first click or key, so that is when it fades in (the player shows play until
      then). A tablet or a phone waits for the player. The choice is kept (localStorage wwk-music:
