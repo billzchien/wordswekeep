@@ -2275,7 +2275,24 @@
     if (!q) return false;
     const range = document.createRange();
     range.selectNodeContents(q);
-    return [...range.getClientRects()].some((r) => r.width > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
+    // One box per line — its words' boxes joined, so the space between two words counts — and
+    // each line's box reaching halfway to the lines above and below, so moving from one line to
+    // the next never leaves the quote (Bill, 2026-10-11: the cursor flickered between lines). The
+    // empty end of a short line and the space around the quote still do not count.
+    const lines = [];
+    [...range.getClientRects()].forEach((r) => {
+      if (!(r.width > 0)) return;
+      const mid = (r.top + r.bottom) / 2;
+      const line = lines.find((l) => mid > l.top && mid < l.bottom);
+      if (line) Object.assign(line, { left: Math.min(line.left, r.left), right: Math.max(line.right, r.right), top: Math.min(line.top, r.top), bottom: Math.max(line.bottom, r.bottom) });
+      else lines.push({ left: r.left, right: r.right, top: r.top, bottom: r.bottom });
+    });
+    lines.sort((a, b) => a.top - b.top);
+    return lines.some((l, i) => {
+      const top = i ? (lines[i - 1].bottom + l.top) / 2 : l.top;
+      const bottom = i < lines.length - 1 ? (l.bottom + lines[i + 1].top) / 2 : l.bottom;
+      return x >= l.left && x <= l.right && y >= Math.min(top, l.top) && y <= Math.max(bottom, l.bottom);
+    });
   }
   let pressAt = null;
   app.addEventListener('pointerdown', (e) => { pressAt = { x: e.clientX, y: e.clientY, mouse: e.pointerType === 'mouse' }; });
@@ -2284,15 +2301,70 @@
     if (pressAt && pressAt.mouse && Math.hypot(e.clientX - pressAt.x, e.clientY - pressAt.y) > QUOTE_DRAG_PX) return false;
     return overQuote(e.clientX, e.clientY);
   }
-  // A mouse over the quote gets the pointing hand (a class on .app: the cursor only, nothing else).
+  /* ---------- The magnifying glass (Figma 552:3086; Bill, 2026-10-11) ----------
+     Over the quote's words on the main page, with a mouse, the cursor is a magnifying glass:
+     the real cursor is hidden (css: .has-glass) and the glass is drawn where the mouse is, above
+     everything — the quote and its RGB lens too — so its white can be frosted: see-through white
+     over a blur of whatever is under it, split letters included (a cursor image cannot blur).
+     Three layers, none with a filter on a parent (that would stop the blur seeing the page): the
+     shadow (outside the glass only), the white as frosted glass (cut to its shape), the black
+     glass. Bill's values, tuned on md/checks/cursor/ (frosted in Safari too, his choice: there it
+     can trail a fast mouse, Safari drawing the RGB lens each frame). Hidden while not over the
+     words; the hot spot is the lens's centre. */
+  const GLASS_PX = 28;          // the glass across, as a cursor (the art is 96)
+  const GLASS_WHITE = 0.35;     // how much white stays in it
+  const GLASS_FROST = 3;        // px of blur of what is under it
+  const GLASS_SHADOW = 0.35, GLASS_SHADOW_BLUR = 1.5, GLASS_SHADOW_DROP = 1; // as the system arrow's (px)
+  const GLASS_ART = 96, GLASS_LENS = [35.18, 35.39]; // the art's size; the hot spot (the lens's centre) in it
+  const GLASS_WHITE_D = 'M35.1765 0.986412C54.1759 0.986412 69.5787 16.3884 69.5789 35.3878C69.5789 42.773 67.2498 49.614 63.2888 55.2188C72.5892 63.3876 82.5899 72.2721 85.9119 74.2266C87.0598 75.1722 88.8288 74.9155 90.0994 73.7862C91.3701 72.6568 92.905 67.8927 92.905 67.8927C92.905 67.8927 94.8512 72.8741 95.1375 76.0304C95.4237 79.1866 95.0463 83.902 93.4109 86.8643C91.0795 91.0873 87.3571 93.8077 83.5779 94.6944C77.9575 96.0128 73.9881 92.9693 71.6961 90.6339C69.8996 88.8033 60.1912 76.2527 51.9226 65.4425C46.9664 68.2099 41.2563 69.7901 35.1765 69.7901C16.1772 69.79 0.775162 54.3872 0.775162 35.3878C0.775343 16.3885 16.1773 0.986577 35.1765 0.986412Z';
+  const GLASS_BLACK_D = 'M28.0789 4.51738C38.7863 2.9195 43.0295 12.1804 43.3709 14.6609C38.2559 13.239 33.2947 14.3119 30.7517 15.4529C20.0678 20.2449 12.0389 32.8181 12.0388 45.2391C12.0388 48.1892 12.4676 51.4107 13.2537 54.4148C17.4496 56.5862 22.2113 57.8162 27.2615 57.8162C44.1413 57.8161 57.274 46.9648 55.781 28.202C55.12 19.886 50.3976 11.6526 46.3797 8.25859C61.5093 11.6725 66.9109 23.4853 66.9109 35.9363C66.9108 43.3011 64.1715 50.333 59.6824 55.9217C68.4894 63.5005 81.363 75.1951 83.6843 77.1082C86.4067 79.3518 90.0367 78.903 92.3054 76.2107C92.7076 85.1595 87.4406 90.3737 82.7771 91.4676C79.0221 92.3484 75.9775 90.1274 74.156 88.326C71.0853 85.289 58.7813 69.8252 52.864 62.3367C47.8814 65.8488 41.9377 67.9529 35.6463 67.9529C27.7013 67.9529 20.4678 64.9196 15.0349 59.949C8.10556 54.3083 3.6541 44.7083 3.65407 35.1033C3.65407 20.0293 14.8889 6.48538 28.0789 4.51738Z';
+  function makeGlass() {
+    const NS = 'http://www.w3.org/2000/svg';
+    const k = GLASS_ART / GLASS_PX, padPx = Math.ceil(GLASS_SHADOW_BLUR * 2 + GLASS_SHADOW_DROP + 1);
+    const pad = padPx * k, box = GLASS_ART + 2 * pad, px = GLASS_PX + 2 * padPx, vb = `${-pad} ${-pad} ${box} ${box}`;
+    const shadow = `<svg xmlns="${NS}" width="${px}" height="${px}" viewBox="${vb}"><defs><filter id="glassBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${GLASS_SHADOW_BLUR * k / 2}"/></filter><mask id="glassOut" maskUnits="userSpaceOnUse" x="${-pad}" y="${-pad}" width="${box}" height="${box}"><rect x="${-pad}" y="${-pad}" width="${box}" height="${box}" fill="white"/><path d="${GLASS_WHITE_D}" fill="black"/></mask></defs><g mask="url(#glassOut)"><path d="${GLASS_WHITE_D}" fill="#000" fill-opacity="${GLASS_SHADOW}" filter="url(#glassBlur)" transform="translate(0 ${GLASS_SHADOW_DROP * k})"/></g></svg>`;
+    const cut = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="${NS}" viewBox="${vb}"><path d="${GLASS_WHITE_D}"/></svg>`)}")`;
+    const el = document.createElement('div');
+    el.className = 'glass';
+    el.setAttribute('aria-hidden', 'true');
+    el.style.setProperty('--glass-px', `${px}px`);
+    el.innerHTML = `<div class="glass-shadow">${shadow}</div><div class="glass-frost"></div><div class="glass-black"><svg xmlns="${NS}" width="${px}" height="${px}" viewBox="${vb}"><path d="${GLASS_BLACK_D}" fill="#000"/></svg></div>`;
+    const frost = el.querySelector('.glass-frost');
+    Object.assign(frost.style, { background: `rgba(255, 255, 255, ${GLASS_WHITE})`, webkitBackdropFilter: `blur(${GLASS_FROST}px)`, backdropFilter: `blur(${GLASS_FROST}px)`, webkitMaskImage: cut, maskImage: cut });
+    document.body.appendChild(el);
+    document.documentElement.classList.add('has-glass');
+    const hx = padPx + GLASS_LENS[0] / k, hy = padPx + GLASS_LENS[1] / k;
+    return {
+      move(x, y) { el.style.transform = `translate(${x - hx}px, ${y - hy}px)`; },
+      show(on) { el.classList.toggle('is-on', on); },
+    };
+  }
+
+  // A mouse over the quote gets the magnifying glass (above; a class on .app, the cursor only,
+  // nothing else) — the pointing hand where there is no glass (a hover without a fine pointer).
   if (matchMedia('(hover: hover)').matches) {
-    let hoverFrame = 0, hoverAt = null;
+    const glass = matchMedia('(pointer: fine)').matches ? makeGlass() : null;
+    let hoverFrame = 0, hoverAt = null, watching = 0;
+    const setOver = (on) => {
+      app.classList.toggle('is-over-quote', on);
+      if (!glass) return;
+      glass.show(on);
+      // While the glass shows, the quote is looked at every frame: Space, a key, the wheel or the
+      // menu can take it away (or start it moving) without the mouse moving, and the glass must
+      // not stay behind over notes or a quote on its way in.
+      if (on && !watching) watching = requestAnimationFrame(function watch() {
+        if (!overQuote(hoverAt.clientX, hoverAt.clientY)) { watching = 0; setOver(false); return; }
+        watching = requestAnimationFrame(watch);
+      });
+    };
     app.addEventListener('mousemove', (e) => {
       hoverAt = e;
-      if (!hoverFrame) hoverFrame = requestAnimationFrame(() => { hoverFrame = 0; app.classList.toggle('is-over-quote', overQuote(hoverAt.clientX, hoverAt.clientY)); });
+      if (glass) glass.move(e.clientX, e.clientY); // at once: it is the cursor
+      if (!hoverFrame) hoverFrame = requestAnimationFrame(() => { hoverFrame = 0; setOver(overQuote(hoverAt.clientX, hoverAt.clientY)); });
     });
-    app.addEventListener('mouseleave', () => app.classList.remove('is-over-quote'));
+    app.addEventListener('mouseleave', () => setOver(false));
   }
+
 
   /* ---------- RGB lens (Bill, 2026-10-11; tuned on rgb-hover-tuning, md/handoff.md) ----------
      Around the mouse, over the quote on the main page, the letters split into red and green

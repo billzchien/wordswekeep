@@ -243,6 +243,14 @@ ul { list-style: none; }
    the finger (the scrub froze scattered). Only the language button takes pointer events. */
 .track .lang { pointer-events: auto; }
 .app.is-over-quote .deck { cursor: pointer; } /* tapping the quote opens notes (js/app.js → quoteTap) */
+/* With a mouse, the cursor over the words is the magnifying glass instead, drawn by the page
+   (js/app.js → makeGlass): the real one is hidden there. */
+.has-glass .app.is-over-quote .deck { cursor: none; }
+.glass { position: fixed; left: 0; top: 0; z-index: 2147483647; width: var(--glass-px); height: var(--glass-px); pointer-events: none; visibility: hidden; }
+.glass.is-on { visibility: visible; }
+.glass > div { position: absolute; inset: 0; }
+.glass svg { display: block; }
+.glass-frost { -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
 .slide { position: absolute; left: 0; width: 100%; height: 100%; }
 .slide[data-pos="-1"] { top: -100%; }
 .slide[data-pos="0"]  { top: 0; }
