@@ -11,6 +11,7 @@
   --col3: calc(var(--m) + 2 * var(--step));
   --col4: calc(var(--m) + 3 * var(--step));
   --col6: calc(var(--m) + 5 * var(--step));
+  --phone-col2: calc(var(--m) + (100vw - 2 * var(--m) - 3 * var(--g)) / 4 + var(--g)); /* a phone's four-column grid (Figma 555:356): the second column, 113 at 393 */
 
 }
 
@@ -112,6 +113,38 @@ ul { list-style: none; }
 .notes-btn { top: calc(20px - var(--cap-offset)); right: var(--m); }
 .add-btn   { left: var(--m); bottom: 20px; }
 .arrows    { right: 16px; bottom: 16px; display: flex; }
+/* The music player (Figma 555:563): under No. X, on the line of "Add words"; the whole of it is
+   one button. Playing: the pause icon, the track's name rolling through its box with both edges
+   faded (js/app.js → marquee). Paused: the play icon, the name still at its start, the right
+   edge faded. */
+@property --player-fade-l { syntax: '<length>'; inherits: false; initial-value: 0px; }
+.player { left: var(--col2); bottom: 20px; display: flex; align-items: center; gap: 2px; padding-bottom: var(--link-gap); color: var(--fg); }
+.player[hidden] { display: none; }
+.player-icon { --src: url(../assets/icons/player-play.svg); width: 8px; height: 9.238px; margin: 0 5px; translate: 0 calc(2 * var(--u)); } /* centred in an 18px box, then lowered onto the middle of the name's lowercase letters (x-height; measured 2px below the line's centre, Bill 2026-10-12) */
+.player.is-on .player-icon { --src: url(../assets/icons/player-pause.svg); }
+.player-name {
+  --edge: 8.583px;
+  --player-fade-l: 0px;
+  width: 60px;
+  overflow: hidden;
+  font-family: var(--font-text);
+  font-style: italic;
+  font-size: var(--text-size); /* the site's text size (Bill, 2026-10-12; Figma had 15) */
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-feature-settings: "ss01" 1, "ss07" 1, "dlig" 1, "onum" 1, "pnum" 1;
+  white-space: nowrap;
+  -webkit-mask: linear-gradient(to right, transparent 0, #000 var(--player-fade-l), #000 calc(100% - var(--edge)), transparent 100%);
+  mask: linear-gradient(to right, transparent 0, #000 var(--player-fade-l), #000 calc(100% - var(--edge)), transparent 100%);
+  transition: --player-fade-l 0.6s var(--ease);
+}
+.player.is-on .player-name { --player-fade-l: var(--edge); }
+.player-roll { display: flex; width: max-content; }
+.player-roll > span { padding-right: 24px; } /* the gap before the name comes round again */
+@media (max-width: 599px) {
+  .number, .player { left: var(--phone-col2); } /* No. X and the player on the phone frame's four-column grid (Bill, 2026-10-12): on the six-column --col2 (82 at 393) the player would sit on "Add words" */
+  .player-name { width: 40px; }
+}
 .arrows button { width: 32px; height: 32px; display: grid; place-items: center; }
 /* A pressed arrow rolls out of this box, and back in from the other side once the new quote has arrived (js/app.js → press). */
 .arrow-crop { display: block; width: 12px; height: 12px; overflow: hidden; }
@@ -137,6 +170,7 @@ ul { list-style: none; }
 .app[data-mode="notes"]:not(.is-revealing) .menu-btn,
 .app[data-mode="notes"]:not(.is-revealing) .number,
 .app[data-mode="notes"]:not(.is-revealing) .add-btn,
+.app[data-mode="notes"]:not(.is-revealing) .player,
 .app[data-mode="notes"]:not(.is-revealing) .arrows { display: none; }
 
 /* While the notes frame is being cropped in, the page under it is still the grey main page

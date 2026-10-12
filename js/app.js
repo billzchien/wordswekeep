@@ -1656,6 +1656,7 @@
   function applyMode(mode) {
     state.mode = mode;
     app.dataset.mode = mode;
+    musicSync(mode);
     const inNotes = mode === 'notes';
     $('notesBtn').textContent = inNotes ? 'Close' : 'Notes';
     notes.hidden = !inNotes;
@@ -1909,6 +1910,7 @@
     flushLanding();
     if (modeBusy || langBusy || state.animating || mode === state.mode) return;
     if (rgbLens) rgbLens.off(); // (the RGB lens: off before the quote is measured and carried into notes)
+    musicSync(mode); // the music fades out as notes open, back in as they close
     if (reduceMotion.matches) return applyMode(mode);
     modeBusy = true;
     const toNotes = mode === 'notes';
@@ -3269,6 +3271,7 @@
       state.idx = 0;
       state.original = false;
       renderDeck();
+      musicSync(); // the new category's music crosses over from the last one's
     }
     closeMenu(changed);
   }
@@ -3759,7 +3762,108 @@
     const href = e.currentTarget.dataset.href;
     session.set('wwk-arrive', '1');
     app.classList.add('is-leaving');
+    musicLeaving = true; musicSync(); // (the page goes before the fade is over: the music stops with it)
     setTimeout(() => { location.href = href; }, reduceMotion.matches ? 0 : LEAVE_MS);
   });
   window.addEventListener('pageshow', () => app.classList.remove('is-leaving')); // back button (bfcache)
+
+  /* ---------- Music (Figma 555:563; js/music.js plays it) ----------
+     Each category's own loop, on the main page and under the menu, never in notes. Whatever
+     starts or stops it — the player, notes, a new category, the tab hidden — it fades over 4
+     seconds (music.js), never sudden. On desktop it starts on landing: a browser lets sound start
+     only after a first click or key, so that is when it fades in (the player shows play until
+     then). A tablet or a phone waits for the player. The choice is kept (localStorage wwk-music:
+     on / off); a kept "off" stops desktop starting it. */
+  const music = window.Music;
+  const player = $('player');
+  const MARQUEE_PX_S = 20;      // the playing name's speed, px a second
+  const MARQUEE_SWAP_MS = 300;  // paused: the rolling name fades out, then in again at its start, each this long
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  };
+  // Desktop: a mouse and a wide window — never an iPad, even with a trackpad and in landscape (it
+  // calls itself a Mac; its touch points give it away). Tablets and phones never start by themselves.
+  const iPad = /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1;
+  const musicDesktop = mqHoverDesktop.matches && !iPad;
+  let musicWanted = !!music && musicDesktop && store.get('wwk-music') !== 'off';
+  let musicUnlocked = false;    // a click or key has let sound start
+  let musicMode = 'main';       // where the page is going (setMode tells this before it gets there)
+  let musicLeaving = false;     // "Add words": the page is going
+  function musicSync(mode) {
+    if (!music) return;
+    if (mode) musicMode = mode;
+    if (musicWanted && musicUnlocked && musicMode === 'main' && !document.hidden && !musicLeaving) music.play(state.filter);
+    else { music.stop(); music.trackName(state.filter).then(setPlayerName, () => {}); } // (playing, music.js names the track it picked)
+    drawPlayer();
+  }
+  const playerOn = () => musicWanted && musicUnlocked;
+  function drawPlayer() {
+    const on = playerOn();
+    player.classList.toggle('is-on', on);
+    player.setAttribute('aria-pressed', String(on));
+    player.setAttribute('aria-label', on ? 'Pause background music' : 'Play background music'); // ("Play music" is the notes' Spotify / Apple Music thumbnail)
+    marquee(on && !reduceMotion.matches);
+  }
+  // The name rolls round while the music plays: two copies side by side, moved left by one
+  // copy's width, over and over. Paused, it fades out still rolling and fades back in still, at
+  // its start.
+  let roll = null;
+  const rollEl = () => player.querySelector('.player-roll');
+  function marquee(go) {
+    const el = rollEl(), w = el.firstElementChild.offsetWidth; // one name and its gap
+    if (go) {
+      if (roll || !w) return;
+      el.getAnimations().forEach((a) => a.cancel());
+      roll = el.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${-w}px)` }], { duration: (w / MARQUEE_PX_S) * 1000, iterations: Infinity });
+    } else if (roll) {
+      const going = roll; roll = null;
+      const easing = easeCurve();
+      el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MARQUEE_SWAP_MS, easing, fill: 'forwards' }).finished.then(() => {
+        if (roll) return; // playing again meanwhile
+        going.cancel();
+        el.getAnimations().forEach((a) => a.cancel());
+        el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MARQUEE_SWAP_MS, easing });
+      }, () => {});
+    }
+  }
+  function setPlayerName(name) {
+    const el = rollEl();
+    if (!name || el.firstElementChild.textContent === name) return;
+    [...el.children].forEach((s) => { s.textContent = name; });
+    if (roll) { roll.cancel(); roll = null; drawPlayer(); }
+  }
+  if (music) {
+    music.on((s) => { if (s.name) setPlayerName(s.name); });
+    music.trackName(state.filter).then((name) => {
+      setPlayerName(name);
+      player.hidden = false;
+      player.animate([{ opacity: 0 }, { opacity: 1 }], { duration: CHROME_IN_MS, easing: easeCurve() });
+      drawPlayer();
+    }, () => {}); // no music.json: no player
+    player.addEventListener('click', () => {
+      musicUnlocked = true;
+      music.unlock();
+      musicWanted = !player.classList.contains('is-on');
+      store.set('wwk-music', musicWanted ? 'on' : 'off');
+      musicSync();
+    });
+    // The first click or key anywhere lets sound start (the player's own click does it above);
+    // after that, a click brings back a context the phone stopped (another app's sound, a call).
+    const firstGesture = (e) => {
+      if (e.target.closest && e.target.closest('#player')) return;
+      if (!musicUnlocked && musicWanted) { musicUnlocked = true; music.unlock(); setTimeout(() => musicSync(), 0); return; }
+      if (playerOn() && musicMode === 'main' && !document.hidden && !music.unlocked()) music.unlock(); // (not in notes: the music is meant to be asleep there)
+    };
+    ['pointerdown', 'keydown'].forEach((t) => document.addEventListener(t, firstGesture, true));
+    // Desktop tries at once: a browser that lets this site play sound (Chrome, for a site often
+    // listened to; Safari set to "Allow All Auto-Play") fades it in on landing. One that does not
+    // keeps the audio held, and the first click or key starts it, above.
+    if (musicWanted) {
+      music.unlock();
+      setTimeout(() => { if (!musicUnlocked && music.unlocked()) { musicUnlocked = true; musicSync(); } }, 300);
+    }
+    document.addEventListener('visibilitychange', () => musicSync());
+    window.addEventListener('pageshow', (e) => { if (e.persisted) { musicLeaving = false; musicSync(); } });
+  }
 })();

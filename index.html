@@ -67,6 +67,7 @@
     <p class="chrome number" id="number"></p>
     <button class="chrome link notes-btn" id="notesBtn">Notes</button>
     <button class="chrome link add-btn" id="addBtn" role="link" data-href="add">Add words</button> <!-- a button, not <a href>: no address strip on hover (js/app.js → follow) -->
+    <button class="chrome player" id="player" aria-label="Play background music" aria-pressed="false" hidden><span class="icon player-icon"></span><span class="player-name" aria-hidden="true"><span class="player-roll"><span></span><span></span></span></span></button> <!-- the music: one button, play / pause (js/app.js → Music, js/music.js); the name twice, to roll round -->
     <div class="chrome arrows">
       <button id="prevBtn" aria-label="Previous quote"><span class="arrow-crop"><span class="icon icon-arrow"></span></span></button> <!-- .arrow-crop: the box a pressed arrow rolls in (js/app.js → press) -->
       <button id="nextBtn" aria-label="Next quote"><span class="arrow-crop"><span class="icon icon-arrow icon-arrow--down"></span></span></button>
@@ -112,6 +113,7 @@
   </svg>
 
   <noscript>Words We Keep needs JavaScript to show its quotes.</noscript>
+  <script src="js/music.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
