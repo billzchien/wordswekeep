@@ -788,13 +788,13 @@
     "author": {
       "kind": "person",
       "name": "Kabir",
-      "nativeName": null,
+      "nativeName": "कबीर",
       "country": "IN",
       "origin": null
     },
     "source": {
       "title": null,
-      "year": 1604,
+      "year": null,
       "kind": "poem",
       "link": null
     },
