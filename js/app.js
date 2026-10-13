@@ -2389,7 +2389,10 @@
     // and stays down for the tab (sessionStorage wwk-lens). sessionStorage wwk-lens "pin-240",
     // "pin-160" or "pin-off" fixes a size and stops the stepping (md/checks/rgb-hover sets it).
     const SIZES = [240, 160, 0];
-    const LENS_SLOW = 1.7, LENS_SLOW_MIN_MS = 26, LENS_SAMPLE = 40; // too slow: the median of LENS_SAMPLE drawn frames over LENS_SLOW × the screen's own frame (and over LENS_SLOW_MIN_MS)
+    // Too slow: the median of LENS_SAMPLE drawn frames over LENS_SLOW × the screen's own frame time,
+    // but never under LENS_SLOW_MIN_MS, and always when over LENS_SLOW_MAX_MS (under 25 fps it reads
+    // as choppy whatever the screen does: Bill's Safari at 30 fps drew the 160 lens at 18).
+    const LENS_SLOW = 1.5, LENS_SLOW_MIN_MS = 26, LENS_SLOW_MAX_MS = 40, LENS_SAMPLE = 40;
     const chromium = !!window.chrome || /Chrome\/|Chromium\/|Edg\//.test(navigator.userAgent);
     let kept = null; try { kept = sessionStorage.getItem('wwk-lens'); } catch (e) {}
     const pinned = kept && kept.startsWith('pin-');
@@ -2476,9 +2479,14 @@
       lastKey = ''; lens.amt = 0;
       if (target) { target.style.filter = target.style.transform = ''; target = null; }
     }
-    // The frames: the screen's own frame time from frames with the lens off (the shortest seen,
-    // nudged up), and the time of each frame after one the lens redrew.
-    let screenMs = 16.7, drewLast = false, slow = [];
+    // The frames: the screen's own frame time — measured over the first frames after loading, then
+    // the median of the latest frames the lens did not redraw (a Mac in Low Power Mode runs every
+    // page at 30 fps: that is the screen, not the lens; starting from 60 and creeping up, the lens
+    // took Bill's 30 fps Safari for slow and switched itself off, 2026-10-13) — and the time of each
+    // frame after one the lens redrew.
+    let screenMs = 16.7, drewLast = false, slow = [], plain = [];
+    const median = (a) => a.slice().sort((x, y) => x - y)[a.length >> 1];
+    (() => { const g = []; let t = 0; const m = (n) => { if (t) g.push(n - t); t = n; if (g.length < 45) requestAnimationFrame(m); else { plain = g.filter((x) => x < 100).slice(-30); if (plain.length) screenMs = median(plain); } }; requestAnimationFrame(m); })();
     function stepDown() {
       level++; R = SIZES[level] || 0; slow = [];
       try { sessionStorage.setItem('wwk-lens', R ? String(R) : 'off'); } catch (e) {}
@@ -2497,10 +2505,9 @@
         if (drewLast) {
           slow.push(gap);
           if (!pinned && slow.length >= LENS_SAMPLE) {
-            const m = slow.slice().sort((a, b) => a - b)[slow.length >> 1];
-            if (m > Math.max(LENS_SLOW_MIN_MS, LENS_SLOW * screenMs)) { stepDown(); if (dead) return; } else slow = [];
+            if (median(slow) > Math.min(LENS_SLOW_MAX_MS, Math.max(LENS_SLOW_MIN_MS, LENS_SLOW * screenMs))) { stepDown(); if (dead) return; } else slow = [];
           }
-        } else if (gap < 40) screenMs = Math.min(screenMs * 1.01, Math.max(gap, 6)); // (drifts up slowly, settles on the real frame time)
+        } else if (gap < 100) { plain.push(gap); if (plain.length > 30) plain.shift(); if (plain.length >= 10) screenMs = median(plain); }
       }
       drewLast = false;
       const q = liveQuote();
