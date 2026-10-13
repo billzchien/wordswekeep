@@ -175,6 +175,36 @@
     "font": "round"
   },
   {
+    "id": 7,
+    "status": "live",
+    "text": "Let us cheerfully do all things that lie in our power; and then may we stand still, with the utmost assurance, to see the salvation of God, and for his arm to be revealed.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Joseph Smith",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": {
+      "title": "Doctrine and Covenants",
+      "year": null,
+      "kind": "writing",
+      "link": "https://www.churchofjesuschrist.org/study/scriptures/dc-testament/dc/123?lang=eng"
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "I love how it illustrates the relationship of god and us, the relationship of work and rest, the relationship of joy and peace. It gives an assurance that god’s hand is in our lives and if we are still at times it will be revealed.",
+    "keptBy": "Harbor",
+    "submittedAt": "2026-06-27T11:14:12",
+    "approvedAt": "2026-06-27T11:14:12",
+    "font": "poet",
+    "notFirst": true
+  },
+  {
     "id": 8,
     "status": "live",
     "text": "Thus, when Heaven is about to confer a great office on any man, it first exercises his mind with suffering, and his sinews and bones with toil. It exposes his body to hunger, and subjects him to extreme poverty. It confounds his undertakings. By all these methods it stimulates his mind, hardens his nature, and supplies his incompetencies.",
@@ -744,5 +774,37 @@
     "submittedAt": "2026-10-11T02:54:18.638Z",
     "font": "round",
     "id": 26
+  },
+  {
+    "status": "live",
+    "text": "O mind, take things slow; everything happens in its own time. Even if a gardener waters a plant with a hundred pots of water, the fruit will only appear when the right season arrives.",
+    "originalLanguage": {
+      "lang": "hi",
+      "text": "धीरे-धीरे रे मना, धीरे सब कुछ होय।\nमाली सींचे सौ घड़ा, ऋतु आए फल होय॥"
+    },
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Kabir",
+      "nativeName": null,
+      "country": "IN",
+      "origin": null
+    },
+    "source": {
+      "title": null,
+      "year": 1604,
+      "kind": "poem",
+      "link": null
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "This doha was recited to me by a professor in college back in Mumbai. It clicked with me at the time, but I didn’t really live it until years later. Patience and composure is one of the greatest “skills” I try to practice.",
+    "keptBy": null,
+    "approvedAt": "2026-10-13T11:31:57.817Z",
+    "submittedAt": "2026-10-13T04:15:37.566Z",
+    "font": "goudy",
+    "id": 27
   }
 ]
