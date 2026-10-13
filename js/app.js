@@ -636,7 +636,7 @@
       if (k < words.length && !before[k].includes('\n')) continue;
       const part = words.slice(from, k);
       const cut = ragBreaks(part.map((w) => w.width), part.map((w, i) => i > 0 && (before[from + i] === ' ' || !!w.glued)), gap.slice(from, k), box,
-        part.map((w) => stackKey(w.text)), part.map((w, i) => (i > 0 && w.glued ? w.cost : 0)));
+        part.map((w) => stackKey(w.text)), part.map((w, i) => (i > 0 && w.glued ? w.cost : i > 0 && !CLAUSE_END.test(part[i - 1].text) ? RAG_PHRASE_SPACED : 0)));
       if (!cut) return plain();
       cut.forEach((c) => breaks.push(from + c));
       from = k;
@@ -671,12 +671,29 @@
   // that is how a paragraph ends ("is — in the end, the / world takes down everyone." kept a 58%
   // line rather than let "world" up).
   const RAG_SHAPE = 0.3, RAG_STEP = 0.05;
+  // No stairs (Bill, 2026-10-13): four lines in a row that each grow, or each shrink — the last line
+  // included — look more awkward than any heavy ending (No. 3 on desktop: "…twenty-first century /
+  // …cannot read / …who cannot / learn, unlearn, and relearn."), so they cost RAG_STAIR, more than
+  // RAG_HEAVY. Three in a row keep RAG_SHAPE (No. 22's 60 75 88 77 on a phone stays allowed).
+  const RAG_STAIR = 0.5, RAG_STAIR_STEP = 0.02; // (a step of a stair: 2% of the box — No. 3's 87 75 72 61 has a 3.6% step, under RAG_STEP)
+  // No heavy ending (Bill, 2026-10-13, No. 22 on a phone): a last line more than RAG_STEP longer
+  // than the line above it reads heavier than a gentle wedge — "…of the motherfucker / who plays it
+  // is 80 percent." (73%, 92%) against "…of the motherfucker who / plays it is 80 percent." (88%,
+  // 77%) — so it costs a line left RAG_HEAVY of the box short, more than a shape.
+  const RAG_HEAVY = 0.35;
   // Chinese and Japanese (2026-10-08): a line ends best where a phrase does, after ，。、！？ —
   // a line broken mid-phrase costs as much as one left RAG_PHRASE of the box short: a
   // tie-breaker between ways about as even, as SOFT_END is (Bill: even lines first).
   const RAG_PHRASE = 0.15;
   // …and inside a word, twice that (RAG_SPLIT): still only a tie-breaker, after evenness.
   const RAG_SPLIT = 2;
+  // Spaced languages too (Bill, 2026-10-13): a line that ends without punctuation costs
+  // RAG_PHRASE_SPACED × what a Chinese line broken mid-phrase does (the same, at 1) — a tie-breaker,
+  // so clauses keep together when that is about as even ("You know what's weird? / Day by day,
+  // nothing seems / to change…"). It gives way to the no-shapes rule: No. 14 on a phone keeps
+  // "is vast; When looking / down, abundance…" (Bill: keep it), since "…looking down," makes the
+  // lines 90 82 74.
+  const CLAUSE_END = /[,;:.!?…—–)\]"'”’»。，、！？；：]$/, RAG_PHRASE_SPACED = 1;
   const stackKey = (text) => text.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
   function ragBreaks(width, open, gap, box, keys = [], mid = []) {
     const n = width.length, W = [0], G = [0];
@@ -705,7 +722,14 @@
             const w1 = span(above, i), w2 = span(above2, above), step = RAG_STEP * box;
             if ((w - w1 > step && w1 - w2 > step) || (!last && w1 - w > step && w2 - w1 > step)) shape = (RAG_SHAPE * box) ** 2; // (lines that shrink into the last line are how a paragraph ends: no shape)
           }
-          const cost = prev[i] + stack + soft + phrase + shape + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+          let stair = 0;
+          const above3 = l > 3 && above2 >= 0 ? trail[l - 4][above2] : -1;
+          if (above3 >= 0) { // four lines: this one and the three before it
+            const a = span(above3, above2), b = span(above2, above), c = span(above, i), st = RAG_STAIR_STEP * box;
+            if ((b - a > st && c - b > st && w - c > st) || (a - b > st && b - c > st && c - w > st)) stair = (RAG_STAIR * box) ** 2;
+          }
+          const heavy = last && above >= 0 && w - span(above, i) > RAG_STEP * box ? (RAG_HEAVY * box) ** 2 : 0; // (a last line longer than the one above it)
+          const cost = prev[i] + stack + soft + phrase + shape + stair + heavy + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
           if (cost < cur[j]) { cur[j] = cost; back[j] = i; }
         }
       }

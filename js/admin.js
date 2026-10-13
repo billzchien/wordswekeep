@@ -2151,7 +2151,7 @@
       if (k < words.length && !before[k].includes('\n')) continue;
       const part = words.slice(from, k);
       const cut = ragBreaks(part.map((w) => w.width), part.map((w, i) => i > 0 && (before[from + i] === ' ' || !!w.glued)), gap.slice(from, k), box,
-        part.map((w) => stackKey(w.text)), part.map((w, i) => (i > 0 && w.glued ? w.cost : 0)));
+        part.map((w) => stackKey(w.text)), part.map((w, i) => (i > 0 && w.glued ? w.cost : i > 0 && !CLAUSE_END.test(part[i - 1].text) ? RAG_PHRASE_SPACED : 0)));
       if (!cut) return;
       cut.forEach((c) => breaks.push(from + c));
       from = k;
@@ -2180,8 +2180,11 @@
   // that is how a paragraph ends ("is — in the end, the / world takes down everyone." kept a 58%
   // line rather than let "world" up).
   const RAG_SHAPE = 0.3, RAG_STEP = 0.05;
+  const RAG_STAIR = 0.5, RAG_STAIR_STEP = 0.02; // four lines in a row each growing or each shrinking, the last included (js/app.js)
+  const RAG_HEAVY = 0.35; // a last line more than RAG_STEP longer than the one above it (js/app.js)
   const RAG_PHRASE = 0.15; // Chinese and Japanese: a line broken mid-phrase (not after ，。、！？) costs this much of the box short — a tie-breaker (js/app.js)
   const RAG_SPLIT = 2; // …twice that inside a word (js/app.js)
+  const CLAUSE_END = /[,;:.!?…—–)\]"'”’»。，、！？；：]$/, RAG_PHRASE_SPACED = 1; // a spaced language's line ending without punctuation (js/app.js)
   const stackKey = (text) => text.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
   function ragBreaks(width, open, gap, box, keys = [], mid = []) {
     const n = width.length, W = [0], G = [0];
@@ -2210,7 +2213,14 @@
             const w1 = span(above, i), w2 = span(above2, above), step = RAG_STEP * box;
             if ((w - w1 > step && w1 - w2 > step) || (!last && w1 - w > step && w2 - w1 > step)) shape = (RAG_SHAPE * box) ** 2; // (lines that shrink into the last line are how a paragraph ends: no shape)
           }
-          const cost = prev[i] + stack + soft + phrase + shape + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+          let stair = 0;
+          const above3 = l > 3 && above2 >= 0 ? trail[l - 4][above2] : -1;
+          if (above3 >= 0) { // four lines: this one and the three before it
+            const a = span(above3, above2), b = span(above2, above), c = span(above, i), st = RAG_STAIR_STEP * box;
+            if ((b - a > st && c - b > st && w - c > st) || (a - b > st && b - c > st && c - w > st)) stair = (RAG_STAIR * box) ** 2;
+          }
+          const heavy = last && above >= 0 && w - span(above, i) > RAG_STEP * box ? (RAG_HEAVY * box) ** 2 : 0; // (a last line longer than the one above it)
+          const cost = prev[i] + stack + soft + phrase + shape + stair + heavy + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
           if (cost < cur[j]) { cur[j] = cost; back[j] = i; }
         }
       }
