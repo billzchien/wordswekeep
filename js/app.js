@@ -2381,34 +2381,54 @@
   var rgbLens = (() => {
     if (window.self !== window.top || !matchMedia('(hover: hover) and (pointer: fine)').matches) return { off() {} }; // (in a frame: the tuning page draws its own)
     const v = RGB_HOVER, NS = 'http://www.w3.org/2000/svg';
+    // The lens's size, by what the browser can afford (Bill, 2026-10-13). Safari draws an SVG filter
+    // on the processor, every step over its whole area, each frame — at 240 it held the page to ~25
+    // fps in his Safari while the mouse moved; 160 felt right there. Chrome and the other Chromium
+    // browsers draw it on the graphics chip: 240. Firefox, unknown: 160. Then the frames decide (in
+    // tick): a lens that keeps the page well under its own frame rate steps down — 240 → 160 → off —
+    // and stays down for the tab (sessionStorage wwk-lens). sessionStorage wwk-lens "pin-240",
+    // "pin-160" or "pin-off" fixes a size and stops the stepping (md/checks/rgb-hover sets it).
+    const SIZES = [240, 160, 0];
+    const LENS_SLOW = 1.7, LENS_SLOW_MIN_MS = 26, LENS_SAMPLE = 40; // too slow: the median of LENS_SAMPLE drawn frames over LENS_SLOW × the screen's own frame (and over LENS_SLOW_MIN_MS)
+    const chromium = !!window.chrome || /Chrome\/|Chromium\/|Edg\//.test(navigator.userAgent);
+    let kept = null; try { kept = sessionStorage.getItem('wwk-lens'); } catch (e) {}
+    const pinned = kept && kept.startsWith('pin-');
+    const keptSize = kept ? kept.replace('pin-', '') : null;
+    let level = keptSize !== null && SIZES.includes(keptSize === 'off' ? 0 : +keptSize) ? SIZES.indexOf(keptSize === 'off' ? 0 : +keptSize) : (chromium ? 0 : 1);
+    if (!SIZES[level]) return { off() {} }; // (off for this tab)
+    let R = SIZES[level];
     // The push at a distance from the cursor, 0–1: none at the cursor, the peak at core × radius,
     // none again at the radius.
     const push = (dist) => {
-      const R = v.radius, core = v.core * R;
+      const core = v.core * R;
       if (dist >= R) return 0;
       return dist < core ? dist / core : Math.pow(1 - (dist - core) / (R - core), v.falloff);
     };
-    // How far out the push still moves anything (¼ px): the filter works only in that square.
-    // (Safari draws an SVG filter on the processor, every step over its whole area, each frame.)
-    let half = v.radius;
-    for (let d = v.core * v.radius; d < v.radius; d += 1) if (v.strength * push(d) < 0.25) { half = Math.ceil(d); break; }
     const shift = Math.ceil(v.strength * Math.max(1, Math.abs(v.red), Math.abs(v.green), Math.abs(v.blue))) + 1; // the furthest any copy moves
     const border = shift + 6; // "still" around the field picture: whatever a browser does to an image's edge happens outside every step that reads it
-    // The field: a picture 2 × (half + border) across, centred on the cursor. Red and green carry
+    // How far out the push still moves anything (¼ px): the filter works only in that square. And
+    // the field: a picture 2 × (half + border) across, centred on the cursor. Red and green carry
     // the way each point is pushed (128 = still), away from the cursor; feDisplacementMap reads a
-    // point from where the colour says, so the picture stores the opposite of the push.
-    const size = 2 * (half + border), canvas = document.createElement('canvas');
-    canvas.width = canvas.height = size;
-    const ctx = canvas.getContext('2d'), img = ctx.createImageData(size, size), px = img.data;
-    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
-      const dx = x + 0.5 - half - border, dy = y + 0.5 - half - border, dist = Math.hypot(dx, dy), m = dist >= half ? 0 : push(dist);
-      const i = (y * size + x) * 4;
-      px[i] = Math.round(128 - (dist ? dx / dist : 0) * m * 127);
-      px[i + 1] = Math.round(128 - (dist ? dy / dist : 0) * m * 127);
-      px[i + 2] = 128; px[i + 3] = 255;
-    }
-    ctx.putImageData(img, 0, 0);
-    const field = canvas.toDataURL();
+    // point from where the colour says, so the picture stores the opposite of the push. Made again
+    // when the size steps down.
+    let half = R, field = '';
+    const makeField = () => {
+      half = R;
+      for (let d = v.core * R; d < R; d += 1) if (v.strength * push(d) < 0.25) { half = Math.ceil(d); break; }
+      const size = 2 * (half + border), canvas = document.createElement('canvas');
+      canvas.width = canvas.height = size;
+      const ctx = canvas.getContext('2d'), img = ctx.createImageData(size, size), px = img.data;
+      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+        const dx = x + 0.5 - half - border, dy = y + 0.5 - half - border, dist = Math.hypot(dx, dy), m = dist >= half ? 0 : push(dist);
+        const i = (y * size + x) * 4;
+        px[i] = Math.round(128 - (dist ? dx / dist : 0) * m * 127);
+        px[i + 1] = Math.round(128 - (dist ? dy / dist : 0) * m * 127);
+        px[i + 2] = 128; px[i + 3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+      field = canvas.toDataURL();
+    };
+    makeField();
 
     // The filter. Inside the lens's square: the quote laid on its page colour (so black ink splits
     // into colour as the eye sees it), one shifted copy per colour that moves (a colour at 0 is
@@ -2456,9 +2476,33 @@
       lastKey = ''; lens.amt = 0;
       if (target) { target.style.filter = target.style.transform = ''; target = null; }
     }
+    // The frames: the screen's own frame time from frames with the lens off (the shortest seen,
+    // nudged up), and the time of each frame after one the lens redrew.
+    let screenMs = 16.7, drewLast = false, slow = [];
+    function stepDown() {
+      level++; R = SIZES[level] || 0; slow = [];
+      try { sessionStorage.setItem('wwk-lens', R ? String(R) : 'off'); } catch (e) {}
+      if (!R) { off(); dead = true; return; }
+      makeField();
+      fieldImg.setAttribute('href', field); fieldImg.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', field);
+      lastKey = '';
+    }
+    let dead = false;
     function tick(now) {
       raf = 0;
+      if (dead) return;
+      const gap = last ? now - last : 0;
       const dt = Math.min(64, now - (last || now)); last = now;
+      if (gap) {
+        if (drewLast) {
+          slow.push(gap);
+          if (!pinned && slow.length >= LENS_SAMPLE) {
+            const m = slow.slice().sort((a, b) => a - b)[slow.length >> 1];
+            if (m > Math.max(LENS_SLOW_MIN_MS, LENS_SLOW * screenMs)) { stepDown(); if (dead) return; } else slow = [];
+          }
+        } else if (gap < 40) screenMs = Math.min(screenMs * 1.01, Math.max(gap, 6)); // (drifts up slowly, settles on the real frame time)
+      }
+      drewLast = false;
       const q = liveQuote();
       if (q !== target) {
         off();
@@ -2518,11 +2562,12 @@
         area(fieldImg, [fx - border, fy - border, 2 * (half + border), 2 * (half + border)]);
         for (const c in maps) maps[c].setAttribute('scale', s * share[c]);
         target.style.filter = 'url(#rgbHover)';
+        drewLast = true;
       }
       raf = requestAnimationFrame(tick);
     }
     const wake = () => { if (!raf) { last = 0; raf = requestAnimationFrame(tick); } };
-    document.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.in = true; wake(); });
+    document.addEventListener('mousemove', (e) => { if (dead) return; mouse.x = e.clientX; mouse.y = e.clientY; mouse.in = true; wake(); });
     document.documentElement.addEventListener('mouseleave', () => { mouse.in = false; wake(); });
     // Off at once when something is about to move (before it copies or measures the quote: the
     // language switch's copy of the outgoing words took the filter with it); back by itself.
