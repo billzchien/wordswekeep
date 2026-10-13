@@ -1096,6 +1096,7 @@
     // revealed over the still-grey page.
     app.dataset.theme = notes.dataset.theme = $('notesBtn').dataset.theme = theme;
 
+    notes.style.setProperty('--n-cats', cats.length); // a phone moves the notes down for a fourth and fifth (css .n-pin)
     $('nCats').innerHTML = cats.map((k) =>
       `<li><svg class="sym" viewBox="0 0 60 60" data-sym="${k}" aria-hidden="true"></svg><span>${esc(CAT_BY_KEY[k].name)}</span></li>`).join('');
     noteSyms();
