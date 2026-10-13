@@ -2437,6 +2437,11 @@
 
     const mouse = { x: 0, y: 0, in: false }, lens = { x: 0, y: 0, amt: 0 };
     let target = null, raf = 0, last = 0, lastKey = '';
+    // Room around the quote's box, the filter's area: whatever a script draws outside its line
+    // boxes — an italic letter hanging out, Devanagari's headline and the vowel signs above it,
+    // Thai's tone marks, stacked accents, a long descender. The site's measure of how far ink
+    // reaches (--ink-x 0.8em, --ink-y 0.5em, css) at the quote's own size, never under 32px.
+    let padX = 32 + shift, padY = 32 + shift;
     // The quote the lens may work on: the main page's, at rest — nothing else moving.
     function liveQuote() {
       if (state.mode !== 'main' || modeBusy || langBusy || state.animating || reduceMotion.matches || !$('menu').hidden
@@ -2465,6 +2470,8 @@
           // same with and without (compared in WebKit).
           target.style.transform = 'translate(0px)';
           paper.setAttribute('flood-color', getComputedStyle(document.body).backgroundColor);
+          const fs = parseFloat(getComputedStyle(target).fontSize) || 0;
+          padX = Math.max(32, Math.ceil(0.8 * fs)) + shift; padY = Math.max(32, Math.ceil(0.5 * fs)) + shift;
         }
       }
       if (!target) { if (mouse.in) raf = requestAnimationFrame(tick); return; } // (something is moving: back once it is done, the mouse resting or not)
@@ -2475,13 +2482,10 @@
       const k = 1 - Math.pow(1 - v.follow, dt / 16.7);
       lens.x += (mouse.x - lens.x) * k; lens.y += (mouse.y - lens.y) * k;
       if (lens.amt <= 0) { target.style.filter = ''; lastKey = ''; if (near) raf = requestAnimationFrame(tick); return; }
-      // Room around the quote's box: an italic letter hangs out of it, and the filter cuts off
-      // whatever lies outside its area.
-      const pad = 32 + shift;
-      // The lens's square, inside the filter's area.
+      // The lens's square, inside the filter's area (padX, padY: room for ink outside the box).
       const fx = Math.round(lens.x - r.left - half), fy = Math.round(lens.y - r.top - half);
-      const lx = Math.max(-pad, fx), ly = Math.max(-pad, fy);
-      const lw = Math.min(r.width + pad, fx + 2 * half) - lx, lh = Math.min(r.height + pad, fy + 2 * half) - ly;
+      const lx = Math.max(-padX, fx), ly = Math.max(-padY, fy);
+      const lw = Math.min(r.width + padX, fx + 2 * half) - lx, lh = Math.min(r.height + padY, fy + 2 * half) - ly;
       const ix = Math.max(lx, 0), iy = Math.max(ly, 0);
       const iw = Math.min(lx + lw, r.width) - ix, ih = Math.min(ly + lh, r.height) - iy;
       // The lens not on the quote's box: no filter at all (Safari draws nothing for a filter
@@ -2493,19 +2497,24 @@
       const key = [fx, fy, s, Math.round(r.width), Math.round(r.height)].join();
       if (key !== lastKey || !target.style.filter) {
         lastKey = key;
-        filter.setAttribute('x', -pad); filter.setAttribute('y', -pad);
-        filter.setAttribute('width', r.width + 2 * pad); filter.setAttribute('height', r.height + 2 * pad);
-        merge.setAttribute('x', -pad); merge.setAttribute('y', -pad);
-        merge.setAttribute('width', r.width + 2 * pad); merge.setAttribute('height', r.height + 2 * pad);
+        filter.setAttribute('x', -padX); filter.setAttribute('y', -padY);
+        filter.setAttribute('width', r.width + 2 * padX); filter.setAttribute('height', r.height + 2 * padY);
+        merge.setAttribute('x', -padX); merge.setAttribute('y', -padY);
+        merge.setAttribute('width', r.width + 2 * padX); merge.setAttribute('height', r.height + 2 * padY);
         // Three areas (a step reads nothing outside its own area: a copy at the edge of it lost
         // its red — the blue line): the copies a shift inside the filter's edge; the quote on its
         // page colour a shift further than the copies on every side, so a copy always reads real
-        // pixels; the last step, which only adds the colours up, within the quote's own box, so
-        // the margin around it (the language button) is never painted over.
-        const mx = Math.max(lx, -pad + shift), my = Math.max(ly, -pad + shift);
-        const mw = Math.min(lx + lw, r.width + pad - shift) - mx, mh = Math.min(ly + lh, r.height + pad - shift) - my;
+        // pixels; the last step, which adds the colours up, a shift inside the copies. It covers the
+        // ink outside the quote's box too: kept to the box, it left the tops of Devanagari letters
+        // unsplit (Bill, 2026-10-13, a Hindi quote in Chrome). It paints the page colour where it
+        // reaches, so the language button, in that margin, is drawn above the quote (css .lang).
+        const mx = Math.max(lx, -padX + shift), my = Math.max(ly, -padY + shift);
+        const mw = Math.min(lx + lw, r.width + padX - shift) - mx, mh = Math.min(ly + lh, r.height + padY - shift) - my;
         const area = (n, a) => { n.setAttribute('x', a[0]); n.setAttribute('y', a[1]); n.setAttribute('width', Math.max(1, a[2])); n.setAttribute('height', Math.max(1, a[3])); };
-        steps.forEach((n, i) => area(n, i < 3 ? [mx - shift, my - shift, mw + 2 * shift, mh + 2 * shift] : i < steps.length - 1 ? [mx, my, mw, mh] : [ix, iy, iw, ih]));
+        // The last step a shift inside the others: Safari loses a colour along the very edge of a
+        // step's area (a blue and cyan line 45px under the quote, md/checks/rgb-hover stray.mjs).
+        const fin = [mx + shift, my + shift, mw - 2 * shift, mh - 2 * shift];
+        steps.forEach((n, i) => area(n, i < 3 ? [mx - shift, my - shift, mw + 2 * shift, mh + 2 * shift] : i < steps.length - 1 ? [mx, my, mw, mh] : fin));
         area(fieldImg, [fx - border, fy - border, 2 * (half + border), 2 * (half + border)]);
         for (const c in maps) maps[c].setAttribute('scale', s * share[c]);
         target.style.filter = 'url(#rgbHover)';

@@ -374,6 +374,7 @@ ul { list-style: none; }
 
 .lang {
   position: absolute;
+  z-index: 1; /* above the quote: the RGB lens paints the page colour in the margin round the quote's box, where the button sits (js/app.js → rgbLens) */
   left: -44px;
   top: -24px;
   width: 24px;
