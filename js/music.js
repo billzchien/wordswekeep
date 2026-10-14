@@ -1,4 +1,4 @@
-/* Words We Keep — the background music (the home page and its menu; md/checks/music tunes it).
+/* Words We Keep — the background music (the home page and its menu).
    One looping track per category, "all" for All words, listed in music.json beside the files
    (an R2 bucket: media.wordswekeep.org; locally assets/music/r2/, never committed).
    Web Audio, not <audio loop>: a decoded buffer loops on the sample, so there is no gap at the
@@ -12,7 +12,7 @@
   const RATE = 44100;      // the files' sample rate; the context runs at it, so nothing is resampled
   const PRIMING = 1024;    // AAC encoder delay, for a browser that keeps it
   const FADE_S = 3;        // every fade in and out (Bill, 2026-10-12; 4 at first)
-  let VOLUME = 0.2;        // the music's level, 0–1 (Bill, 2026-10-12, with md/checks/music)
+  let VOLUME = 0.2;        // the music's level, 0–1 (Bill, 2026-10-12)
 
   let ctx = null, master = null, list = null, voice = null, lastFile = {};
   const buffers = new Map();
@@ -161,7 +161,7 @@
     state: () => ({ playing: !!(voice && voice.on), key: voice && voice.key, name: voice && voice.track.name }),
     trackName: async (key) => { const all = await manifest(); return (all[key] || all.all)[0].name; },
     on: (f) => listeners.add(f),
-    // for md/checks/music
+    // for checks run from the console
     _debug: () => ({ ctx, voice, buffers, bounds, decode, manifest, SRC }),
   };
   window.Music = api;

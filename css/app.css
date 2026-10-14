@@ -227,7 +227,7 @@ ul { list-style: none; }
   -webkit-mask-image: var(--scan-feather);
   mask-image: var(--scan-feather);
 }
-/* The band's strength, per palette (Bill, 2026-10-12, set on md/checks/scan): the same brightening
+/* The band's strength, per palette (Bill, 2026-10-12): the same brightening
    that makes Romance's red glow does little to the near-black navies and greens. The scan edge
    carries the quote's palette (data-theme, js/app.js → setMode). Until 2026-10-12, for all: blur 10px,
    brightness 1.35, saturate 1.5, tint 16%, the feather's full strength at 35% (straight). */
