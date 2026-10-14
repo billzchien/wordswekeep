@@ -298,7 +298,11 @@ ul { list-style: none; }
 .has-glass .app.is-over-quote .deck { cursor: none; }
 .glass { position: fixed; left: 0; top: 0; z-index: 2147483647; width: var(--glass-px); height: var(--glass-px); pointer-events: none; visibility: hidden; }
 .glass.is-on { visibility: visible; }
-.glass > div { position: absolute; inset: 0; }
+.glass-in, .glass-in > div { position: absolute; inset: 0; }
+/* Pressed (js: GLASS_PRESS): down quickly, back a little slower, round the hot spot. */
+.glass-in { transform-origin: var(--glass-origin); transition: scale 200ms var(--ease); }
+.glass.is-pressed .glass-in { scale: var(--glass-press); transition-duration: 100ms; }
+@media (prefers-reduced-motion: reduce) { .glass-in { transition: none; } }
 .glass svg { display: block; }
 .glass-frost { -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
 .slide { position: absolute; left: 0; width: 100%; height: 100%; }

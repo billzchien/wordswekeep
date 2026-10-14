@@ -2368,11 +2368,13 @@
      shadow (outside the glass only), the white as frosted glass (cut to its shape), the black
      glass. Bill's values, tuned on md/checks/cursor/ (frosted in Safari too, his choice: there it
      can trail a fast mouse, Safari drawing the RGB lens each frame). Hidden while not over the
-     words; the hot spot is the lens's centre. */
+     words; the hot spot is the lens's centre. Pressed, it shrinks to GLASS_PRESS round that spot
+     and grows back as the button is let go (Bill, 2026-10-14; css: .glass.is-pressed). */
   const GLASS_PX = 28;          // the glass across, as a cursor (the art is 96)
   const GLASS_WHITE = 0.35;     // how much white stays in it
   const GLASS_FROST = 3;        // px of blur of what is under it
   const GLASS_SHADOW = 0.35, GLASS_SHADOW_BLUR = 1.5, GLASS_SHADOW_DROP = 1; // as the system arrow's (px)
+  const GLASS_PRESS = 0.9;      // the glass's size while the button is down
   const GLASS_ART = 96, GLASS_LENS = [35.18, 35.39]; // the art's size; the hot spot (the lens's centre) in it
   const GLASS_WHITE_D = 'M35.1765 0.986412C54.1759 0.986412 69.5787 16.3884 69.5789 35.3878C69.5789 42.773 67.2498 49.614 63.2888 55.2188C72.5892 63.3876 82.5899 72.2721 85.9119 74.2266C87.0598 75.1722 88.8288 74.9155 90.0994 73.7862C91.3701 72.6568 92.905 67.8927 92.905 67.8927C92.905 67.8927 94.8512 72.8741 95.1375 76.0304C95.4237 79.1866 95.0463 83.902 93.4109 86.8643C91.0795 91.0873 87.3571 93.8077 83.5779 94.6944C77.9575 96.0128 73.9881 92.9693 71.6961 90.6339C69.8996 88.8033 60.1912 76.2527 51.9226 65.4425C46.9664 68.2099 41.2563 69.7901 35.1765 69.7901C16.1772 69.79 0.775162 54.3872 0.775162 35.3878C0.775343 16.3885 16.1773 0.986577 35.1765 0.986412Z';
   const GLASS_BLACK_D = 'M28.0789 4.51738C38.7863 2.9195 43.0295 12.1804 43.3709 14.6609C38.2559 13.239 33.2947 14.3119 30.7517 15.4529C20.0678 20.2449 12.0389 32.8181 12.0388 45.2391C12.0388 48.1892 12.4676 51.4107 13.2537 54.4148C17.4496 56.5862 22.2113 57.8162 27.2615 57.8162C44.1413 57.8161 57.274 46.9648 55.781 28.202C55.12 19.886 50.3976 11.6526 46.3797 8.25859C61.5093 11.6725 66.9109 23.4853 66.9109 35.9363C66.9108 43.3011 64.1715 50.333 59.6824 55.9217C68.4894 63.5005 81.363 75.1951 83.6843 77.1082C86.4067 79.3518 90.0367 78.903 92.3054 76.2107C92.7076 85.1595 87.4406 90.3737 82.7771 91.4676C79.0221 92.3484 75.9775 90.1274 74.156 88.326C71.0853 85.289 58.7813 69.8252 52.864 62.3367C47.8814 65.8488 41.9377 67.9529 35.6463 67.9529C27.7013 67.9529 20.4678 64.9196 15.0349 59.949C8.10556 54.3083 3.6541 44.7083 3.65407 35.1033C3.65407 20.0293 14.8889 6.48538 28.0789 4.51738Z';
@@ -2386,15 +2388,18 @@
     el.className = 'glass';
     el.setAttribute('aria-hidden', 'true');
     el.style.setProperty('--glass-px', `${px}px`);
-    el.innerHTML = `<div class="glass-shadow">${shadow}</div><div class="glass-frost"></div><div class="glass-black"><svg xmlns="${NS}" width="${px}" height="${px}" viewBox="${vb}"><path d="${GLASS_BLACK_D}" fill="#000"/></svg></div>`;
+    el.innerHTML = `<div class="glass-in"><div class="glass-shadow">${shadow}</div><div class="glass-frost"></div><div class="glass-black"><svg xmlns="${NS}" width="${px}" height="${px}" viewBox="${vb}"><path d="${GLASS_BLACK_D}" fill="#000"/></svg></div></div>`; // (.glass-in: what shrinks when pressed, round the hot spot)
     const frost = el.querySelector('.glass-frost');
     Object.assign(frost.style, { background: `rgba(255, 255, 255, ${GLASS_WHITE})`, webkitBackdropFilter: `blur(${GLASS_FROST}px)`, backdropFilter: `blur(${GLASS_FROST}px)`, webkitMaskImage: cut, maskImage: cut });
     document.body.appendChild(el);
     document.documentElement.classList.add('has-glass');
     const hx = padPx + GLASS_LENS[0] / k, hy = padPx + GLASS_LENS[1] / k;
+    el.style.setProperty('--glass-origin', `${hx}px ${hy}px`);
+    el.style.setProperty('--glass-press', GLASS_PRESS);
     return {
       move(x, y) { el.style.transform = `translate(${x - hx}px, ${y - hy}px)`; },
-      show(on) { el.classList.toggle('is-on', on); },
+      show(on) { el.classList.toggle('is-on', on); if (!on) el.classList.remove('is-pressed'); },
+      press(on) { el.classList.toggle('is-pressed', on); },
     };
   }
 
@@ -2421,6 +2426,10 @@
       if (!hoverFrame) hoverFrame = requestAnimationFrame(() => { hoverFrame = 0; setOver(overQuote(hoverAt.clientX, hoverAt.clientY)); });
     });
     app.addEventListener('mouseleave', () => setOver(false));
+    if (glass) {
+      app.addEventListener('pointerdown', (e) => { if (e.button === 0 && app.classList.contains('is-over-quote')) glass.press(true); });
+      ['pointerup', 'pointercancel', 'blur'].forEach((t) => window.addEventListener(t, () => glass.press(false)));
+    }
   }
 
 
