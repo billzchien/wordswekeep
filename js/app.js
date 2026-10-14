@@ -1739,6 +1739,20 @@
   const RISE_PX = 80, RISE_MS = 400;
   const SCAN_STRETCH_TOP = 1.1, SCAN_STRETCH_BOTTOM = 2.4, SCAN_STRETCH_MS = 420; // top → bottom of the viewport
   const SCAN_STRETCH_QUOTE = 2;      // the quote is the exception to the ramp: its own, more dramatic, stretch
+  // …except in a face whose letters are costly to draw big. Chrome keeps each letter as a small
+  // image only up to 256 screen pixels; past that it draws it from its outline, on every redraw.
+  // Author's joined letters are tall (≈1.6em) and finely drawn: stretched 2× they crossed the
+  // limit and opening notes on No. 22 held a frame for ~65ms, then ~30ms at each colour step
+  // (2026-10-13, Bill's recording; traced in Chrome at 1440 and 1710 wide). So in such a face the
+  // stretch stops where the em reaches this many screen pixels (measured clean at 160, holding
+  // from 173): 1.37× on a 1710 Mac, 1.6× at 1440, the full 2× on a phone.
+  const SCAN_HEAVY_FACE_EM = { author: 156 };
+  function quoteStretch(quoteEl) {
+    const limit = !quoteEl.hasAttribute('data-native') && SCAN_HEAVY_FACE_EM[quoteEl.dataset.font];
+    if (!limit) return SCAN_STRETCH_QUOTE;
+    const em = parseFloat(getComputedStyle(quoteEl).fontSize) * (window.devicePixelRatio || 1);
+    return Math.max(1, Math.min(SCAN_STRETCH_QUOTE, limit / em));
+  }
   const SCAN_RGB_IMAGE_BOOST = 3;    // the video preview's split, relative to text at the same depth
   const SCAN_RGB_TOP = 0.8, SCAN_RGB_BOTTOM = 6;     // red's trail in px (blue trails twice as far)
   const SCAN_GLOW_TOP = 10, SCAN_GLOW_BOTTOM = 34, SCAN_GLOW_MS = 900; // afterglow patch padding (px) and fade
@@ -1875,7 +1889,7 @@
       if (isQuote) {
         // The quote also starts at the width it had on the main screen and draws in to the left.
         const wide = Math.max(1, mainQuoteSize / parseFloat(getComputedStyle(el).fontSize));
-        const lines = scanQuoteLines(el, at, wide, SCAN_STRETCH_QUOTE, easing);
+        const lines = scanQuoteLines(el, at, wide, quoteStretch(el), easing);
         shadowTarget = lines.standIn;
         handOver = lines.finish;
         ends = Math.max(ends, lines.ends);
