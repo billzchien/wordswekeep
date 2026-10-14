@@ -3856,14 +3856,17 @@
 
   /* ---------- Add words: hand over to the form ---------- */
   const LEAVE_MS = 100;
+  const LEAVE_MUSIC_S = 0.6; // playing music fades out over this, and the page waits for it: a new page stops the old one's sound (Bill, 2026-10-13)
   $('addBtn').addEventListener('click', (e) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // a new tab: `follow` opens it
     e.preventDefault();
     const href = e.currentTarget.dataset.href;
     session.set('wwk-arrive', '1');
     app.classList.add('is-leaving');
-    musicLeaving = true; musicSync(); // (the page goes before the fade is over: the music stops with it)
-    setTimeout(() => { location.href = href; }, reduceMotion.matches ? 0 : LEAVE_MS);
+    const playing = !!music && music.state().playing;
+    if (playing) music.stop(LEAVE_MUSIC_S);
+    musicLeaving = true; musicSync();
+    setTimeout(() => { location.href = href; }, Math.max(playing ? LEAVE_MUSIC_S * 1000 : 0, reduceMotion.matches ? 0 : LEAVE_MS));
   });
   window.addEventListener('pageshow', () => app.classList.remove('is-leaving')); // back button (bfcache)
 

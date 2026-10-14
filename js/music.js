@@ -125,16 +125,17 @@
     emit();
   };
 
-  // Fade out; once silent, the context is suspended (no work, no battery) and keeps its place.
-  const stop = () => {
+  // Fade out (over `s` seconds: FADE_S, or shorter when the page is about to go); once silent,
+  // the context is suspended (no work, no battery) and keeps its place.
+  const stop = (s = FADE_S) => {
     want = { key: voice && voice.key, on: false };
     if (!voice || !voice.on) return;
     voice.on = false;
-    ramp(voice, 0);
+    ramp(voice, 0, s);
     session('auto'); // at once: the page's other players are not held to it while the music fades
     emit();
     clearTimeout(suspendTimer);
-    suspendTimer = setTimeout(() => { if (!voice || !voice.on) ctx.suspend().catch(() => {}); }, FADE_S * 1000 + 100);
+    suspendTimer = setTimeout(() => { if (!voice || !voice.on) ctx.suspend().catch(() => {}); }, s * 1000 + 100);
   };
 
   // The browser lets sound start only after a click, tap or key (autoplay rules): true once it may.
