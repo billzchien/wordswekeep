@@ -141,6 +141,22 @@
   // A shuffled copy (Fisher–Yates). The deck is dealt once per visit / per category, so ↑ and ↓
   // stay consistent within it, but the order is never the archive's numbering.
   const shuffle = (list) => { const a = list.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  // What this browser has seen (localStorage wwk-seen: quote id → when it was last on screen, in
+  // minutes; Bill, 2026-10-14): a deck is dealt with the quotes never seen first, at random, then
+  // the ones seen longest ago — so each visit most likely opens on something new, however large
+  // the collection grows. Site data blocked: a plain shuffle.
+  const SEEN_KEY = 'wwk-seen';
+  let seenIds = null;
+  const seen = () => {
+    if (seenIds) return seenIds;
+    try { seenIds = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}') || {}; } catch (e) { seenIds = {}; }
+    return seenIds;
+  };
+  const markSeen = (id) => {
+    seen()[id] = Math.floor(Date.now() / 60000);
+    try { localStorage.setItem(SEEN_KEY, JSON.stringify(seenIds)); } catch (e) {}
+  };
+  const deal = (list) => { const s = seen(); return shuffle(list).sort((a, b) => (s[a.id] || 0) - (s[b.id] || 0)); }; // (sort keeps the shuffle within each)
   const $ = (id) => document.getElementById(id);
   const app = $('app'), deck = $('deck'), track = $('track'), notes = $('notes');
   const mqMobile = window.matchMedia('(max-width: 599px)');
@@ -833,6 +849,7 @@
     if (video) { const info = lookupVideo(video); if (info.thumb) { const warm = new Image(); warm.src = info.thumb; } } // asked now, so the notes know what to show (and the thumbnail never pops in)
     else if (q.source && q.source.kind === 'book' && q.source.cover) { const warm = new Image(); warm.src = q.source.cover; } // a book's cover, likewise
     try { sessionStorage.setItem('wwk-quote', q.id); } catch (e) {} // a reload stays on this quote; the address stays clean (no #id)
+    markSeen(q.id);
   }
 
   const advance = (dir) => {
@@ -3367,7 +3384,7 @@
     const changed = key !== state.filter;
     if (changed) {
       state.filter = key;
-      state.list = shuffle(key === 'all' ? state.all : state.all.filter((q) => q.categories.includes(key)));
+      state.list = deal(key === 'all' ? state.all : state.all.filter((q) => q.categories.includes(key)));
       state.idx = 0;
       state.original = false;
       renderDeck();
@@ -3507,7 +3524,8 @@
     .then(([r]) => { if (!r.ok) throw new Error(`quotes.json: ${r.status}`); return r.json(); })
     .then((quotes) => {
       state.all = quotes.filter((q) => q.status === 'live').sort((a, b) => a.id - b.id);
-      state.list = shuffle(state.all); // the deck is dealt at random: no. 1 is not first, and the next is not no. 2
+      state.list = deal(state.all); // the deck is dealt at random, the unseen first (deal): no. 1 is not first, and the next is not no. 2
+      const live = new Set(state.all.map((q) => String(q.id))); Object.keys(seen()).forEach((id) => { if (!live.has(id)) delete seenIds[id]; }); // (a quote taken down is forgotten)
       // A reload comes back to the quote this tab was on (renderDeck keeps it), and a quote's own
       // address — wordswekeep.org/8 — opens it: 404.html leaves the number in the same place.
       // (Until 2026-10-06 the address was #8.)
