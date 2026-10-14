@@ -142,10 +142,11 @@ ul { list-style: none; }
 .player-roll > span { padding-right: 24px; } /* the gap before the name comes round again */
 @media (max-width: 599px) {
   /* On a phone (Bill, 2026-10-12): No. X starts where notes' names do — the category names at the top
-     and the names under "Words from" (20px + 2.667em, .n-indent--from) — and the player sits on the top
-     bar with it, starting at the middle of the window, its words on No. X's line. */
+     and the names under "Words from" (20px + 2.667em, .n-indent--from). The player stays on the bottom
+     row with "Add words", starting at the middle of the window (Bill, 2026-10-14; on the top bar
+     with No. X until then). */
   .number { left: calc(var(--m) + 2.667em); }
-  .player { left: 50%; top: calc(20px - var(--cap-offset)); bottom: auto; }
+  .player { left: 50%; }
   .player-name { width: 40px; }
 }
 .arrows button { width: 32px; height: 32px; display: grid; place-items: center; }
