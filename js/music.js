@@ -151,9 +151,12 @@
 
   // Sound effects (since 2026-10-15): short one-shots listed in music.json under "effects", beside
   // the tracks. Played on the music's context, straight to the speakers at their own level (not
-  // through the music's fades). app.js plays them only while the music is on. Decoded ahead as
-  // the music starts, so playing one is a node and a start(): not ready yet → skipped, never late.
-  const EFFECT_VOLUME = 0.15; // Bill, 2026-10-15, on the files' level (md/checks/sounds)
+  // through the music's fades). Decoded ahead — as the music starts (app.js), or as the form
+  // loads (form.js) — so playing one is a node and a start(): not ready yet → skipped, never late.
+  //   notes      app.js, as notes open, only while the music is on
+  //   submitted  form.js, as "Words submitted" comes in, always; `wake`: it may find the context
+  //              asleep (the form has no music; its click woke it a moment before), so it wakes it
+  const EFFECTS = { notes: { volume: 0.15 }, submitted: { volume: 0.4, wake: true } }; // Bill, 2026-10-15, on the files' level (md/checks/sounds)
   const effectBufs = {};
   let effectsAsked = false, effectTimer = 0;
   const loadEffects = () => {
@@ -163,10 +166,11 @@
       decode(file).then((buf) => { effectBufs[name] = buf; }, () => {})), () => {});
   };
   const effect = (name) => {
-    const buf = effectBufs[name];
-    if (!buf || !ctx || ctx.state !== 'running') return;
+    const buf = effectBufs[name], fx = EFFECTS[name] || {};
+    if (!buf || !ctx) return;
+    if (ctx.state !== 'running') { if (!fx.wake) return; ctx.resume().catch(() => {}); } // (started on a waking context, it plays as it wakes)
     const src = ctx.createBufferSource(), gain = ctx.createGain();
-    src.buffer = buf; gain.gain.value = EFFECT_VOLUME;
+    src.buffer = buf; gain.gain.value = fx.volume ?? 0.15;
     src.connect(gain).connect(ctx.destination);
     src.onended = () => { src.disconnect(); gain.disconnect(); };
     src.start();
@@ -184,7 +188,7 @@
   const emit = () => listeners.forEach((f) => f(api.state()));
 
   const api = {
-    play, stop, effect,
+    play, stop, effect, loadEffects,
     hasEffect: (name) => !!effectBufs[name] && !!ctx && ctx.state === 'running',
     prefetch: async (key) => { const t = await pick(key); lastFile[key] = undefined; decode(t.file).catch(() => {}); },
     unlock: () => { const c = context(); if (c.state !== 'running') return c.resume().catch(() => {}); return Promise.resolve(); },

@@ -303,6 +303,7 @@
     if (i >= STEPS && !force) return; // the done screen is reached by submit() only
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     cur = i;
+    if (i === STEPS - 1 && window.Music) Music.unlock(); // the last step: the sound's audio woken now (a click or key of the visitor's brought them here), so Add words finds it awake — woken at that click, the speakers took a moment and the bell came late
     stepsEl.style.transform = `translateY(${-cur * 100}%)`;
     steps[cur].scrollTop = 0;
     reqIn(steps[cur]); // its asterisks come in once the step has slid in
@@ -1361,9 +1362,16 @@
   document.addEventListener('focusout', keyboardSoon);
   if (window.visualViewport) ['resize', 'scroll'].forEach((t) => window.visualViewport.addEventListener(t, keyboardSettle));
 
+  // The sound as "Words submitted" comes in (Bill, 2026-10-15: always, music or not): decoded once
+  // the page has settled (as the symbols are); woken on arriving at the last step (go()) and again by
+  // the Add words click itself (a browser lets sound start only from a click), played by showDone() — at the click, or as soon as the words
+  // have gone, so its bell always lands with the slide and the drawing (js/music.js → effect).
+  setTimeout(() => { if (window.Music) Music.loadEffects(); }, 1200);
+
   let sending = false;
   async function submit() {
     if (sending || !valid.every((v) => v())) return;
+    if (window.Music) Music.unlock();
     const entry = payload();
     const btn = $('submitBtn');
     sending = true;
@@ -1485,6 +1493,7 @@
   $('doneText').textContent = noOrphans($('doneText').textContent);
   function showDone() {
     const done = $('done'), box = done.querySelector('.done-sym');
+    if (window.Music) Music.effect('submitted'); // its bell with the slide's start (md/checks/sounds/submitted.html, 3b)
     homeUndraw();
     box.classList.toggle('is-static', !sym);
     if (sym) sym.done.drawIn('All', 0);
