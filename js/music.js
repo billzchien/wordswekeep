@@ -111,6 +111,7 @@
   const play = async (key) => {
     const ask = want = { key, on: true };
     const c = context();
+    loadEffects();
     session('playback');
     clearTimeout(suspendTimer);
     if (c.state !== 'running') c.resume().catch(() => {});
@@ -148,11 +149,43 @@
   // out it goes back to 'auto'.
   const session = (type) => { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch {} };
 
+  // Sound effects (since 2026-10-15): short one-shots listed in music.json under "effects", beside
+  // the tracks. Played on the music's context, straight to the speakers at their own level (not
+  // through the music's fades). app.js plays them only while the music is on. Decoded ahead as
+  // the music starts, so playing one is a node and a start(): not ready yet → skipped, never late.
+  const EFFECT_VOLUME = 0.15; // Bill, 2026-10-15, on the files' level (md/checks/sounds)
+  const effectBufs = {};
+  let effectsAsked = false, effectTimer = 0;
+  const loadEffects = () => {
+    if (effectsAsked) return;
+    effectsAsked = true;
+    manifest().then((all) => Object.entries(all.effects || {}).forEach(([name, file]) =>
+      decode(file).then((buf) => { effectBufs[name] = buf; }, () => {})), () => {});
+  };
+  const effect = (name) => {
+    const buf = effectBufs[name];
+    if (!buf || !ctx || ctx.state !== 'running') return;
+    const src = ctx.createBufferSource(), gain = ctx.createGain();
+    src.buffer = buf; gain.gain.value = EFFECT_VOLUME;
+    src.connect(gain).connect(ctx.destination);
+    src.onended = () => { src.disconnect(); gain.disconnect(); };
+    src.start();
+    // The music's stop() hands the page back to 'auto' at once, which the iPhone's silent switch
+    // mutes: the effect keeps 'playback' until it is over, then 'auto' unless the music is back.
+    session('playback');
+    // A music cut just before (stop with a short fade) would suspend the context under the effect.
+    clearTimeout(suspendTimer);
+    suspendTimer = setTimeout(() => { if (!voice || !voice.on) ctx.suspend().catch(() => {}); }, buf.duration * 1000 + 100);
+    clearTimeout(effectTimer);
+    effectTimer = setTimeout(() => { if (!voice || !voice.on) session('auto'); }, buf.duration * 1000 + 50);
+  };
+
   const listeners = new Set();
   const emit = () => listeners.forEach((f) => f(api.state()));
 
   const api = {
-    play, stop,
+    play, stop, effect,
+    hasEffect: (name) => !!effectBufs[name] && !!ctx && ctx.state === 'running',
     prefetch: async (key) => { const t = await pick(key); lastFile[key] = undefined; decode(t.file).catch(() => {}); },
     unlock: () => { const c = context(); if (c.state !== 'running') return c.resume().catch(() => {}); return Promise.resolve(); },
     unlocked,

@@ -7,6 +7,8 @@
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && !/[?&]real\b/.test(location.search);
   const THOUGHT_URL = LOCAL ? '' : 'https://api.wordswekeep.org/thought';
   const FACES_URL = 'data/faces.json'; // the quote faces' tuned settings (the library's Fonts tab)
+  // A local copy's tab says so, beside the live site's (Bill, 2026-10-15)
+  if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) document.title = `Test · ${document.title}`;
 
   const CATEGORIES = [
     { key: 'perspective', name: 'Perspective', desc: 'The lens we bring to life. Values, time, presence, and the search for meaning.' },
@@ -1966,8 +1968,13 @@
     flushLanding();
     if (modeBusy || langBusy || state.animating || mode === state.mode) return;
     if (rgbLens) rgbLens.off(); // (the RGB lens: off before the quote is measured and carried into notes)
+    // With the music on, the scan has a sound (Bill, 2026-10-15): the music cuts as it starts
+    // (NOTES_CUT_S, not the 3s fade) and fades back in as notes close, as before.
+    const sound = mode === 'notes' && playerOn() && !reduceMotion.matches && music.hasEffect('notes'); // (not loaded yet: the usual 3s fade, no cut)
+    if (sound) music.stop(NOTES_CUT_S);
     musicSync(mode); // the music fades out as notes open, back in as they close
     if (reduceMotion.matches) return applyMode(mode);
+    if (sound) music.effect('notes'); // its page flip + laser, timed to the drop (md/checks/sounds); after musicSync, which hands the iPhone back to 'auto'
     modeBusy = true;
     const toNotes = mode === 'notes';
     const mainWrap = () => track.querySelector('.slide[data-pos="0"] .q-wrap');
@@ -3901,6 +3908,7 @@
 
   /* ---------- Add words: hand over to the form ---------- */
   const LEAVE_MS = 100;
+  const NOTES_CUT_S = 0.05; // the music, cut as notes open with their sound (Bill, 2026-10-15): short enough to be a cut, long enough not to click
   const LEAVE_MUSIC_S = 0.6; // playing music fades out over this, and the page waits for it: a new page stops the old one's sound (Bill, 2026-10-13)
   $('addBtn').addEventListener('click', (e) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // a new tab: `follow` opens it
