@@ -3868,6 +3868,21 @@
   document.addEventListener('focusout', keyboardSoon);
   if (window.visualViewport) ['resize', 'scroll'].forEach((t) => window.visualViewport.addEventListener(t, () => { kbDebug(`vv ${t}`); keyboardSettle(); }));
 
+  /* ---------- Box buttons (the thoughts box's "Add thoughts"): pressed (Bill, 2026-10-15; css: form.css → .btn.is-pressed) ----------
+     The public pages only (not the library). Held down, a box button's box shrinks a little and its
+     words stay their size; let go, it comes back — but never before the way in (--press-down) is over, so a quick tap shows the whole dip. */
+  document.documentElement.classList.add('btn-press'); // (the box drawn behind the words: css → .btn-press)
+  const PRESS_IN_MS = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--press-down')) || 100;
+  const pressBtn = (b) => { if (!b || b.disabled) return; b._pressedAt = performance.now(); b.classList.add('is-pressed'); };
+  const releaseBtns = () => document.querySelectorAll('.btn.is-pressed').forEach((b) => {
+    setTimeout(() => b.classList.remove('is-pressed'), Math.max(0, PRESS_IN_MS - (performance.now() - b._pressedAt)));
+  });
+  document.addEventListener('pointerdown', (e) => { if (e.button === 0 && e.target.closest) pressBtn(e.target.closest('.btn')); }, true);
+  ['pointerup', 'pointercancel'].forEach((t) => window.addEventListener(t, releaseBtns, true));
+  window.addEventListener('blur', (e) => { if (e.target === window) releaseBtns(); }); // the window losing focus mid-press (not a field's blur)
+  document.addEventListener('keydown', (e) => { if (!e.repeat && (e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.btn')) pressBtn(e.target); }, true);
+  document.addEventListener('keyup', (e) => { if (e.key === 'Enter' || e.key === ' ') releaseBtns(); }, true);
+
   /* ---------- Links ---------- */
   // Links are buttons with a data-href, not <a href>: a browser shows an <a>'s address in a
   // strip at the foot of the window whenever the pointer is over it. This is what a click on

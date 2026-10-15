@@ -31,6 +31,9 @@
   --btn-off-line: #c4c4c4;   /* disabled outlined button border */
   --sheet:        #000242;   /* annotation sheet */
   --step-ms: 600ms;          /* one step slide */
+  --press-scale: 0.99;       /* a box button pressed: its box (not the words) shrinks to this… */
+  --press-down: 100ms;       /* …over this as it goes in… */
+  --press-up: 200ms;         /* …and comes back over this (Bill, 2026-10-15; js/form.js → pressable) */
   --list-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);   /* open dropdown list — exact Figma value not readable via MCP, tune here */
 
   /* Sizes (design px, scaled by --u) */
@@ -272,21 +275,35 @@ textarea.field::-webkit-scrollbar { display: none; }
 
 /* ---------- Buttons ---------- */
 
+/* Every look of a box button sets three things — its line (--bd), its fill (--bg) and the inner
+   line of hover and press (--ring) — never the border, background or shadow themselves (the
+   library's own buttons, admin.css, still set those directly). On the public pages (html.btn-press,
+   set by js/form.js and js/app.js) the box is drawn by ::before instead, behind the words: pressed,
+   the box shrinks a little and the words stay their size (Bill, 2026-10-15). */
 .btn {
+  --bd: var(--btn-line); --bg: transparent; --ring: transparent;
   display: flex; align-items: center; justify-content: center;
   width: 100%; height: var(--fh); min-width: calc(100 * var(--u)); padding: 0 var(--fpad);
-  border: 0.5px solid var(--btn-line); color: var(--ink);
+  border: 0.5px solid var(--bd); background: var(--bg); box-shadow: inset 0 0 0 0.5px var(--ring); color: var(--ink);
   transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease), background 0.15s var(--ease), color 0.15s var(--ease);
   white-space: nowrap;
 }
-@media (hover: hover) { .btn:not(:disabled):hover { border-color: var(--ink); box-shadow: inset 0 0 0 0.5px var(--ink); } }
-.btn:not(:disabled):active { border-color: var(--ink); box-shadow: inset 0 0 0 0.5px var(--ink); }
-.btn:disabled { color: var(--btn-off-text); border-color: var(--btn-off-line); cursor: default; }
-.btn--primary { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.btn-press .btn { position: relative; isolation: isolate; border-width: 0; padding: 0 calc(var(--fpad) + 0.5px); background: none; box-shadow: none; } /* (+0.5: where the border was; no border of its own: a box laid half a pixel out snapped a pixel off its neighbours) */
+.btn-press .btn::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  border: 0.5px solid var(--bd); background: var(--bg); box-shadow: inset 0 0 0 0.5px var(--ring);
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease), background 0.15s var(--ease), scale var(--press-up) var(--ease);
+}
+.btn-press .btn.is-pressed::before { scale: var(--press-scale); transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease), background 0.15s var(--ease), scale var(--press-down) var(--ease); }
+@media (prefers-reduced-motion: reduce) { .btn-press .btn::before, .btn-press .btn.is-pressed::before { transition-property: border-color, box-shadow, background; } } /* (down and back at once) */
+@media (hover: hover) { .btn:not(:disabled):hover { --bd: var(--ink); --ring: var(--ink); } }
+.btn:not(:disabled):active { --bd: var(--ink); --ring: var(--ink); }
+.btn:disabled { color: var(--btn-off-text); --bd: var(--btn-off-line); cursor: default; }
+.btn--primary { --bg: var(--ink); color: var(--white); --bd: var(--ink); }
 .btn--primary:focus-visible { outline-color: var(--ink); } /* its fill's colour: the text's white would vanish on the page */
 .btn .cell { display: inline-block; } /* one letter of the label; the typewriter hover (js/form.js) fades these */
-@media (hover: hover) { .btn--primary:not(:disabled):hover { box-shadow: none; } }
-.btn--primary:disabled { background: var(--btn-off); border-color: var(--btn-off); color: var(--white); }
+@media (hover: hover) { .btn--primary:not(:disabled):hover { --ring: transparent; } }
+.btn--primary:disabled { --bg: var(--btn-off); --bd: var(--btn-off); color: var(--white); }
 /* Sending (js: submit): black as ever, the label hidden, a white wheel in its place — a 1px ring,
    a quarter of it open, square ends, turning. */
 .btn.is-busy { position: relative; pointer-events: none; }
@@ -390,7 +407,7 @@ textarea.field::-webkit-scrollbar { display: none; }
 .ann-scroll .content:has(.ann-head .ann-lang:not([hidden])) { padding-top: calc(72 * var(--u) + 40px); } /* room for the language button above the words, clear of the top fade */
 .ann-scroll::-webkit-scrollbar { display: none; }
 .ann-sheet .btn { color: var(--white); }
-@media (hover: hover) { .ann-sheet .btn:not(:disabled):hover { border-color: var(--white); box-shadow: inset 0 0 0 0.5px var(--white); } }
+@media (hover: hover) { .ann-sheet .btn:not(:disabled):hover { --bd: var(--white); --ring: var(--white); } }
 .ann-cancel { top: calc(20px - var(--cap-offset)); left: var(--m); } /* caps where the mark's top edge is */
 .ann-quote { padding-left: var(--gap-40); }
 /* The quote in its original language (js/form.js → renderQuote): as typed in the field — each
@@ -523,7 +540,7 @@ textarea.field::-webkit-scrollbar { display: none; }
 .ann-quote[dir="rtl"] .ann-mark { background-position: right; }
 .ann-quote[dir="rtl"] .ann-mark.is-off { background-position: left; }
 @media (prefers-reduced-motion: reduce) { .ann-mark { transition: none; } }
-.ann-sheet .btn:disabled { color: rgba(255, 255, 255, 0.4); border-color: rgba(255, 255, 255, 0.25); } /* Save annotation until every word is explained */
+.ann-sheet .btn:disabled { color: rgba(255, 255, 255, 0.4); --bd: rgba(255, 255, 255, 0.25); } /* Save annotation until every word is explained */
 .content > .fold { --fold-gap: var(--gap-40); }
 /* What appears as one types (steps 1–3's Next, step 5's name and "Add words") keeps its space all
    along and only fades and rises into it: the step's content is centred, so anything that grew
@@ -597,7 +614,7 @@ html.is-arriving .step:first-child .content > .group > *, html.is-arriving .step
 .popup { width: calc(400 * var(--u)); max-width: calc(100% - 2 * var(--m)); background: var(--white); color: var(--ink); padding: calc(20 * var(--u)); display: flex; flex-direction: column; gap: calc(40 * var(--u)); box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); }
 .popup-btns { display: flex; gap: calc(11 * var(--u)); }
 .popup-btns .btn { flex: 1 1 0; min-width: 0; }
-.popup .btn:not(.btn--primary) { border-color: var(--ink); }
+.popup .btn:not(.btn--primary) { --bd: var(--ink); }
 
 /* A dropdown picked from, never typed into (js: combo → select): the whole field opens it. */
 .combo--select .field { cursor: pointer; caret-color: transparent; }
