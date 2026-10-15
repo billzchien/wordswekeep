@@ -147,7 +147,9 @@ ul { list-style: none; }
      with No. X until then). */
   .number { left: calc(var(--m) + 2.667em); }
   .player { left: 50%; }
-  .player-name { width: 40px; }
+}
+@media (max-width: 359px) {
+  .player-name { width: 40px; } /* 60 as desktop on a phone (Bill, 2026-10-14; 40 on all phones until then), but on the narrowest (320) 60 would reach into the ↑'s tap area; 40 keeps 16px clear, as 60 does at 360 */
 }
 .arrows button { width: 32px; height: 32px; display: grid; place-items: center; }
 /* A pressed arrow rolls out of this box, and back in from the other side once the new quote has arrived (js/app.js → press). */

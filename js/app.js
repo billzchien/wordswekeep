@@ -3631,7 +3631,9 @@
   // jumped in (50ms was not enough on a phone).
   const THOUGHT_OPEN_MS = 300; // from the form's "Add thoughts instead": notes are in, then the thoughts box opens this much later
   const CHROME_IN_MS = 600, CHROME_IN_WAIT_MS = 400; // CHROME_IN_MS: css --chrome-in
+  let chromeShown = false; // Notes and the arrows have come in once (the player waits for it on a tablet or a phone)
   function showChrome() {
+    if (!chromeShown) { chromeShown = true; showPlayer(); }
     if (!app.classList.contains('is-typing')) return;
     app.classList.add('chrome-in');
     app.classList.remove('is-typing');
@@ -3752,6 +3754,7 @@
     if (!q || String(q.id) !== thoughtFor) { arrive(); return; } // that quote is no longer on the site: the usual arrival
     markStill = false;
     drawMark(false); // the logo never left
+    if (!chromeShown) { chromeShown = true; showPlayer(); } // (in notes: it is there when they close)
     app.classList.remove('is-typing');
     app.classList.add('is-into-thoughts');
     setTimeout(() => app.classList.remove('is-into-thoughts'), CHROME_IN_MS + 100);
@@ -3957,6 +3960,19 @@
       }, () => {});
     }
   }
+  // The player fades in once music.json is in. On a tablet or a phone it waits for the quote to
+  // type in and starts with Notes and the arrows, but slowly, over PLAYER_SLOW_IN_MS (Bill,
+  // 2026-10-14) — on landing and back from the form. Desktop: as soon as it can, over CHROME_IN_MS.
+  const PLAYER_SLOW_IN_MS = 4000;
+  let playerReady = false;
+  function showPlayer() {
+    if (!music || !playerReady || !player.hidden) return;
+    const last = !musicDesktop;
+    if (last && !chromeShown) return; // showChrome calls again
+    player.hidden = false;
+    player.animate([{ opacity: 0 }, { opacity: 1 }], { duration: last && !reduceMotion.matches ? PLAYER_SLOW_IN_MS : CHROME_IN_MS, easing: easeCurve() });
+    drawPlayer();
+  }
   function setPlayerName(name) {
     const el = rollEl();
     if (!name || el.firstElementChild.textContent === name) return;
@@ -3967,9 +3983,8 @@
     music.on((s) => { if (s.name) setPlayerName(s.name); });
     music.trackName(state.filter).then((name) => {
       setPlayerName(name);
-      player.hidden = false;
-      player.animate([{ opacity: 0 }, { opacity: 1 }], { duration: CHROME_IN_MS, easing: easeCurve() });
-      drawPlayer();
+      playerReady = true;
+      showPlayer();
     }, () => {}); // no music.json: no player
     player.addEventListener('click', () => {
       musicUnlocked = true;
