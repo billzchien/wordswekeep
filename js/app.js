@@ -2723,14 +2723,18 @@
     text.dir = rtl ? 'rtl' : '';
     [word, text, back].forEach((n) => { n.style.transition = 'none'; });
     word.style.transform = '';
+    // The window is measured before the word shows, and the word is held inside the margins
+    // before it is laid out: one line wider than a phone widened the page itself, the window
+    // read wider with it (416 on a 375 phone), and the word ran to the screen's edge.
+    const vw = window.innerWidth, vh = window.innerHeight, m = 20;
+    word.style.whiteSpace = 'normal';
+    word.style.width = 'max-content'; // one line while it fits, wherever its left lands
+    word.style.maxWidth = `${vw - 2 * m}px`;
     overlay.hidden = false;
     dim(true);
     focusInto(overlay, back);
 
     // Final layout: the enlarged word sits near where it was in the quote.
-    const vw = window.innerWidth, vh = window.innerHeight, m = 20;
-    word.style.whiteSpace = word.scrollWidth > vw - 2 * m ? 'normal' : 'nowrap';
-    word.style.maxWidth = `${vw - 2 * m}px`;
     const w = word.offsetWidth, h = word.offsetHeight;
     const gap = cssPx('--ann-gap', 24); // tokens.css, scaled by --u
     const backGutter = vw >= 600 ? 49 : 0;
