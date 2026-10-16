@@ -243,6 +243,10 @@ ul { list-style: none; }
 
 /* The quote's line-by-line stand-in during the scan (js/app.js → scanQuoteLines). */
 .quote.quote-lines { position: absolute; margin: 0; max-width: none; pointer-events: none; white-space: nowrap; }
+/* The quote's colour split during the scan, in Chrome (js/app.js splitCopies): a red and a blue copy of each line's
+   text under it, each its own layer so its steps never redraw the letters. Hidden until the edge comes. */
+.quote-split { position: absolute; left: 0; top: 0; padding: var(--ink-y) var(--ink-x); opacity: 0; /* the line's room for the letters' ink, as .quote-line */ will-change: transform, opacity, filter; pointer-events: none; }
+.quote-split-own { position: relative; }
 .quote-line { position: absolute; left: 0; top: 0; display: block; padding: var(--ink-y) var(--ink-x); margin: calc(-1 * var(--ink-y)) calc(-1 * var(--ink-x)); transform-origin: var(--ink-x) var(--ink-y); will-change: transform; } /* the padding: room for the italic overhang inside the layer (iOS crops a layer at its box); origin on the text's corner */
 
 /* Afterglow patches (one per scanned item), behind the notes content. Opacity-only animation. */

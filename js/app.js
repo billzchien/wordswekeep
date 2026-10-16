@@ -1807,7 +1807,38 @@
   // stretched quote would put it and travels back up — all setting off together, the first line
   // arriving soonest and each following line a little later, so the quote closes up like a blind.
   const SCAN_LINE_FIRST_MS = 380, SCAN_LINE_LAST_MS = 520;
-  function scanQuoteLines(quoteEl, at, wide, tall, easing) {
+  // The quote's colour split. On the other items it is colored text-shadows, swapped at each step;
+  // on the quote's stretched lines every swap made Chrome redraw them whole, at up to 2× and with
+  // the blur, three times in 270ms — on Bill's new laptop (2026-10-16, his recording) the drop
+  // stood still for 80–160ms as it passed the quote, then jumped; traced here at 1721 wide, No. 23
+  // spent 425–645ms on the GPU and held frames up to 643ms. So each line carries the shadows as
+  // two copies of its text under it (red over blue), each its own layer, drawn once: the steps
+  // only move, soften and fade them, which the GPU does without drawing the letters again. Same
+  // offsets as the shadows (red d, blue 2d), and the same softness (a shadow's blur radius is
+  // twice a filter's blur).
+  // Chrome only (Blink: Chrome, Edge, Arc, Brave, Android — the browsers with userAgentData). Safari
+  // draws a layer with a filter at low resolution while its line is being stretched: the copies
+  // came out as a purple haze, not crisp red and blue, so WebKit (every iPhone browser too) keeps
+  // the text-shadows, unchanged.
+  const SPLIT_LAYERS = !!navigator.userAgentData;
+  function splitCopies(line, text, trail, at) {
+    const own = document.createElement('span');
+    own.className = 'quote-split-own'; // positioned, after the copies: the line's own text stays on top
+    own.textContent = text;
+    line.replaceChildren(own);
+    [['red', 1, 0.3, 'rgba(255, 45, 70, 0.85)'], ['blue', 2, 0.45, 'rgba(70, 95, 255, 0.85)']].forEach(([name, far, soft, color]) => {
+      const copy = document.createElement('span');
+      copy.className = `quote-split quote-split--${name}`;
+      copy.textContent = text;
+      copy.style.color = color;
+      line.prepend(copy); // (red, then blue in front of it: blue is under red, both under the line's own text — as the shadows were)
+      const step = (k) => ({ transform: `translateY(${(far * trail * k).toFixed(2)}px)`, filter: `blur(${(soft * trail * k / 2).toFixed(2)}px)`, opacity: 1, easing: 'step-end' });
+      copy.animate([{ ...step(1), offset: 0 }, { ...step(0.6), offset: 1 / 3 }, { ...step(0.3), offset: 2 / 3 }, { opacity: 0, offset: 1 }],
+        { duration: 3 * SCAN_STEP_MS, delay: at, fill: 'forwards' });
+    });
+  }
+
+  function scanQuoteLines(quoteEl, at, wide, tall, easing, trail) {
     const words = measureWords(quoteEl);
     const lines = [];
     words.forEach((w) => {
@@ -1842,6 +1873,7 @@
       const first = line.words[0];
       el.style.left = `${first.left - own.left}px`;
       el.style.top = `${first.top - own.top}px`;
+      if (trail) splitCopies(el, el.textContent, trail, at); // (after the measuring: only the line's own text is measured)
       const drop = (first.top - lines[0].top) * (tall - 1); // where the stretched quote would put this line
       const duration = Math.round(lerp(SCAN_LINE_FIRST_MS, SCAN_LINE_LAST_MS, i / last));
       longest = Math.max(longest, duration);
@@ -1902,14 +1934,17 @@
     items.forEach(({ el, depth, at }) => {
       const isThumb = el.classList.contains('thumb'), isQuote = el.classList.contains('quote');
 
+      const trail = lerp(SCAN_RGB_TOP, SCAN_RGB_BOTTOM, depth); // the colour split's strength here (below)
+
       // Stretch, always from the item's top edge. (Set as a real style: an origin given only
       // inside the keyframes is not reliably honoured, which made the quote stretch from its middle.)
       let shadowTarget = el; // where the text's color split is drawn
       if (isQuote) {
         // The quote also starts at the width it had on the main screen and draws in to the left.
+        // In Chrome its colour split rides on its lines (splitCopies), not on text-shadows below.
         const wide = Math.max(1, mainQuoteSize / parseFloat(getComputedStyle(el).fontSize));
-        const lines = scanQuoteLines(el, at, wide, quoteStretch(el), easing);
-        shadowTarget = lines.standIn;
+        const lines = scanQuoteLines(el, at, wide, quoteStretch(el), easing, SPLIT_LAYERS ? trail : 0);
+        shadowTarget = SPLIT_LAYERS ? null : lines.standIn;
         handOver = lines.finish;
         ends = Math.max(ends, lines.ends);
       } else if (!isThumb) { // the preview keeps its own transforms (hover, pointer-lean)
@@ -1922,11 +1957,10 @@
 
       // Color split, three hard steps down to clean: red trails below the text, blue below red,
       // both slightly soft. Text: colored shadows (cheap). Image: an SVG channel split.
-      const trail = lerp(SCAN_RGB_TOP, SCAN_RGB_BOTTOM, depth);
       if (isThumb) {
         const ids = rgbFilters(trail * SCAN_RGB_IMAGE_BOOST); // an image reads a split far more quietly than type does
         [...ids, null].forEach((id, i) => setTimeout(() => { el.style.filter = id ? `url(#${id})` : ''; }, at + i * SCAN_STEP_MS));
-      } else {
+      } else if (shadowTarget) {
         [1, 0.6, 0.3, 0].forEach((k, i) => setTimeout(() => {
           const d = trail * k;
           shadowTarget.style.textShadow = k
