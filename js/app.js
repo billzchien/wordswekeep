@@ -1764,13 +1764,45 @@
   // limit and opening notes on No. 22 held a frame for ~65ms, then ~30ms at each colour step
   // (2026-10-13, Bill's recording; traced in Chrome at 1440 and 1710 wide). So in such a face the
   // stretch stops where the em reaches this many screen pixels (measured clean at 160, holding
-  // from 173): 1.37× on a 1710 Mac, 1.6× at 1440, the full 2× on a phone.
-  const SCAN_HEAVY_FACE_EM = { author: 156 };
+  // from 173): 1.37× on a 1710 Mac, 1.6× at 1440, the full 2× on a phone — and never past
+  // SCAN_HEAVY_FACE_MAX (2026-10-16: on a screen of ordinary density, 1721 wide, the em is 57px
+  // and the limit above allowed the full 2×; No. 22 still held a frame 50–58ms in every entry,
+  // clean from 1.3× down, measured in the page's own frames).
+  const SCAN_HEAVY_FACE_EM = { author: 156 }, SCAN_HEAVY_FACE_MAX = 1.3;
   function quoteStretch(quoteEl) {
     const limit = !quoteEl.hasAttribute('data-native') && SCAN_HEAVY_FACE_EM[quoteEl.dataset.font];
     if (!limit) return SCAN_STRETCH_QUOTE;
     const em = parseFloat(getComputedStyle(quoteEl).fontSize) * (window.devicePixelRatio || 1);
-    return Math.max(1, Math.min(SCAN_STRETCH_QUOTE, limit / em));
+    return Math.max(1, Math.min(SCAN_HEAVY_FACE_MAX, limit / em));
+  }
+  // A plain drop for a browser that clearly cannot keep up (Bill, 2026-10-16: the move into notes
+  // matters more than the hover lens, so it keeps the scan wherever it can; where it cannot, none
+  // of it — "just a simple swipe like how we return to the home"). Each entry watches its own
+  // drop's frames (rAF timestamps only); an entry is slow when, past its first frame (the notes being
+  // built), a frame was held SCAN_SLOW_HOLD_MS or the median frame ran over SCAN_SLOW_FRAME_MS
+  // (under 25 fps). After SCAN_SLOW_TO_STEP slow entries it steps down, for the tab (sessionStorage
+  // wwk-scan, as the lens keeps its own): 1, a plain drop — the notes cropped in on the same curve,
+  // no scanner head (band, blur, hairline), no colour split, no stretch, no rise, no afterglow, the
+  // symbols and underlines simply there; 2, if even that cannot keep up, no animation at all —
+  // straight into notes and back, as with reduced motion (Bill). Not triggered in Chrome or Safari
+  // on Bill's Mac.
+  const SCAN_SLOW_HOLD_MS = 100, SCAN_SLOW_FRAME_MS = 40, SCAN_SLOW_TO_STEP = 2;
+  let scanLevel = (() => { try { return Math.min(2, Number(sessionStorage.getItem('wwk-scan')) || 0); } catch (e) { return 0; } })();
+  let scanSlowSeen = 0;
+  function watchScan() { // call the result once the entry is over: it judges the drop's frames (what is seen as the swipe)
+    const gaps = []; let last = 0, raf = 0, until = 0;
+    const tick = (now) => { if (last) gaps.push(now - last); else until = now + REVEAL_MS; last = now; if (now < until) raf = requestAnimationFrame(tick); }; // (from the drop's first frame)
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      const after = gaps.slice(1);
+      if (document.hidden || after.length < 4 || Math.max(...after) > 1000) return; // a tab put away meanwhile: no verdict
+      const median = after.slice().sort((a, b) => a - b)[after.length >> 1];
+      if (scanLevel >= 2 || (Math.max(...after) < SCAN_SLOW_HOLD_MS && median <= SCAN_SLOW_FRAME_MS)) return;
+      if (++scanSlowSeen < SCAN_SLOW_TO_STEP) return;
+      scanSlowSeen = 0; scanLevel++;
+      try { sessionStorage.setItem('wwk-scan', String(scanLevel)); } catch (e) {}
+    };
   }
   const SCAN_RGB_IMAGE_BOOST = 3;    // the video preview's split, relative to text at the same depth
   const SCAN_RGB_TOP = 0.8, SCAN_RGB_BOTTOM = 6;     // red's trail in px (blue trails twice as far)
@@ -1901,6 +1933,11 @@
     const glowLayer = document.createElement('div');
     glowLayer.className = 'scan-glows';
     notes.prepend(glowLayer);
+    // Nothing is written into the page while the edge drops (2026-10-16: an extension that watches
+    // the page woke on every one of the ~48 timed style changes the scan made and held the drop to
+    // 10 fps): the colour split's steps are Web Animations too, and what they leave behind (their
+    // end states, the stretch's transform-origin) is tidied once the scan is over.
+    const leftovers = [], origins = [];
 
     // Measure everything first (final positions), then start moving things.
     const measure = (el) => {
@@ -1921,8 +1958,10 @@
       notes.querySelector('.n-kept'), ...document.querySelectorAll('#nBody p'),
     ].filter((el) => el && el.offsetParent !== null).map(measure).filter(Boolean);
 
-    // The category symbols draw in as the edge reaches them, one after another.
-    items.filter(({ el }) => el.parentNode === $('nCats')).forEach(({ el, at }, i) => drawNoteSym(el.querySelector('.sym'), at + i * NOTE_SYM_STAGGER_MS));
+    // The category symbols draw in once the drop has landed, one after another (Bill, 2026-10-16:
+    // until then as the edge reached them — redrawn every frame, they were the largest share of the
+    // drawing while the edge was moving, ~200ms of the GPU's work in each entry).
+    items.filter(({ el }) => el.parentNode === $('nCats')).forEach(({ el, at }, i) => drawNoteSym(el.querySelector('.sym'), Math.max(at, REVEAL_MS) + i * NOTE_SYM_STAGGER_MS));
 
     risers.forEach(({ el, at }) => el.animate(
       [{ transform: `translateY(${RISE_PX}px)` }, { transform: 'translateY(0)' }],
@@ -1950,23 +1989,24 @@
       } else if (!isThumb) { // the preview keeps its own transforms (hover, pointer-lean)
         const tall = lerp(SCAN_STRETCH_TOP, SCAN_STRETCH_BOTTOM, depth);
         el.style.transformOrigin = '50% 0';
+        origins.push(el);
         el.animate([{ transform: `scale(1, ${tall})` }, { transform: 'scale(1, 1)' }],
           { duration: SCAN_STRETCH_MS, delay: at, easing, fill: 'backwards' });
-        setTimeout(() => { el.style.transformOrigin = ''; }, at + SCAN_STRETCH_MS + 40);
       }
 
       // Color split, three hard steps down to clean: red trails below the text, blue below red,
       // both slightly soft. Text: colored shadows (cheap). Image: an SVG channel split.
       if (isThumb) {
         const ids = rgbFilters(trail * SCAN_RGB_IMAGE_BOOST); // an image reads a split far more quietly than type does
-        [...ids, null].forEach((id, i) => setTimeout(() => { el.style.filter = id ? `url(#${id})` : ''; }, at + i * SCAN_STEP_MS));
+        leftovers.push(el.animate([...ids, null].map((id, i) => ({ filter: id ? `url(#${id})` : 'none', offset: i / 3, easing: 'step-end' })),
+          { duration: 3 * SCAN_STEP_MS, delay: at, fill: 'forwards' }));
       } else if (shadowTarget) {
-        [1, 0.6, 0.3, 0].forEach((k, i) => setTimeout(() => {
+        leftovers.push(shadowTarget.animate([1, 0.6, 0.3, 0].map((k, i) => {
           const d = trail * k;
-          shadowTarget.style.textShadow = k
+          return { offset: i / 3, easing: 'step-end', textShadow: k
             ? `0 ${d.toFixed(2)}px ${(d * 0.3).toFixed(2)}px rgba(255, 45, 70, 0.85), 0 ${(2 * d).toFixed(2)}px ${(d * 0.45).toFixed(2)}px rgba(70, 95, 255, 0.85)`
-            : '';
-        }, at + i * SCAN_STEP_MS));
+            : 'none' };
+        }), { duration: 3 * SCAN_STEP_MS, delay: at, fill: 'forwards' }));
       }
 
       // Afterglow: a soft patch of the palette color behind the item, lit as the edge passes and
@@ -1985,7 +2025,10 @@
 
       ends = Math.max(ends, at + Math.max(SCAN_STRETCH_MS, 4 * SCAN_STEP_MS, SCAN_GLOW_MS));
     });
-    setTimeout(() => { glowLayer.remove(); if (handOver) handOver(); }, ends + 60); // the glow goes first, then the real quote takes over, in one frame
+    requestAnimationFrame(() => setTimeout(() => { // (from the first frame, as the animations: setMode)
+      glowLayer.remove(); if (handOver) handOver(); // the glow goes first, then the real quote takes over, in one frame
+      leftovers.forEach((a) => a.cancel()); origins.forEach((el) => { el.style.transformOrigin = ''; }); // (each split ended clean: nothing changes on screen)
+    }, ends + 60));
     return ends;
   }
 
@@ -1997,6 +2040,10 @@
   const SCAN_BAND_LAG_MS = 120; // the blur band reaches back to where the edge was this long ago…
   const SCAN_BAND_MAX = 200;    // …but never taller than this (keep in step with .scan-edge in app.css)
   const EXIT_TRAVEL_MS = 400;   // leaving: the quote's ease back to its main size and spot
+  const DROP_BAND_SAMPLES = 60; // the band's height, worked out ahead at this many points of the drop (every 10ms)
+  const DROP_CROP_VAR = (() => { // the drop's crop as a number the browser can animate (dropAnimations)
+    try { CSS.registerProperty({ name: '--drop-crop', syntax: '<percentage>', inherits: false, initialValue: '0%' }); return true; } catch (e) { return false; }
+  })();
 
   function setMode(mode) {
     flushLanding();
@@ -2004,10 +2051,11 @@
     if (rgbLens) rgbLens.off(); // (the RGB lens: off before the quote is measured and carried into notes)
     // With the music on, the scan has a sound (Bill, 2026-10-15): the music cuts as it starts
     // (NOTES_CUT_S, not the 3s fade) and fades back in as notes close, as before.
-    const sound = mode === 'notes' && playerOn() && !reduceMotion.matches && music.hasEffect('notes'); // (not loaded yet: the usual 3s fade, no cut)
+    const still = reduceMotion.matches || scanLevel >= 2; // no animation: reduced motion, or a browser that could not keep up with even a plain drop (watchScan)
+    const sound = mode === 'notes' && playerOn() && !still && scanLevel < 1 && music.hasEffect('notes'); // (not loaded yet: the usual 3s fade, no cut; with the full scan only — a browser stepped down has none, Bill)
     if (sound) music.stop(NOTES_CUT_S);
     musicSync(mode); // the music fades out as notes open, back in as they close
-    if (reduceMotion.matches) return applyMode(mode);
+    if (still) return applyMode(mode);
     if (sound) music.effect('notes'); // its page flip + laser, timed to the drop (md/checks/sounds); after musicSync, which hands the iPhone back to 'auto'
     modeBusy = true;
     const toNotes = mode === 'notes';
@@ -2022,7 +2070,7 @@
     if (toNotes) {
       lockLines(fromEl);
       applyMode('notes');
-      scanEnds = scanIn(dropCurve, fromSize);
+      scanEnds = scanLevel >= 1 ? 0 : scanIn(dropCurve, fromSize); // (a plain drop: no scan — watchScan)
     } else {
       // The grey page has to be complete before it is uncovered.
       closeOverlays({ instant: true });
@@ -2032,9 +2080,11 @@
     }
     document.querySelectorAll('.scan-edge, .quote-float-layer').forEach((el) => el.remove());
     app.classList.add('is-revealing'); // grey page underneath, notes frame (own palette) on top
-    // The crop is driven here, frame by frame, as a plain inline style. (A
-    // browser-run clip-path animation can show the layer uncropped for a frame when it starts
-    // or is handed back — that was the flash.) The start state is in place before first paint.
+    // The start state is set here as plain inline styles, in place before the first paint; the
+    // drop itself is run by the browser (dropAnimations, below). A browser-run clip-path animation
+    // could show the layer uncropped for a frame as it started or was handed back (the flash): so
+    // the inline styles hold the same crop underneath from the first frame, and the end state is
+    // written in before the animations are let go.
     const cropAt = (e, t = 0) => {
       const rest = `${((1 - e) * 100).toFixed(3)}%`;
       notes.style.clipPath = toNotes ? `inset(0 0 ${rest} 0)` : `inset(${(e * 100).toFixed(3)}% 0 0 0)`;
@@ -2054,18 +2104,57 @@
     };
     // Entering: a band of light rides the dropping edge, like a scanner head.
     let scanEdge = null;
-    if (toNotes) {
+    if (toNotes && scanLevel < 1) { // (a plain drop: no scanner head — watchScan)
       scanEdge = document.createElement('div');
       scanEdge.className = 'scan-edge';
       scanEdge.dataset.theme = app.dataset.theme;
       app.appendChild(scanEdge);
     }
-    let dropFrame = 0, layer = null;
-    const dropStart = performance.now();
-    const dropTick = (now) => {
-      const t = Math.min(1, (now - dropStart) / REVEAL_MS);
-      cropAt(easeProgressAt(t, dropCurve), t);
-      dropFrame = t < 1 ? requestAnimationFrame(dropTick) : 0;
+    let layer = null;
+    // The drop, run by the browser rather than by script each frame (2026-10-16): Bill saw the
+    // edge stand still mid-way on a work laptop and not in an incognito window — browser
+    // extensions watching the page ran on every per-frame style change, on the thread that moved
+    // the edge. As Web Animations nothing is written into the page while it drops, so nothing
+    // wakes them. The same curve and the same positions as cropAt: the crop and the edge on
+    // dropCurve over REVEAL_MS; the band's height worked out ahead at DROP_BAND_SAMPLES points
+    // and played linearly between them.
+    const dropAnimations = () => {
+      if (!DROP_CROP_VAR) return null; // (a browser without registered custom properties: the drop by script, as before)
+      const vh = window.innerHeight;
+      const timing = { duration: REVEAL_MS, easing: dropCurve, fill: 'both' };
+      // The crop is animated through a number (--drop-crop), not as a clip-path: Chrome ran a
+      // clip-path animation on its compositor and, handed back as it finished, drew the notes not
+      // at all for two frames (a flash of the grey page as the drop landed). A custom property
+      // stays on the page's thread, with the edge's `top`: the two are drawn together.
+      const crops = [[notes, toNotes ? 'inset(0 0 var(--drop-crop) 0)' : 'inset(var(--drop-crop) 0 0 0)', toNotes ? ['100%', '0%'] : ['0%', '100%']]];
+      if (layer) crops.push([layer, 'inset(0 0 var(--drop-crop) 0)', ['100%', '0%']]);
+      const runs = crops.map(([el, clip, [from, to]]) => {
+        el.style.setProperty('--drop-crop', from);
+        el.style.clipPath = clip;
+        return el.animate([{ '--drop-crop': from }, { '--drop-crop': to }], timing);
+      });
+      if (scanEdge) {
+        // The edge by `top`, not a transform: a transform runs on the compositor, the crop (clip-path)
+        // on the page's thread, and drawn a frame apart the band lit a strip of the grey page under
+        // the notes. Both on one thread are drawn together. (Still no change written into the page.)
+        runs.push(scanEdge.animate([{ top: '-200px' }, { top: `${vh - 200}px` }], timing));
+        runs.push(scanEdge.animate([{ visibility: 'visible' }, { visibility: 'visible', offset: 0.999 }, { visibility: 'hidden' }], { duration: REVEAL_MS, fill: 'forwards' })); // landed: out of sight (its hairline would sit on the bottom row)
+        const band = [];
+        for (let i = 0; i <= DROP_BAND_SAMPLES; i++) {
+          const t = i / DROP_BAND_SAMPLES, e = easeProgressAt(t, dropCurve);
+          const past = easeProgressAt(Math.max(0, t - SCAN_BAND_LAG_MS / REVEAL_MS), dropCurve);
+          const h = Math.max(0, Math.min(SCAN_BAND_MAX, (e - past) * vh, (1 - e) * vh * 4));
+          band.push({ transform: `scaleY(${(h / SCAN_BAND_MAX).toFixed(4)})`, offset: t });
+        }
+        ['::before', '::after'].forEach((pseudoElement) => {
+          try { runs.push(scanEdge.animate(band, { duration: REVEAL_MS, easing: 'linear', fill: 'both', pseudoElement })); } catch (err) {} // (a browser without pseudo-element animations: no band, the edge still drops)
+        });
+      }
+      // Their clock starts with the first frame they are drawn in, not at the click: where building
+      // the notes holds that frame (an extension woken by it: 260ms in a test), the drop starts
+      // late but whole, instead of leaping ahead. (The timers that end the entry wait for that
+      // same frame: requestAnimationFrame below and in scanIn.)
+      return runs;
     };
 
     // Entering: the quote belongs to the notes frame and is cut in by the crop (and scanned).
@@ -2119,17 +2208,31 @@
       scanEnds = lift + EXIT_TRAVEL_MS;
     }
     cropAt(0);
-    dropFrame = requestAnimationFrame(dropTick);
+    let drops = dropAnimations(), dropFrame = 0;
+    if (!drops) { // (the drop by script, frame by frame: cropAt)
+      drops = [];
+      let dropStart = 0;
+      const dropTick = (now) => {
+        if (!dropStart) dropStart = now;
+        const t = Math.min(1, (now - dropStart) / REVEAL_MS);
+        cropAt(easeProgressAt(t, dropCurve), t);
+        dropFrame = t < 1 ? requestAnimationFrame(dropTick) : 0;
+      };
+      dropFrame = requestAnimationFrame(dropTick);
+    }
+    const judgeScan = toNotes ? watchScan() : null; // (a plain drop next time, if this one could not keep up)
 
-    setTimeout(() => {
+    requestAnimationFrame(() => setTimeout(() => {
       if (layer) layer.remove();
       if (!toNotes) applyMode('main'); // re-renders the grey page's quote, visible again
-      cancelAnimationFrame(dropFrame);
       if (scanEdge) scanEdge.remove();
-      notes.style.clipPath = '';
+      notes.style.clipPath = ''; notes.style.removeProperty('--drop-crop');
+      cancelAnimationFrame(dropFrame);
+      drops.forEach((a) => a.cancel()); // (after the end state is written in: never a frame uncropped)
+      if (judgeScan) judgeScan();
       app.classList.remove('is-revealing');
       modeBusy = false;
-    }, Math.max(REVEAL_MS, scanEnds) + 20);
+    }, Math.max(REVEAL_MS, scanEnds) + 20));
   }
 
   $('notesBtn').addEventListener('click', () => setMode(state.mode === 'notes' ? 'main' : 'notes'));
@@ -3014,7 +3117,7 @@
     if (markSym) return make(); // at once: the scan starts in this same turn
     // The files came in after the scan had passed (notes opened that fast, or a slow line): the
     // symbols draw in now rather than appearing whole (2026-10-10).
-    markReady.then(() => { make(); svgs.forEach((svg, i) => drawNoteSym(svg, i * NOTE_SYM_STAGGER_MS)); }).catch(() => svgs.forEach((svg) => {
+    markReady.then(() => { make(); if (scanLevel < 1) svgs.forEach((svg, i) => drawNoteSym(svg, i * NOTE_SYM_STAGGER_MS)); /* (a plain drop: still) */ }).catch(() => svgs.forEach((svg) => {
       const still = document.createElement('span');
       still.className = 'icon icon-mark';
       still.dataset.sym = svg.dataset.sym;
