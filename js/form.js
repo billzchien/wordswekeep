@@ -283,6 +283,31 @@
     }, wait);
   }
 
+  // A browser that clearly cannot keep up gets no "Words submitted" sound (Bill, 2026-10-16: "for low
+  // performance browser also we can remove the sound"), as the notes play theirs only with the full scan.
+  // Slow = the archive has already stepped this tab down (sessionStorage wwk-scan, js/app.js watchScan), or
+  // two of the form's own step slides were slow by the notes' rule: past the first frame, one held
+  // SLOW_HOLD_MS or the median over SLOW_FRAME_MS (under 25 fps). The form's verdict is its own
+  // (wwk-form-slow), for the tab; the archive is not told. Only rAF timestamps are read: nothing written.
+  const SLOW_HOLD_MS = 100, SLOW_FRAME_MS = 40, SLOW_TO_QUIET = 2, STEP_SLIDE_MS = 600;
+  let slowSeen = 0;
+  const slowTab = () => { try { return Number(sessionStorage.getItem('wwk-scan')) >= 1 || sessionStorage.getItem('wwk-form-slow') === '1'; } catch (e) { return false; } };
+  function watchSlide() {
+    if (reduceMotion.matches || slowTab()) return;
+    const gaps = []; let last = 0, until = 0;
+    const tick = (now) => {
+      if (last) gaps.push(now - last); else until = now + STEP_SLIDE_MS;
+      last = now;
+      if (now < until) { requestAnimationFrame(tick); return; }
+      const after = gaps.slice(1);
+      if (document.hidden || after.length < 4 || Math.max(...after) > 1000) return; // a tab put away meanwhile: no verdict
+      const median = after.slice().sort((a, b) => a - b)[after.length >> 1];
+      if (Math.max(...after) < SLOW_HOLD_MS && median <= SLOW_FRAME_MS) return;
+      if (++slowSeen >= SLOW_TO_QUIET) { try { sessionStorage.setItem('wwk-form-slow', '1'); } catch (e) {} }
+    };
+    requestAnimationFrame(tick);
+  }
+
   let sliding = false;
   // The step with the source link: going on waits for its check (LINK_WAIT_MS at most; no answer
   // = no warning). A warning keeps the visitor here; the next Next goes on (the link is gone).
@@ -309,6 +334,7 @@
     reqIn(steps[cur]); // its asterisks come in once the step has slid in
     sliding = !reduceMotion.matches;
     setTimeout(() => { sliding = false; }, reduceMotion.matches ? 0 : 600);
+    if (i < STEPS) watchSlide(); // (the slide to "Words submitted" comes with its sound: judged before)
     focusStep(cur, reduceMotion.matches ? 0 : 600); // once it has slid in
     refresh();
   }
@@ -1400,7 +1426,7 @@
   }
   $('submitBtn').addEventListener('click', submit);
 
-  function reset() {
+  function reset(landed) {
     data = blank();
     ['fText', 'fOriginal', 'fName', 'fNative', 'fTitle', 'fSourceLink', 'fContext', 'fReflection', 'fKeptBy', 'fWebsite'].forEach((id) => { $(id).value = ''; });
     typedFields().forEach(fieldLook);
@@ -1429,16 +1455,16 @@
       void stepsEl.offsetHeight;
       stepsEl.style.transition = '';
       sliding = false;
+      if (landed) landed(); // in the same moment: one change to the page, not two (a watching extension wakes per change)
     }, ms);
   }
   $('againBtn').addEventListener('click', () => {
-    reset();
     // Once the page has slid back to step 1: the confirmation is put away and the logo draws in.
-    setTimeout(() => {
+    reset(() => {
       $('done').classList.remove('is-in');
       if (doneStop) doneStop();
       homeDraw();
-    }, reduceMotion.matches ? 0 : 600);
+    });
   });
 
   /* ---------- Words submitted: the symbols ----------
@@ -1450,11 +1476,24 @@
   const SYM_DATA = 'https://fonts.wordswekeep.org/s/'; // the symbols' shapes and motion: the fonts Worker, not the public repo (2026-10-10)
   const HOME_OUT_MS = 300; // the logo drawing itself out (the archive's MENU_ICON_MS)
   let sym = null;          // { lib, model, home, done } once the files are in
+  // The drawing writes into its svg every frame (paths, gradients, blur), and an extension watching the page
+  // is woken by each write — on the thread that draws the page: with a stand-in spending 20ms a time, the
+  // logo's draw-out and the large symbol held frames 30–90ms (2026-10-16; md/checks/form-lag). So each svg
+  // is drawn inside a closed shadow root, which a watcher of the document does not see; the host keeps the
+  // svg's class, so the page's css places and sizes it as before. The same drawing, the same look.
+  function unwatched(svg) {
+    const host = document.createElement('span');
+    host.className = svg.getAttribute('class'); host.setAttribute('aria-hidden', 'true');
+    svg.replaceWith(host);
+    svg.removeAttribute('id'); svg.style.cssText = 'display: block; width: 100%; height: 100%; overflow: visible;'; // (app.css .sym, out of the page's css reach in there)
+    host.attachShadow({ mode: 'closed' }).appendChild(svg);
+    return svg;
+  }
   const symReady = new Promise((r) => setTimeout(r, 1200))
     .then(() => Promise.all([import(new URL(SYM_DIR + 'ribbon-draw.js', document.baseURI).href), fetch(SYM_DATA + 'symbol-draw-in.json').then((r) => { if (!r.ok) throw new Error(`symbols: ${r.status}`); return r.json(); })]))
     .then(([lib, data]) => {
       const model = lib.createModel(data);
-      sym = { lib, model, home: lib.createRenderer($('homeSym'), model, { levels: 2, pieces: 10 }), done: lib.createRenderer($('doneSym'), model) };
+      sym = { lib, model, home: lib.createRenderer(unwatched($('homeSym')), model, { levels: 2, pieces: 10 }), done: lib.createRenderer(unwatched($('doneSym')), model) };
     });
   symReady.catch((err) => console.error(err));
   const home = document.querySelector('.home');
@@ -1493,7 +1532,7 @@
   $('doneText').textContent = noOrphans($('doneText').textContent);
   function showDone() {
     const done = $('done'), box = done.querySelector('.done-sym');
-    if (window.Music) Music.effect('submitted'); // its bell with the slide's start (md/checks/sounds/submitted.html, 3b)
+    if (window.Music && !slowTab()) Music.effect('submitted'); // (not for a browser that cannot keep up: watchSlide) // its bell with the slide's start (md/checks/sounds/submitted.html, 3b)
     homeUndraw();
     box.classList.toggle('is-static', !sym);
     if (sym) sym.done.drawIn('All', 0);
@@ -1525,14 +1564,17 @@
       cells.push(cell);
       label.appendChild(cell);
     });
-    let timers = [];
+    // Each letter's going and coming back is one Web Animation (nothing written into the page as it
+    // runs: a watching extension woke on each of the letters' 2 × n timed changes). Played again
+    // midway, a letter already gone stays gone until its turn to come back, as before.
     const play = () => {
       if (btn.disabled || reduceMotion.matches) return;
-      timers.forEach(clearTimeout); timers = [];
-      const eraseDone = cells.length * LABEL_STEP_MS;
+      const gone = cells.map((cell) => getComputedStyle(cell).opacity === '0');
+      const eraseDone = cells.length * LABEL_STEP_MS, total = eraseDone + cells.length * LABEL_STEP_MS;
       cells.forEach((cell, i) => {
-        timers.push(setTimeout(() => { cell.style.opacity = '0'; }, i * LABEL_STEP_MS));
-        timers.push(setTimeout(() => { cell.style.opacity = '1'; }, eraseDone + i * LABEL_STEP_MS));
+        cell.getAnimations().forEach((a) => a.cancel());
+        const out = (i * LABEL_STEP_MS) / total, back = (eraseDone + i * LABEL_STEP_MS) / total, from = gone[i] ? 0 : 1;
+        cell.animate([{ opacity: from, offset: 0 }, { opacity: from, offset: out }, { opacity: 0, offset: out }, { opacity: 0, offset: back }, { opacity: 1, offset: back }, { opacity: 1, offset: 1 }], { duration: total });
       });
     };
     if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
