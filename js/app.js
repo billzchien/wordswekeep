@@ -2041,9 +2041,6 @@
   const SCAN_BAND_MAX = 200;    // …but never taller than this (keep in step with .scan-edge in app.css)
   const EXIT_TRAVEL_MS = 400;   // leaving: the quote's ease back to its main size and spot
   const DROP_BAND_SAMPLES = 60; // the band's height, worked out ahead at this many points of the drop (every 10ms)
-  const DROP_CROP_VAR = (() => { // the drop's crop as a number the browser can animate (dropAnimations)
-    try { CSS.registerProperty({ name: '--drop-crop', syntax: '<percentage>', inherits: false, initialValue: '0%' }); return true; } catch (e) { return false; }
-  })();
 
   function setMode(mode) {
     flushLanding();
@@ -2119,25 +2116,34 @@
     // dropCurve over REVEAL_MS; the band's height worked out ahead at DROP_BAND_SAMPLES points
     // and played linearly between them.
     const dropAnimations = () => {
-      if (!DROP_CROP_VAR) return null; // (a browser without registered custom properties: the drop by script, as before)
+      if (!Element.prototype.animate) return null; // (no Web Animations: the drop by script, as before)
       const vh = window.innerHeight;
       const timing = { duration: REVEAL_MS, easing: dropCurve, fill: 'both' };
-      // The crop is animated through a number (--drop-crop), not as a clip-path: Chrome ran a
-      // clip-path animation on its compositor and, handed back as it finished, drew the notes not
-      // at all for two frames (a flash of the grey page as the drop landed). A custom property
-      // stays on the page's thread, with the edge's `top`: the two are drawn together.
-      const crops = [[notes, toNotes ? 'inset(0 0 var(--drop-crop) 0)' : 'inset(var(--drop-crop) 0 0 0)', toNotes ? ['100%', '0%'] : ['0%', '100%']]];
-      if (layer) crops.push([layer, 'inset(0 0 var(--drop-crop) 0)', ['100%', '0%']]);
-      const runs = crops.map(([el, clip, [from, to]]) => {
-        el.style.setProperty('--drop-crop', from);
-        el.style.clipPath = clip;
-        return el.animate([{ '--drop-crop': from }, { '--drop-crop': to }], timing);
-      });
+      // The crop is two slides, not a clip: the box slides in from above (its own edge is the
+      // crop: the notes are a scroller and clip what they hold) while what it holds slides the
+      // other way, so the content stands still and only the edge moves. Slides are transforms,
+      // and transforms run on the compositor: whatever holds the page's own thread — an extension
+      // doing a burst of work a moment after the page changed (Bill's work laptop, 2026-10-16:
+      // the drop still jumped from half-way, not in a Guest window) — the drop goes on. (A clip
+      // animated on the page's thread froze with it; a clip-path animation on the compositor drew
+      // no notes for two frames as it was handed back.) The edge and its band slide on the
+      // compositor too, so all of it is drawn together.
+      const runs = [];
+      const slides = (box, from, to, parts, prop) => {
+        runs.push(box.animate([{ transform: `translateY(${from}px)` }, { transform: `translateY(${to}px)` }], timing));
+        parts.forEach((el) => runs.push(el.animate(prop === 'translate'
+          ? [{ translate: `0 ${-from}px` }, { translate: `0 ${-to}px` }]
+          : [{ transform: `translateY(${-from}px)` }, { transform: `translateY(${-to}px)` }], timing)));
+      };
+      notes.style.clipPath = ''; // (cropAt's start state: the slides take over from the first frame)
+      // The notes' parts by `translate`, which adds to their own transforms (the column rises).
+      if (toNotes) slides(notes, -vh, 0, [...notes.children], 'translate');
+      else slides(notes, 0, vh, [...notes.children], 'translate');
+      // The quote's layer on the way back: cropped at its own box; its quote and button move by
+      // `translate` and `scale`, so the counter-slide is a transform.
+      if (layer) { layer.style.clipPath = ''; layer.style.overflow = 'hidden'; slides(layer, -vh, 0, [...layer.children], 'transform'); }
       if (scanEdge) {
-        // The edge by `top`, not a transform: a transform runs on the compositor, the crop (clip-path)
-        // on the page's thread, and drawn a frame apart the band lit a strip of the grey page under
-        // the notes. Both on one thread are drawn together. (Still no change written into the page.)
-        runs.push(scanEdge.animate([{ top: '-200px' }, { top: `${vh - 200}px` }], timing));
+        runs.push(scanEdge.animate([{ transform: 'translateY(0px)' }, { transform: `translateY(${vh}px)` }], timing));
         runs.push(scanEdge.animate([{ visibility: 'visible' }, { visibility: 'visible', offset: 0.999 }, { visibility: 'hidden' }], { duration: REVEAL_MS, fill: 'forwards' })); // landed: out of sight (its hairline would sit on the bottom row)
         const band = [];
         for (let i = 0; i <= DROP_BAND_SAMPLES; i++) {
@@ -2226,7 +2232,7 @@
       if (layer) layer.remove();
       if (!toNotes) applyMode('main'); // re-renders the grey page's quote, visible again
       if (scanEdge) scanEdge.remove();
-      notes.style.clipPath = ''; notes.style.removeProperty('--drop-crop');
+      notes.style.clipPath = '';
       cancelAnimationFrame(dropFrame);
       drops.forEach((a) => a.cancel()); // (after the end state is written in: never a frame uncropped)
       if (judgeScan) judgeScan();
