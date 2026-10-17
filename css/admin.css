@@ -30,7 +30,7 @@
 .admin input, .admin textarea { -webkit-user-select: text; user-select: text; }
 .scroll { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
 .scroll::-webkit-scrollbar { display: none; }
-.num { font-feature-settings: var(--numeral-features); } /* numbers, dates: lining, tabular */
+.num, .tabs, .thead { font-feature-settings: var(--numeral-features); } /* numbers, dates, the counts ("Quotes (3)", "Quote (31)"): lining, tabular (Bill, 2026-10-16: no old-style figures) */
 
 /* ---------- Chrome ----------
    One top line for everything: the capitals of every word on it (Back, the tabs, Revert /
@@ -116,7 +116,7 @@
 .sort .icon-sort { --src: url(../assets/icons/sort.svg); width: calc(16 * var(--u)); height: calc(16 * var(--u)); transition: transform 0.2s var(--ease); }
 .sort[data-dir="-1"] .icon-sort { transform: rotate(180deg); }
 
-/* Search (Figma 307:2989), Live and Pending: the icon at the end of the head; a click opens the
+/* Search (Figma 307:2989), Quotes and Thoughts: the icon at the end of the head; a click opens the
    field beside it (100 wide, no background), the icon sliding left as the field grows. It sits
    over the last column rather than in the grid, so it is there at every width. */
 :root {
@@ -417,7 +417,7 @@
    One row of controls, a caption over each (fields 32 high here: Bill, 2026-10-03), stuck under
    the top line like the table's head: the face, then three groups — the three scales; leading
    and tracking; the comparison. A group that wraps starts at the left edge, under the face.
-   Desktop: the face is one column wide, so "Short" starts at column 2, under the Live tab.
+   Desktop: the face is one column wide, so "Short" starts at column 2, under the first tab (Quotes).
    Under it three boards — a short, a medium and a long quote — each the archive's main
    screen: the quote starts at column 2 and takes four columns less 40 (a short one 700).
    The type itself is css/fonts.css + the saved settings. */

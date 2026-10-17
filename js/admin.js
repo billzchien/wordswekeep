@@ -1,7 +1,7 @@
 /* Words We Keep — the library (admin CMS). Plain JS.
-   Three lists (Live / Pending / Archive) and an edit / review view; the Thoughts tab (since
+   Two lists (Quotes: live and pending together, since 2026-10-16 / Archive) and an edit / review view; the Thoughts tab (since
    2026-10-09): one row per quote with visitors' thoughts, and a view of one quote's. Routes
-   (`go`): #live · #pending · #archive · #thoughts · #fonts · #edit/<id> · #thoughts/<id>; kept in history.state, never in the address (an
+   (`go`): #quotes (#live and #pending open it too) · #archive · #thoughts · #fonts · #edit/<id> · #thoughts/<id>; kept in history.state, never in the address (an
    address with one still opens it, then the address is cleaned). #reset throws the demo data away.
 
    Data: served by the library's Worker (workers/admin), everything comes from and goes to its
@@ -262,7 +262,7 @@
 
   const fmtDate = (iso) => { if (!iso) return ''; const d = new Date(iso); return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`; };
   const catLabel = (keys) => keys.map((k, i) => { const n = (CATEGORIES.find((c) => c.key === k) || { name: k }).name; return i ? n.toLowerCase() : n; }).join(', ');
-  const listOf = (tab) => (tab === 'thoughts' ? thoughtRows() : store[tab]);
+  const listOf = (tab) => (tab === 'thoughts' ? thoughtRows() : tab === 'quotes' ? [...store.live, ...store.pending] : store[tab]); // Quotes: the live and the pending ones in one list (Bill, 2026-10-16)
   const findItem = (key) => { for (const tab of ['live', 'pending', 'archive']) { const q = store[tab].find((x) => x.key === key); if (q) return { q, tab }; } return null; };
   // Numbers. A live quote keeps its number for good (an archived live quote's number is retired
   // with it). A pending quote shows its *potential* number: the next free one, in order of
@@ -270,11 +270,13 @@
   const maxId = () => [...store.live, ...store.archive].reduce((m, q) => Math.max(m, q.id || 0), 0);
   const pendingOrder = () => [...store.pending].sort((a, b) => (a.submittedAt > b.submittedAt ? 1 : -1));
   const numberOf = (q) => (q.status === 'pending' ? maxId() + 1 + pendingOrder().findIndex((x) => x.key === q.key) : q.id);
+  const numLabel = (q) => (q.status === 'pending' ? '--' : String(q.id)); // as shown: a pending quote has no number until it is approved (Bill, 2026-10-16); numberOf still sorts it above the live ones, oldest first
 
   /* ---------- Routing ---------- */
 
-  const TABS = { live: 1, pending: 1, archive: 1, thoughts: 1 };
-  let tab = 'live';
+  const TABS = { quotes: 1, archive: 1, thoughts: 1 };
+  const OLD_TABS = { live: 'quotes', pending: 'quotes' }; // the two lists Quotes replaced: an old bookmark, the Friday email's #pending
+  let tab = 'quotes';
   // The view is kept in history.state (Back / Forward step through views) and in sessionStorage
   // (a reload stays put), never in the address: it stays admin.wordswekeep.org. An address that
   // still carries one (#pending, an old bookmark) opens it, then is cleaned.
@@ -282,10 +284,10 @@
   const cleanAddress = () => location.pathname + location.search;
   function currentRoute() {
     if (history.state && history.state.route) return history.state.route;
-    try { return sessionStorage.getItem(ROUTE_KEY) || 'live'; } catch (e) { return 'live'; }
+    try { return sessionStorage.getItem(ROUTE_KEY) || 'quotes'; } catch (e) { return 'quotes'; }
   }
   function go(to) {
-    const h = String(to).replace(/^#/, '') || 'live';
+    const h = String(to).replace(/^#/, '') || 'quotes';
     try { sessionStorage.setItem(ROUTE_KEY, h); } catch (e) {}
     if (!history.state || history.state.route !== h) history.pushState({ route: h }, '', cleanAddress());
     route();
@@ -300,12 +302,12 @@
     const h = currentRoute();
     shownRoute = h;
     try { sessionStorage.setItem(ROUTE_KEY, h); } catch (e) {}
-    if (h === 'reset' && !remote) { localStorage.removeItem(STORE_KEY); history.replaceState({ route: 'live' }, '', cleanAddress()); try { sessionStorage.setItem(ROUTE_KEY, 'live'); } catch (e) {} location.reload(); return; }
-    const [view, id] = h.split('/');
+    if (h === 'reset' && !remote) { localStorage.removeItem(STORE_KEY); history.replaceState({ route: 'quotes' }, '', cleanAddress()); try { sessionStorage.setItem(ROUTE_KEY, 'quotes'); } catch (e) {} location.reload(); return; }
+    const [v, id] = h.split('/'); const view = OLD_TABS[v] || v;
     if (view === 'edit' && findItem(id)) openEdit(id);
     else if (view === 'thoughts' && id) { if (thoughtRows().some((r) => r.key === id)) openThoughts(id); else showList('thoughts'); }
     else if (view === 'fonts') showFonts(id);
-    else showList(view in TABS ? view : 'live');
+    else showList(view in TABS ? view : 'quotes');
   }
   // The browser's Back / Forward (a trackpad swipe too) with unsaved changes asks first, as the
   // arrows and Back do (leaveTo): the view stays put while it asks, and moves on only on Leave.
@@ -358,16 +360,17 @@
   /* ---------- The lists ---------- */
 
   const HEADS = {
-    live:    [{ c: 'c-num', t: 'Number', short: 'No.', sort: 'id' }, { c: 'c-date', t: 'Date published', sort: 'publishedAt' }, { c: 'c-cat', t: 'Category' }, { c: 'c-quote', t: 'Quote', count: true }, { c: 'c-act', t: '' }],
-    pending: [{ c: 'c-num', t: 'Number', short: 'No.', sort: 'id' }, { c: 'c-date', t: 'Date submitted', sort: 'submittedAt' }, { c: 'c-cat', t: 'Category' }, { c: 'c-quote', t: 'Quote', count: true }, { c: 'c-act', t: '' }],
+    quotes:  [{ c: 'c-num', t: 'Number', short: 'No.', sort: 'id' }, { c: 'c-date', t: 'Date published', sort: 'publishedAt' }, { c: 'c-cat', t: 'Category' }, { c: 'c-quote', t: 'Quote', count: true }, { c: 'c-act', t: '' }],
     archive: [{ c: 'c-date', t: 'Date archived', sort: 'archivedAt' }, { c: 'c-cat', t: 'Category' }, { c: 'c-quote', t: 'Quote', count: true }, { c: 'c-act', t: '' }],
     thoughts: [{ c: 'c-num', t: 'Number', short: 'No.', sort: 'id' }, { c: 'c-date', t: 'Last submitted', sort: 'lastSubmitted' }, { c: 'c-date', t: 'Last published', sort: 'lastPublished' }, { c: 'c-cnt', t: 'Approved', sort: 'approved' }, { c: 'c-cnt', t: 'Pending', sort: 'pending' }, { c: 'c-act', t: '' }],
   };
-  const sortState = { live: { key: 'id', dir: -1 }, pending: { key: 'id', dir: -1 }, archive: { key: 'archivedAt', dir: -1 }, thoughts: { key: 'activity', dir: -1 } }; // every list opens newest first; Thoughts: a quote with something waiting first, then by the latest thought (Bill: a new one pushes its quote to the top)
+  const sortState = { quotes: { key: 'id', dir: -1 }, archive: { key: 'archivedAt', dir: -1 }, thoughts: { key: 'activity', dir: -1 } }; // every list opens newest first (Quotes: the pending ones on top, newest first, then the live); Thoughts: a quote with something waiting first, then by the latest thought (Bill: a new one pushes its quote to the top)
   // A live quote waiting for Publish: "Updated" if the site shows an older version of it, "Not
   // published" if the site does not show it at all (newly approved or put back).
   const unpublished = (q) => (q.dirty ? (q.updated ? 'Updated' : 'Not published') : '');
-  const dateOf = { live: (q) => q.dirty ? '' : (q.approvedAt || ''), pending: (q) => q.submittedAt, archive: (q) => q.archivedAt, thoughts: (r) => r.lastSubmitted };
+  // The Quotes list's date column: "Pending" until approved (Bill, 2026-10-16), "Updated" / "Not published" until Publish, else the date published.
+  const dateText = (q) => (q.status === 'pending' ? 'Pending' : q.dirty ? unpublished(q) : fmtDate(q.approvedAt));
+  const dateOf = { quotes: (q) => (q.status === 'pending' || q.dirty ? '' : (q.approvedAt || '')), archive: (q) => q.archivedAt, thoughts: (r) => r.lastSubmitted };
   // The Thoughts list: one row per quote that has any — waiting (store.thoughts, by the quote's
   // number) or approved (inside the quote). A thought whose quote is gone for good still shows,
   // under its number, so it can be removed.
@@ -392,8 +395,8 @@
     tab = t;
     admin.dataset.tab = t;
     document.querySelectorAll('.tab').forEach((a) => a.classList.toggle('is-active', a.dataset.tab === t));
-    $('ctaLive').hidden = t !== 'live' && t !== 'thoughts'; $('ctaArchive').hidden = t !== 'archive'; $('ctaFonts').hidden = true; // Publish and "Last published" on Live and on Thoughts (an approved thought waits for Publish; Figma 524:518)
-    if (t === 'pending' && store.pending.some((q) => !q.seen)) { store.pending.forEach((q) => { q.seen = true; }); persist(); } // read: the mark goes
+    $('ctaLive').hidden = t !== 'quotes' && t !== 'thoughts'; $('ctaArchive').hidden = t !== 'archive'; $('ctaFonts').hidden = true; // Publish and "Last published" on Quotes and on Thoughts (an approved thought waits for Publish; Figma 524:518)
+    if (t === 'quotes' && store.pending.some((q) => !q.seen)) { store.pending.forEach((q) => { q.seen = true; }); persist(); } // read: the mark goes
     if (t === 'thoughts' && store.thoughts.some((q) => !q.seen)) { store.thoughts.forEach((q) => { q.seen = true; }); persist(); }
     renderList();
     switchView('list');
@@ -401,8 +404,8 @@
   }
 
   function refreshChrome() {
-    // How many wait to be reviewed, beside the tab's name: "Pending (3)"; nothing when none (Bill,
-    // 2026-10-06; until then a small asterisk said only that some were new).
+    // How many wait to be reviewed, beside the tab's name: "Quotes (3)"; nothing when none (Bill,
+    // 2026-10-06, then on Pending; until then a small asterisk said only that some were new).
     $('pendingCount').textContent = store.pending.length ? ` (${store.pending.length})` : '';
     $('thoughtsCount').textContent = store.thoughts.length ? ` (${store.thoughts.length})` : ''; // thoughts waiting, the same way
     $('publishBtn').disabled = !store.publishDirty;
@@ -410,12 +413,12 @@
     $('removeAllBtn').disabled = !store.archive.length;
   }
 
-  // The list as shown: sorted, and in Live and Pending narrowed by the search.
+  // The list as shown: sorted, and in Quotes and Thoughts narrowed by the search.
   function sorted(t) {
     const { key, dir } = sortState[t];
     const val = t === 'thoughts'
       ? (r) => (key === 'activity' ? `${r.pending ? 1 : 0}${r.lastSubmitted}` : key === 'approved' ? r.approvedN : key === 'lastPublished' ? (r.q && r.q.dirty && r.approvedN ? '￿' : r.lastPublished) : (r[key] || 0))
-      : (q) => (key === 'id' ? numberOf(q) : (key === 'publishedAt' ? (q.dirty ? '￿' : (q.approvedAt || '')) : (q[key] || '')));
+      : (q) => (key === 'id' ? numberOf(q) : (key === 'publishedAt' ? (q.status === 'pending' ? `￿￿${q.submittedAt}` : q.dirty ? '￿' : (q.approvedAt || '')) : (q[key] || '')));
     const terms = t in SEARCH_TABS ? fold_(query).split(/\s+/).filter(Boolean) : [];
     return listOf(t).filter((q) => terms.every((w) => hit(q, t, w))).sort((a, b) => (val(a) > val(b) ? 1 : val(a) < val(b) ? -1 : 0) * dir);
   }
@@ -424,16 +427,16 @@
   // number (from its first digit: "1" finds 1, 10, 11…), as a whole part of its date (9 or 09
   // finds September and the 9th) and at the start of a word; anything with a "/" in the date as
   // shown (09/26, 9/26/26); anything else anywhere in the words: the quote, its original, the
-  // author, the source, the categories, who kept it, and "Updated" / "Not published".
-  const SEARCH_TABS = { live: 1, pending: 1, thoughts: 1 };
+  // author, the source, the categories, who kept it, and "Pending" / "Updated" / "Not published".
+  const SEARCH_TABS = { quotes: 1, thoughts: 1 };
   let query = '';
   const fold_ = (s) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').toLowerCase().trim();
   function hit(q, t, w) {
-    const date = t === 'live' && q.dirty ? '' : fmtDate(dateOf[t](q));
+    const date = fmtDate(dateOf[t](q));
     const words = t === 'thoughts'
       ? fold_([q.text, ...[...q.waiting, ...q.approved].flatMap((x) => [x.text, x.name])].filter(Boolean).join(' \n ')) // the quote's words and every thought's, with its name
-      : fold_([q.text, q.originalLanguage && q.originalLanguage.text, q.author && q.author.name, q.author && q.author.nativeName, q.author && q.author.origin && `${q.author.origin} proverb`, q.source && q.source.title, catLabel(q.categories), q.keptBy, t === 'live' ? unpublished(q) : ''].filter(Boolean).join(' \n '));
-    if (/^\d+$/.test(w)) return String(t === 'thoughts' ? q.id : numberOf(q)).startsWith(w) || date.split('/').some((p) => Number(p) === Number(w)) || new RegExp(`(^|[^\\d])${w}`).test(words);
+      : fold_([q.text, q.originalLanguage && q.originalLanguage.text, q.author && q.author.name, q.author && q.author.nativeName, q.author && q.author.origin && `${q.author.origin} proverb`, q.source && q.source.title, catLabel(q.categories), q.keptBy, t === 'quotes' ? (q.status === 'pending' ? 'Pending' : unpublished(q)) : ''].filter(Boolean).join(' \n '));
+    if (/^\d+$/.test(w)) return (q.status === 'pending' ? '' : String(q.id)).startsWith(w) || date.split('/').some((p) => Number(p) === Number(w)) || new RegExp(`(^|[^\\d])${w}`).test(words);
     if (w.includes('/')) return date.includes(w) || date.replace(/(^|\/)0/g, '$1').includes(w);
     return words.includes(w);
   }
@@ -449,24 +452,25 @@
     if (tab === 'thoughts') { renderThoughtRows(items); return; }
     const acts = { live: '<button type="button" data-act="edit" aria-label="Edit"><span class="icon icon-edit"></span></button><button type="button" data-act="archive" aria-label="Archive"><span class="icon icon-x16"></span></button>',
                    pending: '<button type="button" data-act="edit" aria-label="Review"><span class="icon icon-eye"></span></button>',
-                   archive: '<button type="button" data-act="revert" aria-label="Put back"><span class="icon icon-revert"></span></button><button type="button" data-act="remove" aria-label="Remove"><span class="icon icon-x16"></span></button>' }[tab];
-    const swipe = { live: 'archive', pending: '', archive: 'remove' }[tab]; // touch: what a swipe to the left reveals (the archive's Put back is out in the open, in the number column)
+                   archive: '<button type="button" data-act="revert" aria-label="Put back"><span class="icon icon-revert"></span></button><button type="button" data-act="remove" aria-label="Remove"><span class="icon icon-x16"></span></button>' };
+    const kind = (q) => (tab === 'quotes' ? q.status : tab); // in Quotes each row its own: a live quote's pen + cross, a pending one's eye
+    const swipe = { live: 'archive', pending: '', archive: 'remove' }; // touch: what a swipe to the left reveals (the archive's Put back is out in the open, in the number column)
     const swipeLabel = { archive: 'Archive', remove: 'Remove' };
-    $('rows').style.setProperty('--num-w', `${String(Math.max(0, ...items.map(numberOf))).length}ch`); // every number as wide as the longest, so the ⓘs line up
+    $('rows').style.setProperty('--num-w', `${Math.max(1, ...items.map((q) => numLabel(q).length))}ch`); // every number as wide as the longest, so the ⓘs line up
     items.forEach(checkQuote);
     $('rows').innerHTML = items.map((q) => `
       <div class="row" data-key="${q.key}" tabindex="0">
         <div class="row-inner">
-          <p class="c-num num"><span class="num-n">${numberOf(q)}</span>${(issues.get(q.key) || []).length ? ALERT_ICON : ''}</p>
-          <p class="c-date num">${tab === 'live' && q.dirty ? unpublished(q) : fmtDate(dateOf[tab](q))}</p>
+          <p class="c-num num"><span class="num-n">${numLabel(q)}</span>${(issues.get(q.key) || []).length ? ALERT_ICON : ''}</p>
+          <p class="c-date num">${tab === 'quotes' ? dateText(q) : fmtDate(dateOf[tab](q))}</p>
           <p class="c-cat">${esc(catLabel(q.categories))}</p>
           <p class="c-quote">${esc(q.text)}</p>
-          <div class="c-act">${acts}</div>
+          <div class="c-act">${acts[kind(q)]}</div>
         </div>
-        ${swipe ? `<button type="button" class="row-swipe" data-act="${swipe}">${swipeLabel[swipe]}</button>` : ''}
+        ${swipe[kind(q)] ? `<button type="button" class="row-swipe" data-act="${swipe[kind(q)]}">${swipeLabel[swipe[kind(q)]]}</button>` : ''}
       </div>`).join('');
     $('empty').hidden = items.length > 0;
-    $('empty').textContent = listOf(tab).length ? 'Nothing found.' : { live: 'Nothing live yet.', pending: 'Nothing waiting.', archive: 'The archive is empty.' }[tab];
+    $('empty').textContent = listOf(tab).length ? 'Nothing found.' : { quotes: 'No quotes yet.', archive: 'The archive is empty.' }[tab];
   }
 
   function renderThoughtRows(items) {
@@ -544,8 +548,7 @@
     if (act === 'thoughts') { go(`#thoughts/${key}`); return; }
     if (act === 'archive') { leaveRow(row, () => archiveItem(key)); toast('Archived'); }
     if (act === 'revert') { // it goes back onto the site (or into the queue): worth a second look
-      const f = findItem(key); const to = f && f.q.archivedFrom === 'live' ? 'live' : 'pending';
-      if (await ask(`Put this quote back in ${to === 'live' ? 'Live' : 'Pending'}?`, 'Put back', 'Not yet')) { leaveRow(row, () => revertItem(key)); toast('Put back'); }
+      if (await ask('Put this quote back?', 'Put back', 'Not yet')) { leaveRow(row, () => revertItem(key)); toast('Put back'); } // (into Quotes, live or pending as it was)
     }
     if (act === 'remove') { leaveRow(row, () => { take(key); persist(); }); toast('Removed'); } // one click: it was archived already
   }
@@ -569,7 +572,7 @@
   }
   function approveItem(key) {
     const f = take(key); if (!f) return;
-    store.live.push({ ...f.q, id: maxId() + 1, status: 'live', dirty: true, approvedAt: null }); // the number it was showing
+    store.live.push({ ...f.q, id: maxId() + 1, status: 'live', dirty: true, approvedAt: null }); // the next free number (until now it showed --)
     store.live.sort((a, b) => a.id - b.id);
     store.publishDirty = true;
     persist();
@@ -879,13 +882,13 @@
     edit.langPicked = !!edit.draft.lang && edit.draft.lang !== 'other'; // a stored language is kept; 'other' is guessed again as the words change
     edit.orig = clone(edit.draft);
     admin.dataset.kind = f.tab;
-    tab = f.tab;
-    $('backBtn').dataset.href = `#${f.tab}`;
-    $('editNo').textContent = `No. ${numberOf(f.q)}`;
+    tab = 'quotes';
+    $('backBtn').dataset.href = '#quotes';
+    $('editNo').textContent = `No. ${numLabel(f.q)}`;
     $('editDate').textContent = f.tab === 'live' ? (f.q.dirty || !f.q.approvedAt ? unpublished(f.q) || 'Not published' : `Published: ${fmtDate(f.q.approvedAt)}`) : `Submitted: ${fmtDate(f.q.submittedAt)}`;
     fill(edit.draft);
     updateDirty();
-    const list = sorted(f.tab), i = list.findIndex((x) => x.key === key);
+    const list = sorted('quotes'), i = list.findIndex((x) => x.key === key);
     $('prevBtn').disabled = i <= 0; $('nextBtn').disabled = i >= list.length - 1;
     $('prevBtn').dataset.key = i > 0 ? list[i - 1].key : ''; $('nextBtn').dataset.key = i < list.length - 1 ? list[i + 1].key : '';
     if (stepping) {
@@ -948,7 +951,7 @@
   $('saveBtn').addEventListener('click', () => {
     if (th) { saveThoughts(); th = null; go('#thoughts'); return; }
     if (!edit) return;
-    const back = `#${edit.tab}`;
+    const back = '#quotes';
     saveEdit();
     edit = null;
     go(back);
@@ -958,14 +961,14 @@
     fromDraft(edit.draft, f.q);
     approveItem(edit.key);
     toast('Approved');
-    edit = null; go('#pending');
+    edit = null; go('#quotes');
   });
   $('archiveBtn').addEventListener('click', () => {
     const f = findItem(edit.key); if (!f) return;
     fromDraft(edit.draft, f.q);
     archiveItem(edit.key);
     toast('Archived');
-    edit = null; go('#pending');
+    edit = null; go('#quotes');
   });
   $('revertBtn').addEventListener('click', () => { if (!isDirty()) return; mark(); edit.draft = clone(edit.orig); fill(edit.draft); updateDirty(); });
 
@@ -1692,7 +1695,7 @@
       issues.set(q.key, now);
       if (now.length === before.length) return;
       const cell = $('rows').querySelector(`.row[data-key="${q.key}"] .c-num`);
-      if (cell) cell.innerHTML = `<span class="num-n">${numberOf(q)}</span>${now.length ? ALERT_ICON : ''}`;
+      if (cell) cell.innerHTML = `<span class="num-n">${numLabel(q)}</span>${now.length ? ALERT_ICON : ''}`;
     });
   }
   // The edit view: the link field and the cover field say what is wrong (the draft as it stands).

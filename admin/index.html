@@ -18,15 +18,15 @@
   <link rel="stylesheet" href="../css/admin.css">
 </head>
 <body>
-  <div class="admin" id="admin" data-view="list" data-tab="live">
+  <div class="admin" id="admin" data-view="list" data-tab="quotes">
 
     <!-- Everything scrolls inside this box; the chrome and the guards stay put (see .admin in admin.css). -->
     <div class="scroll" id="scroll">
 
-      <!-- Live / Pending / Archive -->
+      <!-- Quotes (live and pending, one list since 2026-10-16) / Archive -->
       <section class="page list" id="listView" aria-label="Quotes">
         <div class="thead" id="thead">
-          <!-- Search (Figma 307:2989), Live and Pending: the icon opens a 100px field beside it. Stays in place while the heads are redrawn. -->
+          <!-- Search (Figma 307:2989), Quotes and Thoughts: the icon opens a 100px field beside it. Stays in place while the heads are redrawn. -->
           <div class="search" id="search" role="search">
             <button type="button" class="search-btn" id="searchBtn" aria-label="Search" aria-expanded="false" aria-controls="searchBox"><span class="icon icon-search"></span></button>
             <div class="search-box" id="searchBox">
@@ -197,10 +197,9 @@
     <div class="chrome-list" id="chromeList">
       <button type="button" class="chrome home" role="link" data-href="https://wordswekeep.org/" aria-label="Words We Keep"><span class="icon icon-mark"></span></button> <!-- the site (Bill, 2026-10-10; it was the Live tab) -->
       <nav class="chrome tabs" id="tabs" aria-label="Sections">
-        <button type="button" class="tab" role="link" data-href="#live" data-tab="live">Live</button>
-        <button type="button" class="tab" role="link" data-href="#pending" data-tab="pending">Pending<span id="pendingCount"></span></button>
-        <button type="button" class="tab" role="link" data-href="#archive" data-tab="archive">Archive</button>
+        <button type="button" class="tab" role="link" data-href="#quotes" data-tab="quotes">Quotes<span id="pendingCount"></span></button> <!-- live and pending in one list, "Quotes (3)" while any wait (Bill, 2026-10-16; Live and Pending until then) -->
         <button type="button" class="tab" role="link" data-href="#thoughts" data-tab="thoughts">Thoughts<span id="thoughtsCount"></span></button>
+        <button type="button" class="tab" role="link" data-href="#archive" data-tab="archive">Archive</button>
         <button type="button" class="tab" role="link" data-href="#fonts" data-tab="fonts">Fonts</button>
       </nav>
       <div class="chrome cta" id="ctaLive">
@@ -218,7 +217,7 @@
 
     <!-- Chrome: the edit view -->
     <div class="chrome-edit" id="chromeEdit" hidden>
-      <button type="button" class="chrome link back" id="backBtn" role="link" data-href="#live">Back</button>
+      <button type="button" class="chrome link back" id="backBtn" role="link" data-href="#quotes">Back</button>
       <div class="chrome cta">
         <div class="cta-links">
           <button type="button" class="link" id="revertBtn">Revert</button>
