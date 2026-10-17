@@ -435,6 +435,15 @@ ul { list-style: none; }
    moves — iOS Safari redraws a fading word box by box, and wiped the tails of the neighbouring
    lines that lay inside it (js: drawWhole). */
 .q-word { padding: var(--ink-y) var(--ink-x); margin: calc(-1 * var(--ink-y)) calc(-1 * var(--ink-x)); }
+/* While the 中 / EN button comes in (.lang.is-in, a quarter of a second), iOS puts the quote's
+   wrapper on a layer of its own (it is centred by a transform, and the button inside it animates)
+   and crops that layer at its box: No. 25's italic "y", first on its line, lost its tail for that
+   long (Bill, 2026-10-16, iPhone). An empty box round the quote, as far as its ink may reach
+   (--ink-x / --ink-y at the quote's size), makes the layer that large; nothing moves or shows.
+   Touch screens only: on desktop the RGB lens filters the quote, and its area would grow. */
+@media (hover: none) {
+  .slide .q-wrap > .quote::after { content: ""; position: absolute; inset: calc(-1 * var(--ink-y)) calc(-1 * var(--ink-x)); pointer-events: none; }
+}
 .quote-ghost { position: absolute; max-width: none; pointer-events: none; }
 
 @media (max-width: 1023px) {
