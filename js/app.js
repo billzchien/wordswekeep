@@ -2919,6 +2919,8 @@
       annBusy = false;
     };
     if (annBusy && !instant) return; // still zooming in — ignore until it lands
+    app.classList.add('is-ann-closing'); // the blur clears with the word, in ANN_MS (css)
+    setTimeout(() => app.classList.remove('is-ann-closing'), ANN_MS + 30);
     dim(false);
     if (instant || reduceMotion.matches || !source || !source.isConnected) return done();
     // Zoom back into the quote.

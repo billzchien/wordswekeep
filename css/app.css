@@ -698,6 +698,12 @@ ul { list-style: none; }
 .app.is-dim .n-col,
 .app.is-dim .n-cats { filter: blur(10px); }
 .app.is-dim .notes  { pointer-events: none; }
+/* An annotation closing: the blur clears in the word's own 200ms (js/app.js → ANN_MS, closeAnnotation),
+   not the notes' 0.4s. The word landed sharp on a quote still half blurred, and the real word it
+   gave way to was blurred — a flash (Bill, 2026-10-16). Opening, and a video either way, keep 0.4s. */
+.app.is-ann-closing .n-pin,
+.app.is-ann-closing .n-col,
+.app.is-ann-closing .n-cats { transition-duration: 0.2s; }
 
 @media (max-width: 1023px) {
   .n-col { width: auto; margin-right: calc(var(--m) + var(--step)); max-width: none; }
