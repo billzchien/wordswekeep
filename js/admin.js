@@ -744,7 +744,7 @@
     text: q.text || '', original: q.originalLanguage ? q.originalLanguage.text : '', lang: q.originalLanguage ? q.originalLanguage.lang : '',
     categories: [...q.categories],
     author: { kind: q.author?.kind || 'person', name: q.author?.name || '', nativeName: q.author?.nativeName || '',
-      country: q.author?.country || (['person', 'acquaintance', 'self'].includes(q.author?.kind || 'person') ? UNSURE : ''), // none: "Not sure"
+      country: q.author?.country || (NAMED_KINDS.includes(q.author?.kind || 'person') ? UNSURE : ''), // none: "Not sure"
       origin: q.author?.origin || (q.author?.kind === 'saying' ? UNSURE : '') },
     source: { kind: q.source?.kind || '', year: q.source?.year ? String(q.source.year) : '', title: q.source?.title || '', link: q.source?.link || '', cover: q.source?.cover || '', crop: q.source?.crop ? { ...q.source.crop } : null },
     context: q.context || '', annotations: q.annotations.map((a) => ({ word: a.word, explanation: a.explanation, orig: a.in === 'original', matched: false, at: -1 })), // orig: a word of the original-language words
@@ -758,7 +758,7 @@
     q.text = t(d.text);
     q.originalLanguage = t(d.original) ? { lang: d.lang || detectLang(d.original), text: t(d.original) } : null;
     q.categories = CATEGORIES.map((c) => c.key).filter((k) => d.categories.includes(k));
-    const named = ['person', 'acquaintance', 'self'].includes(d.author.kind); // who said it: only the fields its kind has (as the form sends)
+    const named = NAMED_KINDS.includes(d.author.kind); // who said it: only the fields its kind has (as the form sends)
     q.author = { kind: d.author.kind || 'person', name: named ? t(d.author.name) || null : null, nativeName: d.author.kind === 'person' && NON_LATIN.has(d.author.country) ? (t(d.author.nativeName) || null) : null,
       country: named ? sure(d.author.country) : null, origin: d.author.kind === 'saying' ? sure(t(d.author.origin)) : null };
     q.source = (d.source.kind || d.source.year || d.source.title || d.source.link)
@@ -1177,12 +1177,16 @@
   // "Not sure", last in the country and the origin lists (Bill, 2026-10-11; as js/form.js): stored as no country /
   // no origin, and a named author or a saying with none opens as "Not sure" — the site then shows none ("A proverb" for a saying) and the region count skips it.
   const UNSURE = 'unsure', NOT_SURE = { value: UNSURE, label: 'Not sure' };
+  const NAMED_KINDS = ['person', 'acquaintance', 'self', 'character', 'other']; // the kinds with a name and a country
   const sure = (v) => (v && v !== UNSURE ? v : null); // what is stored: "Not sure" is none
   const country = combo($('fCountry'), { options: [...REGIONS, NOT_SURE], placeholder: 'Country or region', onChange: (v) => { if (!edit) return; mark('country'); edit.draft.author.country = v; fold($('fNativeWrap'), edit.draft.author.kind === 'person' && NON_LATIN.has(v)); updateDirty(); } });
   // Who said it, as on the form (js/form.js → WHO, ORIGINS: keep the lists in step): the fields
   // follow the kind; a saying is where it is from ("Chinese" → "Chinese proverb" on the site).
+  // A fictional character and "Other" (2026-10-17): a name and a country, which may be "Not sure";
+  // a character's is its film's, show's or book's ("Source country or region"). Never looked up (autoPlace).
   const WHO = [{ value: 'person', label: 'A known person', name: 'Author' }, { value: 'acquaintance', label: 'Someone I know', name: 'A friend' },
-    { value: 'self', label: 'Myself', name: 'First name' }, { value: 'saying', label: 'A saying or proverb' }, { value: 'unknown', label: 'Not sure' }];
+    { value: 'self', label: 'Myself', name: 'First name' }, { value: 'character', label: 'A fictional character', name: 'Character name' },
+    { value: 'saying', label: 'A saying or proverb' }, { value: 'other', label: 'Other', name: 'Name' }, { value: 'unknown', label: 'Not sure' }];
   const ORIGINS = ['African', 'Afghan', 'Albanian', 'American', 'Arabic', 'Armenian', 'Aboriginal Australian', 'Bengali', 'Brazilian', 'Buddhist',
     'Bulgarian', 'Burmese', 'Cambodian', 'Chinese', 'Croatian', 'Czech', 'Danish', 'Dutch', 'English', 'Estonian', 'Ethiopian', 'Filipino',
     'Finnish', 'French', 'Georgian', 'German', 'Ghanaian', 'Greek', 'Hawaiian', 'Hebrew', 'Hungarian', 'Icelandic', 'Igbo', 'Indian',
@@ -1197,6 +1201,8 @@
     f($('fNameRowWrap'), !!w.name);
     f($('fNativeWrap'), kind === 'person' && NON_LATIN.has(edit ? edit.draft.author.country : ''));
     f($('fOriginWrap'), kind === 'saying');
+    const countryLabel = kind === 'character' ? 'Source country or region' : 'Country or region';
+    country.input.placeholder = countryLabel; country.input.setAttribute('aria-label', countryLabel);
   }
   const who = combo($('fWho'), { options: WHO, placeholder: 'Who said or wrote it', keep: true, select: true, onChange: (v) => { if (!edit || !v || edit.draft.author.kind === v) return; mark('who'); edit.draft.author.kind = v; showWho(v); updateDirty(); autoSong(); } });
   const origin = combo($('fOrigin'), { options: [...ORIGINS, NOT_SURE], placeholder: 'Where is it from', onChange: (v) => { if (!edit) return; mark('origin'); edit.draft.author.origin = v; updateDirty(); } });

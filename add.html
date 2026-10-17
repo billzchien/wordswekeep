@@ -86,13 +86,14 @@
               <div class="fold" id="fOriginWrap" hidden><div class="fw" id="fOrigin"></div></div>
             </div>
           </div>
-          <div class="group">
+          <div class="group reveal" id="sourceGroup"> <!-- appears in its kept space once "Who said or wrote it?" is answered (js/form.js → refresh) -->
             <div class="q"><div class="q-title"><p>Where can we find this quote?</p></div></div>
             <div class="stack">
               <div class="row">
                 <div class="fw" id="fKind"></div>
                 <div class="fw" id="fYear"></div>
               </div>
+              <div class="fold" id="fSrcCountryWrap" hidden><div id="fSrcCountrySlot"></div></div> <!-- a fictional character: the country of the film, show or book, here rather than beside the name (js/form.js → showWho moves #fCountry in) -->
               <div class="fold" id="fTitleWrap" hidden><div class="fw"><input class="field" id="fTitle" type="text" placeholder="Source name" autocomplete="off" aria-label="Source name"></div></div>
               <div class="fold" id="fSourceLinkWrap" hidden><div class="fw"><input class="field" id="fSourceLink" type="url" placeholder="Source link" autocomplete="off" inputmode="url" aria-label="Source link"></div></div>
             </div>

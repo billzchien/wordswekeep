@@ -1110,6 +1110,8 @@
   //   own row, so it sits in the same place at every width and an Arabic or Hebrew one never shares
   //   a line with the English; with no English name, it is the first row.
   // · Someone known, oneself: the name as typed ("My grandmother", "Bill") · the country.
+  // · A fictional character: the name · "Fictional character" · the country (of the film, show or
+  //   book). · Other (a band, a brand, scripture…): the name · the country, if any.
   // · A saying: where it is from, "Chinese proverb". · Not sure: "Unknown".
   // Every row wraps like the source's when it is too long; names go through nativeRuns like
   // anything typed (their script's Noto; Arabic and Hebrew right to left).
@@ -1122,6 +1124,7 @@
     let html = name ? row(nativeRuns(esc(kind === 'acquaintance' ? name.charAt(0).toUpperCase() + name.slice(1) : name))) : '';
     if (native) html += row(nativeRuns(esc(native)), `n-source${name ? ' n-native-name' : ''}`);
     if (!html) html = row('Unknown'); // (a person with no name at all: not let through by the form)
+    if (kind === 'character') html += row('Fictional character', 'n-row'); // (Bill, 2026-10-17; its country is the film's, show's or book's)
     if (country) html += row(esc(country), 'n-row');
     return html;
   }

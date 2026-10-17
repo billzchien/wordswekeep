@@ -52,13 +52,22 @@
   // Who said or wrote it (Bill, 2026-10-06). `person` — a known person — is the default and what
   // every quote from before has. Each kind asks for its own fields (WHO_FIELDS); "Words from"
   // shows them as js/app.js → whoRows. The same list is in js/admin.js and workers/lib/entry.js.
+  // "A fictional character" and "Other" (Bill, 2026-10-17): a character's name, and the country of
+  // the film, show or book it is from — asked in "Where can we find this quote?", which loses
+  // Personal and Speech / Interview for it (CHARACTER_SKIP); anything else (a band, a brand,
+  // scripture, a stranger) a name and, if known, a country. Neither is ever looked up.
   const WHO = [
     { value: 'person', label: 'A known person', name: 'Name' },
     { value: 'acquaintance', label: 'Someone I know', name: 'A friend' },
     { value: 'self', label: 'Myself', name: 'Your first name' },
+    { value: 'character', label: 'A fictional character', name: 'Character name' },
     { value: 'saying', label: 'A saying or proverb' },
+    { value: 'other', label: 'Other', name: 'Name' },
     { value: 'unknown', label: 'Not sure' },
   ];
+  const NAMED = new Set(['person', 'acquaintance', 'self', 'character', 'other']); // the kinds with a name and a country
+  const COUNTRY_OPTIONAL = new Set(['character', 'other']); // …which they may leave empty
+  const CHARACTER_SKIP = new Set(['personal', 'speech']); // source kinds a fictional character is never from
   // Where a saying is from: a culture, a people, a language or a tradition, as it reads before
   // "proverb" ("Chinese proverb"). One not on the list can be typed. (js/admin.js has the same list.)
   const ORIGINS = ['African', 'Afghan', 'Albanian', 'American', 'Arabic', 'Armenian', 'Aboriginal Australian', 'Bengali', 'Brazilian', 'Buddhist',
@@ -127,7 +136,7 @@
   // What is sent of the author: only the fields its kind asks for.
   function authorOut() {
     const a = data.author, t = (s) => s.trim(), kind = a.kind;
-    const named = kind === 'person' || kind === 'acquaintance' || kind === 'self';
+    const named = NAMED.has(kind);
     return {
       kind,
       name: named ? t(a.name) || null : null,
@@ -138,11 +147,13 @@
   }
   // Each kind's own check: a known person needs a name — the English or the one in its original
   // language, either will do — and a country; someone known and oneself, a name and a country;
-  // a saying, where it is from; "Not sure", nothing.
+  // a fictional character and "Other", a name (the country may stay empty); a saying, where it
+  // is from; "Not sure", nothing.
   function authorOk() {
     const a = data.author;
     if (a.kind === 'saying') return !!a.origin.trim();
     if (a.kind === 'unknown') return true;
+    if (COUNTRY_OPTIONAL.has(a.kind)) return !!a.name.trim();
     const name = !!a.name.trim() || (a.kind === 'person' && NON_LATIN.has(a.country) && !!a.nativeName.trim());
     return name && !!a.country;
   }
@@ -191,6 +202,7 @@
       const a = data.author;
       if (a.kind === 'saying') return [$('fOrigin').querySelector('.field')];
       if (a.kind === 'unknown') return [];
+      if (COUNTRY_OPTIONAL.has(a.kind)) return [$('fName')];
       const native = a.kind === 'person' && NON_LATIN.has(a.country) && a.nativeName.trim();
       return [native ? null : $('fName'), $('fCountry').querySelector('.field')];
     },
@@ -210,6 +222,17 @@
     // Step 5, as the thoughts box: the name, then "Add words" and its line, appear once there are
     // words, and go if they are deleted (Bill, 2026-10-10) — in space kept for them (css .reveal).
     $('fKeptByWrap').classList.toggle('is-in', valid[4]()); $('submitWrap').classList.toggle('is-in', valid[4]());
+    // Step 3: "Where can we find this quote?" appears once "Who said or wrote it?" is answered, and
+    // goes if it is undone (Bill, 2026-10-17) — in its kept space, so nothing moves; what was
+    // chosen there stays. Arrived, it drops the slide's translate (a translate makes a layer, and
+    // its dropdowns' lists must open over what follows, as in a settled fold).
+    const src = $('sourceGroup'), srcIn = valid[2]();
+    if (srcIn !== src.classList.contains('is-in')) {
+      src.classList.toggle('is-in', srcIn);
+      clearTimeout(refresh.srcT);
+      src.classList.remove('is-settled');
+      if (srcIn) refresh.srcT = setTimeout(() => src.classList.add('is-settled'), reduceMotion.matches ? 0 : FOLD_MS);
+    }
     // Step 4's button reads "Skip" until there is something to keep.
     $('ctxNext').textContent = (data.context.trim() || data.annotations.length) ? 'Next' : 'Skip';
     const n = data.annotations.length;
@@ -960,8 +983,20 @@
     fold($('fNameRowWrap'), named);
     fold($('fNativeWrap'), kind === 'person' && NON_LATIN.has(data.author.country));
     fold($('fOriginWrap'), kind === 'saying');
-    document.querySelectorAll('#fNameRowWrap .fw, #fOriginWrap .fw').forEach((f) => f.classList.remove('is-warn'));
+    // A fictional character's country is the film's, show's or book's: it moves under the source's
+    // category and year (Bill), and the name has the row to itself; back beside the name otherwise.
+    const character = kind === 'character', host = $('fCountry');
+    if (character) $('fSrcCountrySlot').appendChild(host);
+    else if (host.parentElement !== $('fName').closest('.row')) $('fName').closest('.row').appendChild(host);
+    fold($('fSrcCountryWrap'), character);
+    const countryLabel = character ? 'Source country or region' : 'Country or region'; // (Bill)
+    country.input.placeholder = countryLabel; country.input.setAttribute('aria-label', countryLabel);
+    kindOptions.splice(0, kindOptions.length, ...(character ? KINDS.filter((k) => !CHARACTER_SKIP.has(k.value)) : KINDS));
+    if (character && CHARACTER_SKIP.has(data.source.kind) && sourceKind) sourceKind.set('');
+    document.querySelectorAll('#fNameRowWrap .fw, #fOriginWrap .fw, #fSrcCountryWrap .fw').forEach((f) => f.classList.remove('is-warn'));
   }
+  const kindOptions = KINDS.slice(); // the source categories offered: all, or a fictional character's (showWho)
+  let sourceKind = null; // the source category's dropdown, once made (below)
   const who = combo($('fWho'), { options: WHO, placeholder: 'Who said or wrote it', label: 'Who said or wrote it', keep: true, select: true, onChange: (v) => { if (!v || v === data.author.kind && who) return; data.author.kind = v; showWho(v); refresh(); } });
   who.set('person');
   // Source name and link appear once a kind other than Personal is chosen, one after the other.
@@ -978,7 +1013,8 @@
     $('fSourceLink').placeholder = hint; $('fSourceLink').setAttribute('aria-label', hint);
     $('fTitle').placeholder = name; $('fTitle').setAttribute('aria-label', name);
   }
-  const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', label: 'Source category', onChange: (v) => { data.source.kind = v; linkHint(v); showSourceFields(!!v && v !== 'personal'); showSameSource(); } });
+  const kind = combo($('fKind'), { options: kindOptions, placeholder: 'Source category', label: 'Source category', onChange: (v) => { data.source.kind = v; linkHint(v); showSourceFields(!!v && v !== 'personal'); showSameSource(); } });
+  sourceKind = kind;
   const year = combo($('fYear'), { options: YEARS, placeholder: 'Year', free: true, onChange: (v) => { data.source.year = /^\d{1,4}$/.test(v) ? v : ''; } });
   year.input.inputMode = 'numeric';
 
