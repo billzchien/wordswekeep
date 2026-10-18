@@ -28,7 +28,7 @@
     "keptBy": null,
     "submittedAt": "2026-06-19T18:28:47",
     "approvedAt": "2026-06-19T18:28:47",
-    "font": "print"
+    "font": "goudy"
   },
   {
     "id": 2,
@@ -66,15 +66,18 @@
       "growth"
     ],
     "author": {
+      "kind": "person",
       "name": "Alvin Toffler",
       "nativeName": null,
-      "country": "US"
+      "country": "US",
+      "origin": null
     },
     "source": {
       "title": "Future Shock",
       "year": null,
       "kind": "book",
-      "link": null
+      "link": null,
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Publication116/v4/b4/e3/73/b4e37321-571c-0b96-0ff8-82569c615bcc/9780593159767.d.jpg/600x600bb.jpg"
     },
     "context": null,
     "annotations": [],
@@ -82,7 +85,7 @@
     "keptBy": null,
     "submittedAt": "2026-06-19T18:36:09",
     "approvedAt": "2026-06-19T18:36:09",
-    "font": "rondeau"
+    "font": "stone"
   },
   {
     "id": 4,
@@ -217,9 +220,11 @@
       "growth"
     ],
     "author": {
+      "kind": "person",
       "name": "Mencius",
       "nativeName": "孟子",
-      "country": "CN"
+      "country": "CN",
+      "origin": null
     },
     "source": {
       "title": "The Works of Mencius",
@@ -250,7 +255,7 @@
     "keptBy": "Bill",
     "submittedAt": "2026-07-07T12:12:48",
     "approvedAt": "2026-07-07T12:12:48",
-    "font": "print",
+    "font": "stone",
     "notFirst": true
   },
   {
@@ -383,9 +388,11 @@
       "drive"
     ],
     "author": {
+      "kind": "person",
       "name": "Li-Ying Bao",
       "nativeName": null,
-      "country": "CN"
+      "country": "CN",
+      "origin": null
     },
     "source": null,
     "context": "Li-Ying Bao was one of my Design professors in college. Anytime she was done critiquing your work, she would smile at you, nod her head and say ‘keep going’.",
@@ -394,7 +401,7 @@
     "keptBy": "Katie",
     "submittedAt": "2026-07-10T18:54:07",
     "approvedAt": "2026-07-10T18:54:07",
-    "font": "rondeau"
+    "font": "king"
   },
   {
     "id": 14,
@@ -626,9 +633,11 @@
       "drive"
     ],
     "author": {
+      "kind": "person",
       "name": "Miles Davis",
       "nativeName": null,
-      "country": "US"
+      "country": "US",
+      "origin": null
     },
     "source": null,
     "context": null,
@@ -637,7 +646,7 @@
     "keptBy": "RR",
     "submittedAt": "2026-08-02T15:44:54",
     "approvedAt": "2026-08-02T15:44:54",
-    "font": "author"
+    "font": "auserif"
   },
   {
     "status": "live",
@@ -772,7 +781,7 @@
     "keptBy": "Bill",
     "approvedAt": "2026-10-11T02:56:00.890Z",
     "submittedAt": "2026-10-11T02:54:18.638Z",
-    "font": "round",
+    "font": "grotesk",
     "id": 26
   },
   {
@@ -804,7 +813,7 @@
     "keptBy": null,
     "approvedAt": "2026-10-13T11:31:57.817Z",
     "submittedAt": "2026-10-13T04:15:37.566Z",
-    "font": "goudy",
+    "font": "auserif",
     "id": 27
   },
   {
@@ -835,5 +844,59 @@
     "submittedAt": "2026-10-17T15:36:14.238Z",
     "font": "instrument",
     "id": 28
+  },
+  {
+    "status": "live",
+    "text": "Nothing grows under the big tree.",
+    "originalLanguage": null,
+    "categories": [
+      "growth",
+      "community"
+    ],
+    "author": {
+      "kind": "acquaintance",
+      "name": "A friend",
+      "nativeName": null,
+      "country": "IN",
+      "origin": null
+    },
+    "source": {
+      "title": null,
+      "year": null,
+      "kind": "personal",
+      "link": null
+    },
+    "context": "To me, phase involves two different people. The person who is the big tree, like a parent who wants to help the person under the tree by doing too much. And the person under the tree, who does not get to experience their independence, or totally choose their own path.",
+    "annotations": [],
+    "reflection": "At one time, I thought being the big tree was the best way to go in life. But a friend of my once told of the phrase nothing grows under the big tree. I soon understood that he was talking about how it intersected my life. So I took his advice and changed my approach to the person under the tree. This person now had more options and freedom to make decisions concerning their life. Today, this person is far better off by choosing their own path in life, and not my path.",
+    "keptBy": "Steven",
+    "approvedAt": "2026-10-18T23:48:04.391Z",
+    "submittedAt": "2026-10-18T21:27:59.366Z",
+    "font": "king",
+    "id": 29
+  },
+  {
+    "status": "live",
+    "text": "Did anyone tell you today that you are the greatest!",
+    "originalLanguage": null,
+    "categories": [
+      "community"
+    ],
+    "author": {
+      "kind": "self",
+      "name": "Steven",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": null,
+    "context": "I like to use this phrase in lots of different social situations. I use it when someone was being more helpful than I expected. It could be a retail situation; A family member who did something special; or just any random act of kindness I encounter throughout my day.",
+    "annotations": [],
+    "reflection": "People like to feel appreciated in life. And people want to be treated with respect, as a person. So when I use this phrase, it is my way of saying ‘Thank you for the help!’ as my personalization of a given situation. And I like to see people smile when I use the phrase :)",
+    "keptBy": "Steven",
+    "approvedAt": "2026-10-18T23:48:04.391Z",
+    "submittedAt": "2026-10-18T21:19:10.047Z",
+    "font": "instrument",
+    "id": 30
   }
 ]
