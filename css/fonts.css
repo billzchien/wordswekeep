@@ -102,15 +102,15 @@
 /* Briega, King (At Briega Regular, At King Book; 2026-10-18): no Figma board — rough starting
    values from their proportions against the faces already tuned (Briega's x-height and width are
    Fig's, a little wider; King is narrow, Print's x-height), for Bill to tune in the Fonts tab.
-   Both are serifs. Briega's ss01 is its floral ornaments, left off; King takes ss01 (its "Gothic
-   alternates": A E F H K R a) and its ligatures (fi fl), Bill 2026-10-18. */
+   Both are serifs. Briega's ss01 is its floral ornaments, left off; King's ss01 (its "Gothic
+   alternates": A E F H K R a) was on at first and is off again (Bill, 2026-10-18). */
 [data-font="briega"]  { --qf-family: 'Briega', var(--native-serif);  --qf-style: normal; --qf-leading: 1.25; --qf-tracking: -0.015em; --qf-features: "liga" 1, "clig" 1; }
 [data-font="briega"][data-tier="l"]  { --qf-scale: 0.85; }
 [data-font="briega"][data-tier="m"],
 [data-font="briega"][data-tier="s"],
 [data-font="briega"][data-tier="xs"] { --qf-scale: 0.8; }
 
-[data-font="king"]    { --qf-family: 'King', var(--native-serif);    --qf-style: normal; --qf-leading: 1.15; --qf-tracking: 0em; --qf-features: "liga" 1, "clig" 1, "ss01" 1; }
+[data-font="king"]    { --qf-family: 'King', var(--native-serif);    --qf-style: normal; --qf-leading: 1.15; --qf-tracking: 0em; --qf-features: "liga" 1, "clig" 1; }
 [data-font="king"][data-tier="m"]  { --qf-scale: 0.95; }
 [data-font="king"][data-tier="s"],
 [data-font="king"][data-tier="xs"] { --qf-scale: 0.9; }
