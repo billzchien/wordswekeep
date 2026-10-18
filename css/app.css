@@ -840,6 +840,10 @@ ul { list-style: none; }
   --desc-left: var(--col4);
 }
 .menu-back { position: absolute; top: calc(20px - var(--cap-offset)); left: var(--m); }
+/* The bottom row (Bill, 2026-10-18): "Add words" stays where it is, lifted over the menu while it
+   is open (.is-menu-open, js/app.js → openMenu), and "Privacy" fades in at the right with Back. */
+.menu-privacy { position: absolute; right: var(--m); bottom: 20px; }
+.app.is-menu-open .add-btn { z-index: 41; }
 
 .menu-sym {
   position: absolute;
@@ -949,6 +953,19 @@ ul { list-style: none; }
   }
   .menu-back, .menu-sym { z-index: 2; }
   .menu-sym { left: auto; right: var(--m); top: 20px; translate: none; }
+  /* …and a bottom bar the same, under "Add words" and "Privacy": rows scrolling down fade out
+     before them, and the last can scroll clear of them. */
+  .menu::after {
+    content: "";
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: calc(40px + var(--lh));
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(to top, var(--paper) 45%, transparent);
+  }
+  .cat-list { padding-bottom: calc(40px + var(--lh)); }
+  .menu-privacy { z-index: 2; }
   /* The hairline between rows belongs to the lower row. */
   li + li > .cat-row::before { content: ""; position: absolute; left: 0; right: 0; top: 0; border-top: var(--hairline) solid var(--rule); }
   .cat-row[data-empty] { opacity: 1; } /* the rule keeps its colour: only the name is dimmed */

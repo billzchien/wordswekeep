@@ -2841,10 +2841,10 @@
      reached); closing it gives the focus back to what opened it. Nothing is drawn: the box shows
      only for a keyboard (:focus-visible). */
   const layerFocus = { back: null };
-  function focusInto(layer, first) {
+  function focusInto(layer, first, keep = []) { // keep: what stays usable beside the layer (the menu's "Add words")
     const back = document.activeElement;
     layerFocus.back = back && back !== document.body ? back : null;
-    [...app.children].forEach((c) => { if (c !== layer && c.id !== 'toast') c.inert = true; });
+    [...app.children].forEach((c) => { if (c !== layer && c.id !== 'toast' && !keep.includes(c)) c.inert = true; });
     if (first) first.focus({ preventScroll: true });
   }
   function focusBack() {
@@ -3458,7 +3458,9 @@
 
   /* Menu motion: the mark undraws itself (its draw-in played backwards), then the list arrives —
      each row fades in MENU_STAGGER_MS after the one above, while the menu's symbol draws in.
-     The descriptor (and Back / the apply button) fade in together with the first row. */
+     The descriptor (and Back / Privacy / the apply button) fade in together with the first row.
+     "Add words" (Bill, 2026-10-18) never goes: lifted over the menu (.is-menu-open), it stays put
+     at the bottom left through opening and closing, and stays usable (focusInto's keep). */
   const MENU_ICON_MS = 300, MENU_ITEM_MS = 400, MENU_STAGGER_MS = 50;
   const MENU_OUT_MS = 250, MENU_BG_MS = 250; // leaving: each row's fade, then the background's
   const MENU_RETURN_MS = 400;              // closing with nothing changed: the quote fades back in (Notes + arrows: css, 400ms)
@@ -3470,8 +3472,9 @@
     const reveal = () => {
       state.preview = state.filter;
       renderMenu();
+      app.classList.add('is-menu-open');
       $('menu').hidden = false;
-      focusInto($('menu'), document.querySelector('#catList .cat-row.is-selected') || $('menuBack'));
+      focusInto($('menu'), document.querySelector('#catList .cat-row.is-selected') || $('menuBack'), [$('addBtn')]);
       menuSymOpen(state.filter);
       sizeDescLine(true); // the hairline is at full length as the menu appears; it glides only between items
       if (state.mode === 'main') app.classList.add('is-typing'); // Notes and the arrows go under the menu already hidden: they type back in with the quote on close
@@ -3483,7 +3486,7 @@
       document.querySelectorAll('#catList .cat-row').forEach((row, i) => {
         fadeIn(row, i * MENU_STAGGER_MS);
       });
-      [document.querySelector('.cat-desc'), $('menuBack'), $('menuApply')].forEach((el) => fadeIn(el, 0)); // the symbol is not faded: it draws in
+      [document.querySelector('.cat-desc'), $('menuBack'), $('menuPrivacy'), $('menuApply')].forEach((el) => fadeIn(el, 0)); // the symbol is not faded: it draws in
     };
     if (reduceMotion.matches) return reveal();
     menuBusy = true;
@@ -3503,6 +3506,7 @@
     let holdChrome = false; // the words are fading back in: Notes and the arrows wait for them
     const finish = () => {
       menu.hidden = true;
+      app.classList.remove('is-menu-open');
       menu.getAnimations({ subtree: true }).forEach((a) => a.cancel());
       menuSymStop();
       icon.getAnimations().forEach((a) => a.cancel());
@@ -3519,7 +3523,7 @@
     rows.forEach((row, i) => {
       fadeOut(row, i * MENU_STAGGER_MS);
     });
-    [document.querySelector('.cat-desc'), $('menuSym'), $('menuBack'), $('menuApply')].forEach((el) => fadeOut(el, 0));
+    [document.querySelector('.cat-desc'), $('menuSym'), $('menuBack'), $('menuPrivacy'), $('menuApply')].forEach((el) => fadeOut(el, 0));
 
     const itemsGone = MENU_OUT_MS + Math.max(0, rows.length - 1) * MENU_STAGGER_MS;
     const wrap = currentWrap();
