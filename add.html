@@ -43,7 +43,7 @@
           <div class="group group--16">
             <div class="q">
               <div class="q-title"><p>Words you hold onto?</p><span class="icon req" aria-hidden="true"></span></div>
-              <p class="q-desc">Anything you read, heard, or were told</p>
+              <p class="q-desc" id="textDesc">Quotes from a book, a film, a song, a speech, or anywhere else</p> <!-- after a reload, "We kept your words from last time" (js/form.js → draft) -->
             </div>
             <div class="stack">
               <div class="fw"><textarea class="field" id="fText" placeholder="The words, in English" rows="3" required aria-label="The words, in English"></textarea></div>
@@ -51,9 +51,19 @@
             </div>
             <div class="fold is-open" id="origToggleWrap"><div><button type="button" class="more" id="origToggle"><span>In original language</span><span class="icon icon-plus"></span></button></div></div>
           </div>
-          <div class="reveal next-wrap"><button type="button" class="btn" data-next disabled>Next</button>
-            <p class="reveal dup-note" id="dupNote">We found matching or similar words. <span role="link" tabindex="0" data-href="./" id="dupGo">Add thoughts instead</span></p> <!-- the words are already in the collection: under Next, taking no room (js/form.js → sameWords) -->
-          </div> <!-- appears in its own kept space once the step's required fields are filled (js/form.js → refresh) -->
+          <!-- Appears in its own kept space once the step's required fields are filled (js/form.js → refresh).
+               The words already in the collection (js/form.js → sameWords; Bill, 2026-10-18): the line fades in
+               above, in space kept for it, and Next gives way to "Continue" + "Add thoughts instead" in its place. -->
+          <div class="reveal next-wrap">
+            <div class="dup-note" id="dupNote"><p>We found <span role="link" tabindex="0" data-href="./" data-out id="dupSee">matching or similar words</span> in our&nbsp;collection.</p></div>
+            <div class="next-btns" id="nextBtns">
+              <button type="button" class="btn" data-next disabled>Next</button>
+              <div class="dup-pair" id="dupPair" inert>
+                <button type="button" class="btn" data-next>Continue</button>
+                <button type="button" class="btn btn--primary" id="dupGo">Add thoughts instead</button>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -132,7 +142,7 @@
           <div class="hp" aria-hidden="true"><input type="text" id="fWebsite" name="website" tabindex="-1" autocomplete="off"></div>
           <div class="reveal" id="submitWrap"><div>
             <button type="button" class="btn btn--primary" id="submitBtn" disabled>Add words</button>
-            <p class="send-note">These words join the collection once approved. <span role="link" tabindex="0" data-href="privacy" data-out>How we keep them</span></p> <!-- the privacy page, in a new tab (css/form.css → .send-note) -->
+            <p class="send-note" id="sendNote" aria-live="polite">These words join the collection once approved. <span role="link" tabindex="0" data-href="privacy" data-out>How we keep them</span></p> <!-- the privacy page, in a new tab (css/form.css → .send-note) -->
           </div></div>
         </div>
       </section>

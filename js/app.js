@@ -3710,7 +3710,7 @@
       }
       state.idx = found >= 0 ? found : 0;
       renderDeck();
-      if (thoughtFor) intoThoughts(); else arrive();
+      if (thoughtFor || notesFor) intoThoughts(); else arrive();
     })
     .catch((err) => {
       console.error(err);
@@ -3906,11 +3906,14 @@
   // opens straight into its notes — no typing in (Bill: they have just typed it themselves) —
   // fading in as the chrome does back from the form, and its thoughts box opens as
   // "Add thoughts +" opens it (the notes gliding to their end).
-  const thoughtFor = session.get('wwk-thought');
-  session.remove('wwk-thought');
+  // A quote's address with ?notes (wordswekeep.org/23?notes, 404.html → wwk-notes; Bill,
+  // 2026-10-18 — the form's "matching or similar words", opened in a new tab) arrives the same way,
+  // into its notes, without opening the thoughts box.
+  const thoughtFor = session.get('wwk-thought'), notesFor = session.get('wwk-notes');
+  session.remove('wwk-thought'); session.remove('wwk-notes');
   function intoThoughts() {
     const q = state.list[state.idx];
-    if (!q || String(q.id) !== thoughtFor) { arrive(); return; } // that quote is no longer on the site: the usual arrival
+    if (!q || String(q.id) !== (thoughtFor || notesFor)) { arrive(); return; } // that quote is no longer on the site: the usual arrival
     markStill = false;
     drawMark(false); // the logo never left
     if (!chromeShown) { chromeShown = true; showPlayer(); } // (in notes: it is there when they close)
@@ -3918,7 +3921,7 @@
     app.classList.add('is-into-thoughts');
     setTimeout(() => app.classList.remove('is-into-thoughts'), CHROME_IN_MS + 100);
     applyMode('notes');
-    const open = $('nBody').querySelector('.n-add-open'); // (none once they have sent a thought on it this visit: the thanks stands there)
+    const open = thoughtFor && $('nBody').querySelector('.n-add-open'); // (none once they have sent a thought on it this visit: the thanks stands there)
     if (open && !open.hidden) setTimeout(() => open.click(), reduceMotion.matches ? 0 : THOUGHT_OPEN_MS);
   }
 

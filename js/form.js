@@ -617,10 +617,12 @@
      library is not looked at — the library sees those):
      · The same words (step 1): the words, or the words in their original language, against
        every live quote's, loosely — a line typed a little differently, or only part of one,
-       still counts. "We found matching or similar words. Add thoughts instead" shows under
-       Next (sameWords); the link takes them, in this tab, to that quote with its notes and
-       the thoughts box open (js/app.js → wwk-thought). Nothing is blocked: Next still goes on,
-       and the library warns about such an entry (js/admin.js → sameWords, a copy: keep in step).
+       still counts (sameWords). Then (Bill, 2026-10-18; it was a line under Next) "We found
+       matching or similar words in our collection." fades in above the buttons, and Next gives
+       way to "Continue" (Next, by another name) + "Add thoughts instead": that quote's notes in
+       this tab with its thoughts box open (js/app.js → wwk-thought); "matching or similar words",
+       its notes in a new tab (./<id>?notes, 404.html → wwk-notes). Nothing is blocked, and the
+       library warns about such an entry (js/admin.js → sameWords, a copy: keep in step).
      · The same source, another line (step 3): the source link, or the source name with the same
        author, matches a live quote's. What they have left empty of the source (year, name,
        link) is filled from it, and a grey line unfolds under the source to say so (no space kept:
@@ -666,19 +668,37 @@
   function showSameWords() {
     sameQuote = sameWords(data.text, data.original);
     $('dupNote').classList.toggle('is-in', !!sameQuote);
+    $('nextBtns').classList.toggle('is-dup', !!sameQuote);
+    $('dupPair').inert = !sameQuote;
+    steps[0].querySelector('[data-next]').tabIndex = sameQuote ? -1 : 0; // (Next, faded: out of Tab's way)
+    if (sameQuote) $('dupSee').dataset.href = `./${sameQuote.id}?notes`;
   }
+  // Side by side while "Add thoughts instead" fits its half; one above the other, the primary on
+  // top (moved, so Tab follows it), when it does not — measured as the column's width changes.
+  function fitDupPair() {
+    const pair = $('dupPair'), b = $('dupGo');
+    pair.classList.remove('is-stacked'); pair.append(b);
+    const cs = getComputedStyle(b), room = b.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const r = document.createRange(); r.selectNodeContents(b);
+    if (!room || r.getBoundingClientRect().width <= room) return;
+    pair.classList.add('is-stacked'); pair.prepend(b);
+  }
+  if (window.ResizeObserver) new ResizeObserver(fitDupPair).observe($('nextBtns'));
+  if (document.fonts) document.fonts.ready.then(fitDupPair);
   // "Add thoughts instead": home, in this tab, the way the logo goes (the form fades out around
   // it), with that quote and the word to open its thoughts box.
   $('dupGo').addEventListener('click', (e) => {
     e.preventDefault();
     if (!sameQuote) return;
+    keptWords.clear(); // they chose that quote's thoughts over these words: not kept for next time
     session.set('wwk-quote', String(sameQuote.id));
     session.set('wwk-thought', String(sameQuote.id));
     session.set('wwk-home', '1');
     form.classList.add('is-leaving');
     setTimeout(() => { location.href = './'; }, reduceMotion.matches ? 0 : 100);
   });
-  $('dupGo').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.stopPropagation(); e.target.click(); } });
+  $('dupGo').addEventListener('keydown', (e) => { if (e.key === 'Enter') e.stopPropagation(); }); // (a button: Enter clicks it; it never turns the page)
+  $('dupSee').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.stopPropagation(); e.target.click(); } }); // (a new tab: data-out, js → follow)
 
   // A link, as a key that ignores what does not change the page: www., a YouTube video by its
   // id (youtu.be, watch, shorts, embed; the time and tracking dropped), Apple Music's song (?i=).
@@ -1377,9 +1397,6 @@
   $('fReflection').addEventListener('input', (e) => { data.reflection = e.target.value; refresh(); });
   $('fKeptBy').addEventListener('input', (e) => { data.keptBy = e.target.value; });
 
-  // While the words are on their way (a moment to a couple of seconds), the button stays black
-  // and a white spinner takes its label's place (Bill, 2026-10-05: the grey disabled button read
-  // as the form fading out). It cannot be pressed twice meanwhile.
   /* ---------- A field above the phone's keyboard ----------
      When a field takes focus, and again whenever the phone's visible area changes while it has
      it (the keyboard rising, the page panned), the nearest scroller moves so the field sits in
@@ -1430,39 +1447,117 @@
   // have gone, so its bell always lands with the slide and the drawing (js/music.js → effect).
   setTimeout(() => { if (window.Music) Music.loadEffects(); }, 1200);
 
-  let sending = false;
+  /* ---------- Sending (Bill, 2026-10-18; it was a white spinner) ----------
+     "Add words" erases as on hover and "Adding" loops in its place (js: adding, below) until the
+     Worker answers — and for as long as there is no connection: offline at the click, or no answer
+     within SEND_LIMIT_MS (a train between stations). Then the words wait on this device and go by
+     themselves as soon as they can: at the browser's 'online', and with a try every RETRY_MS (a
+     phone can say it is online with nothing getting through). Refused (too many from here today,
+     anything else): "Adding" erases, "Add words" types back. The line under the button says what is
+     happening, in place of its usual words. The words are kept on this device all along (keptWords,
+     below) until they have gone. md/checks/adding has every case on a test page; on localhost,
+     add.html?send=slow|offline|drop|tooMany|ourSide plays one of them with the real form. */
+  const SEND_LIMIT_MS = 15000, RETRY_MS = 10000;
+  const SEND_SAY = {
+    offline: 'You’re offline. The words will be sent once you’re back.', // (Bill: offline and a dropped connection alike)
+    tooMany: 'Too many submissions from here today. Your words are saved on this device; try again tomorrow.',
+    ourSide: 'Something went wrong on our side. Your words are saved on this device; try again in a minute.',
+  };
+  const sendNote = $('sendNote'), SEND_NOTE_USUAL = sendNote.innerHTML;
+  let sendNoteNow = SEND_NOTE_USUAL;
+  // The line under the button fades to its new words (out NOTE_OUT_MS, in NOTE_IN_MS); `now`: at once.
+  const NOTE_OUT_MS = 150, NOTE_IN_MS = 250;
+  function sayUnderButton(html, now) {
+    html = html || SEND_NOTE_USUAL;
+    if (html === sendNoteNow) return;
+    sendNoteNow = html;
+    sendNote.getAnimations().forEach((a) => a.cancel());
+    if (now || reduceMotion.matches) { sendNote.innerHTML = html; return; }
+    sendNote.animate([{ opacity: 1 }, { opacity: 0 }], { duration: NOTE_OUT_MS, fill: 'forwards' }).finished.then(() => {
+      sendNote.innerHTML = html;
+      sendNote.animate([{ opacity: 0 }, { opacity: 1 }], { duration: NOTE_IN_MS, fill: 'forwards' });
+    }).catch(() => {});
+  }
+
+  // On localhost, nothing is sent (SUBMIT_URL ''): ?send= plays an answer instead.
+  const FAKE_SEND = LOCAL ? new URLSearchParams(location.search).get('send') : null;
+  let fakeTries = 0;
+  const later = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function post(entry) { // → 'ok' | 'net' (no connection, no answer in time) | 'tooMany' | 'ourSide'
+    if (!SUBMIT_URL) {
+      fakeTries += 1;
+      if (FAKE_SEND === 'slow') await later(6000);
+      if (FAKE_SEND === 'offline' && fakeTries === 1) return 'net';
+      if (FAKE_SEND === 'drop' && fakeTries === 1) { await later(SEND_LIMIT_MS); return 'net'; }
+      if ((FAKE_SEND === 'tooMany' || FAKE_SEND === 'ourSide') && fakeTries === 1) { await later(1500); return FAKE_SEND; }
+      // Kept in this browser so the entry can be inspected.
+      const key = 'wwk-pending';
+      try { const pending = JSON.parse(localStorage.getItem(key) || '[]'); pending.push(entry); localStorage.setItem(key, JSON.stringify(pending)); } catch (e) {}
+      console.log('[Words We Keep] submission (local, saved to localStorage "wwk-pending"):', entry);
+      return 'ok';
+    }
+    const stop = new AbortController(), limit = setTimeout(() => stop.abort(), SEND_LIMIT_MS);
+    try {
+      const r = await fetch(SUBMIT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry), signal: stop.signal });
+      if (r.ok) return 'ok';
+      console.error(`Submit refused: ${r.status}`);
+      return r.status === 429 ? 'tooMany' : 'ourSide';
+    } catch (err) {
+      return 'net';
+    } finally { clearTimeout(limit); }
+  }
+
+  // Each entry carries a `sendId`, made at the click: the Worker keeps the first that arrives and
+  // ignores the same id again (workers/submit → sent:<id>), so a send retried after its answer was
+  // lost is never kept twice. Pressed again after a refusal with the words unchanged, the same id
+  // (it may have been kept after all); changed words are a new entry, with a new id.
+  const newSendId = () => (crypto.randomUUID ? crypto.randomUUID() : [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join(''));
+  const sameEntry = (e) => JSON.stringify({ ...e, submittedAt: 0, elapsed: 0, sendId: 0 });
+  let sending = false, sendEntry = null, trying = false, retryTimer = 0;
   async function submit() {
     if (sending || !valid.every((v) => v())) return;
     if (window.Music) Music.unlock();
-    const entry = payload();
-    const btn = $('submitBtn');
+    const entry = payload(); // the words as they were at the click, however long they wait
+    entry.sendId = sendEntry && sameEntry(sendEntry) === sameEntry(entry) ? sendEntry.sendId : newSendId();
+    sendEntry = entry;
     sending = true;
-    btn.classList.add('is-busy'); btn.setAttribute('aria-busy', 'true'); btn.setAttribute('aria-label', 'Sending your words');
-    try {
-      if (SUBMIT_URL) {
-        const r = await fetch(SUBMIT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
-        if (!r.ok) throw new Error(`Submit failed: ${r.status}`);
-      } else {
-        // Offline (no worker yet): keep it in this browser so the entry can be inspected.
-        const key = 'wwk-pending';
-        const pending = JSON.parse(localStorage.getItem(key) || '[]');
-        pending.push(entry);
-        localStorage.setItem(key, JSON.stringify(pending));
-        console.log('[Words We Keep] submission (offline, saved to localStorage "wwk-pending"):', entry);
-      }
-      go(STEPS, { force: true });
-      showDone();
-    } catch (err) {
-      console.error(err);
-      alert('Something went wrong sending your words. Please try again.');
-    } finally {
-      sending = false;
-      btn.classList.remove('is-busy'); btn.removeAttribute('aria-busy'); btn.removeAttribute('aria-label');
-    }
+    adding.start();
+    sayUnderButton(null);
+    attempt();
+  }
+  async function attempt() {
+    clearTimeout(retryTimer);
+    if (!sending || trying) return;
+    if (SUBMIT_URL && navigator.onLine === false) return waitForConnection();
+    trying = true;
+    const answer = await post(sendEntry);
+    trying = false;
+    if (!sending) return;
+    if (answer === 'ok') return sent();
+    if (answer === 'net') return waitForConnection();
+    // Refused: "Add words" is back, and the line says why.
+    sending = false;
+    adding.stop();
+    sayUnderButton(SEND_SAY[answer]);
+  }
+  function waitForConnection() {
+    sayUnderButton(SEND_SAY.offline);
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(attempt, RETRY_MS);
+  }
+  window.addEventListener('online', () => { if (sending) attempt(); });
+  function sent() {
+    sending = false; sendEntry = null;
+    keptWords.clear();
+    go(STEPS, { force: true });
+    showDone();
+    // Once step 5 is out of sight: the button and its line as they were.
+    setTimeout(() => { adding.putBack(); sayUnderButton(null, true); }, reduceMotion.matches ? 0 : 600);
   }
   $('submitBtn').addEventListener('click', submit);
 
-  function reset(landed) {
+  // Every field empty, as the page opens (reset, and "Start over" for kept words).
+  function clearFields() {
     data = blank();
     ['fText', 'fOriginal', 'fName', 'fNative', 'fTitle', 'fSourceLink', 'fContext', 'fReflection', 'fKeptBy', 'fWebsite'].forEach((id) => { $(id).value = ''; });
     typedFields().forEach(fieldLook);
@@ -1472,8 +1567,13 @@
     document.querySelectorAll('.fw.is-warn').forEach((w) => w.classList.remove('is-warn'));
     warnLink('');
     country.set(''); kind.set(''); year.set(''); linkHint('');
-    sameQuote = null; sourceFrom = null; $('dupNote').classList.remove('is-in'); fold($('sourceNote'), false);
+    sameQuote = null; sourceFrom = null; showSameWords(); fold($('sourceNote'), false);
     Object.assign(guess, { country: '', origin: '', ownCountry: false, ownOrigin: false });
+    keptNote(false);
+  }
+  function reset(landed) {
+    clearFields();
+    keptWords.fresh();
     // From "Words submitted", a fresh step 1 comes in from below (one slide down, like every
     // other step), not by rewinding up through all five. Step 1 is parked under the done screen
     // for the slide, then everything is put back in place without a transition.
@@ -1502,6 +1602,70 @@
       homeDraw();
     });
   });
+
+  /* ---------- The words kept on this device until they have gone (Bill, 2026-10-18) ----------
+     Everything typed or chosen is kept in localStorage (KEPT_KEY), once KEPT_WAIT_MS after the
+     last change (nothing is written while one types) and as the page is left, and put back when
+     the form opens again — a reload, a closed tab, a phone that dropped the page, a send still
+     waiting for a connection. Step 1 then says so, with "Start over". Gone once the words have
+     been sent, or after KEPT_DAYS. */
+  const KEPT_KEY = 'wwk-draft', KEPT_DAYS = 30, KEPT_WAIT_MS = 400;
+  const keptWords = (() => {
+    const get = () => { try { return localStorage.getItem(KEPT_KEY); } catch (e) { return null; } };
+    const put = (v) => { try { if (v === null) localStorage.removeItem(KEPT_KEY); else localStorage.setItem(KEPT_KEY, v); } catch (e) {} };
+    const empty = JSON.stringify(blank());
+    let timer = 0, sent = false; // sent: nothing is kept until the form is started again ("Add another")
+    const save = () => { clearTimeout(timer); if (sent) return; put(JSON.stringify(data) === empty ? null : JSON.stringify({ at: Date.now(), data, guess })); };
+    const soon = () => { if (sent) return; clearTimeout(timer); timer = setTimeout(save, KEPT_WAIT_MS); };
+    ['input', 'change', 'click', 'pointerup', 'keyup'].forEach((t) => document.addEventListener(t, soon, true));
+    window.addEventListener('pagehide', save);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') save(); });
+    return {
+      clear() { clearTimeout(timer); sent = true; put(null); },
+      fresh() { sent = false; },
+      load() {
+        try { const k = JSON.parse(get()); if (k && k.data && Date.now() - k.at < KEPT_DAYS * 864e5) return k; } catch (e) {}
+        put(null); return null;
+      },
+    };
+  })();
+  // Step 1's line under its question: "We kept your words from last time. Start over", or as usual.
+  const TEXT_DESC = noOrphans($('textDesc').textContent);
+  function keptNote(on) {
+    $('textDesc').innerHTML = on ? 'We kept your words from last time. <span role="link" tabindex="0" id="startOver">Start over</span>' : TEXT_DESC;
+  }
+  $('textDesc').addEventListener('click', (e) => { if (e.target.id === 'startOver') startOver(); });
+  $('textDesc').addEventListener('keydown', (e) => { if (e.target.id === 'startOver' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); startOver(); } });
+  async function startOver() {
+    if (!(await ask('Start over? The words you kept will be cleared.', 'Start over', 'Keep them'))) return;
+    clearFields(); refresh();
+    keptWords.clear(); keptWords.fresh();
+    $('fText').focus({ preventScroll: true });
+  }
+  // The kept words back in their fields, as if chosen and typed again.
+  function putBackKept(k) {
+    const b = blank(), d = k.data, str = (v) => (typeof v === 'string' ? v : '');
+    data = {
+      ...b, text: str(d.text), original: str(d.original), context: str(d.context), reflection: str(d.reflection), keptBy: str(d.keptBy),
+      categories: (Array.isArray(d.categories) ? d.categories : []).filter((c) => CATEGORIES.some((x) => x.key === c)),
+      author: { ...b.author, ...d.author }, source: { ...b.source, ...d.source },
+      annotations: (Array.isArray(d.annotations) ? d.annotations : []).filter((a) => a && typeof a.word === 'string' && typeof a.explanation === 'string'),
+    };
+    const a = { ...data.author }, src = { ...data.source };
+    if (!WHO.some((w) => w.value === a.kind)) a.kind = data.author.kind = 'person';
+    [['fText', data.text], ['fOriginal', data.original], ['fName', a.name], ['fNative', a.nativeName], ['fTitle', src.title], ['fSourceLink', src.link], ['fContext', data.context], ['fReflection', data.reflection], ['fKeptBy', data.keptBy]]
+      .forEach(([id, v]) => { $(id).value = str(v); });
+    if (data.original.trim()) { fold($('fOriginalWrap'), true); fold($('origToggleWrap'), false); }
+    document.querySelectorAll('.cat').forEach((el) => el.setAttribute('aria-checked', String(data.categories.includes(el.dataset.key))));
+    who.set(a.kind); showWho(a.kind); // (who's onChange skips a kind already in data)
+    country.set(str(a.country)); origin.set(str(a.origin));
+    kind.set(str(src.kind)); year.set(str(src.year));
+    Object.assign(guess, { country: '', origin: '', ownCountry: true, ownOrigin: true }, k.guess || {});
+    typedFields().forEach(fieldLook);
+    keptNote(true);
+    refresh();
+  }
+  { const k = keptWords.load(); if (k) putBackKept(k); }
 
   /* ---------- Words submitted: the symbols ----------
      The category symbols' drawing code and data (assets/symbols, as the archive uses them: js/app.js
@@ -1604,7 +1768,7 @@
     // runs: a watching extension woke on each of the letters' 2 × n timed changes). Played again
     // midway, a letter already gone stays gone until its turn to come back, as before.
     const play = () => {
-      if (btn.disabled || reduceMotion.matches) return;
+      if (btn.disabled || btn.classList.contains('is-adding') || reduceMotion.matches) return;
       const gone = cells.map((cell) => getComputedStyle(cell).opacity === '0');
       const eraseDone = cells.length * LABEL_STEP_MS, total = eraseDone + cells.length * LABEL_STEP_MS;
       cells.forEach((cell, i) => {
@@ -1620,9 +1784,54 @@
       // Touch: once, as the button turns from disabled to ready.
       new MutationObserver(() => { if (!btn.disabled) play(); }).observe(btn, { attributes: true, attributeFilter: ['disabled'] });
     }
-    return play;
+    return { play, cells };
   }
-  typewriterLabel($('submitBtn'));
+  const addLabel = typewriterLabel($('submitBtn'));
+
+  /* ---------- "Add words" while sending: "Adding" (Bill, 2026-10-18) ----------
+     The click erases "Add words" left→right, ADD_STEP_MS a letter; a step later "Adding" (laid over
+     it, never setting the button's width: css .label--busy) types in left→right, stays whole
+     ADD_HOLD_MS, erases left→right, and a step later types in again, until stop() or putBack().
+     Every letter is one Web Animation and the loop is its own iterations: nothing is written into
+     the page while it runs. Reduced motion: "Adding" simply there. */
+  const ADD_STEP_MS = 50, ADD_HOLD_MS = 600;
+  const adding = (() => {
+    const btn = $('submitBtn'), cells = addLabel.cells;
+    const over = document.createElement('span');
+    over.className = 'label label--busy'; over.setAttribute('aria-hidden', 'true');
+    const busy = [...'Adding'].map((ch) => { const c = document.createElement('span'); c.className = 'cell'; c.textContent = ch; over.appendChild(c); return c; });
+    btn.appendChild(over);
+    const cancel = (els) => els.forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
+    const shown = (el) => getComputedStyle(el).opacity !== '0';
+    // Each letter steps to `to` (0 or 1), a step apart, from wherever it stands → when the last has.
+    const wipe = (els, to, delay = 0) => {
+      const from = els.map((el) => (shown(el) ? 1 : 0));
+      cancel(els);
+      if (reduceMotion.matches) { els.forEach((el) => el.animate([{ opacity: to }, { opacity: to }], { duration: 1, fill: 'forwards' })); return 0; }
+      els.forEach((el, i) => el.animate([{ opacity: from[i] }, { opacity: from[i], offset: 0.999 }, { opacity: to }], { duration: i * ADD_STEP_MS + 1, delay, fill: 'both' }));
+      return delay + els.length * ADD_STEP_MS;
+    };
+    // Letter i in at i·step, out ADD_HOLD_MS after the last came in; a step, and round again.
+    const loop = (delay) => {
+      cancel(busy);
+      if (reduceMotion.matches) { busy.forEach((c) => c.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, fill: 'forwards' })); return; }
+      const n = busy.length, turn = (2 * n - 1) * ADD_STEP_MS + ADD_HOLD_MS;
+      busy.forEach((c, i) => {
+        const on = (i * ADD_STEP_MS) / turn, off = ((n - 1) * ADD_STEP_MS + ADD_HOLD_MS + i * ADD_STEP_MS) / turn;
+        c.animate([{ opacity: 0, offset: 0 }, { opacity: 0, offset: on }, { opacity: 1, offset: on }, { opacity: 1, offset: off }, { opacity: 0, offset: off }, { opacity: 0, offset: 1 }], { duration: turn, delay, iterations: Infinity });
+      });
+    };
+    const busyOn = (on) => {
+      btn.classList.toggle('is-adding', on);
+      if (on) { btn.setAttribute('aria-busy', 'true'); btn.setAttribute('aria-label', 'Adding your words'); }
+      else { btn.removeAttribute('aria-busy'); btn.removeAttribute('aria-label'); }
+    };
+    return {
+      start() { busyOn(true); loop(wipe(cells, 0)); },
+      stop() { wipe(cells, 1, wipe(busy, 0)); busyOn(false); }, // "Adding" erases, "Add words" types back
+      putBack() { cancel(cells); cancel(busy); busyOn(false); }, // at once (out of sight)
+    };
+  })();
 
   /* ---------- Box buttons: pressed (Bill, 2026-10-15; css: form.css → .btn.is-pressed) ----------
      The public pages only (not the library). Held down, a box button's box shrinks a little and its
@@ -1647,7 +1856,7 @@
   }
   setChrome(getComputedStyle(document.documentElement).getPropertyValue('--paper').trim());
 
-  document.querySelectorAll('.q-desc').forEach((p) => { p.textContent = noOrphans(p.textContent); });
+  document.querySelectorAll('.q-desc').forEach((p) => { if (!p.children.length) p.textContent = noOrphans(p.textContent); }); // (step 1's "Start over" line is already set: keptNote)
   steps.forEach((s, i) => s.style.setProperty('--i', i));
   refresh();
 

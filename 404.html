@@ -6,11 +6,13 @@
     // A quote's number as the address (wordswekeep.org/23, since 2026-10-06): there is no such
     // page, so GitHub Pages serves this one; it leaves the number where the archive keeps the
     // quote a tab was on (sessionStorage 'wwk-quote', js/app.js) and goes to the archive, which
-    // opens that quote. Nothing of this page is drawn first.
+    // opens that quote. Nothing of this page is drawn first. With ?notes (wordswekeep.org/23?notes,
+    // since 2026-10-18: the form's "matching or similar words", in a new tab) it opens straight
+    // into that quote's notes ('wwk-notes').
     (() => {
       const m = /^\/(\d+)\/?$/.exec(location.pathname);
       if (!m) return;
-      try { sessionStorage.setItem('wwk-quote', m[1]); } catch (e) { /* no storage: the archive opens as usual */ }
+      try { sessionStorage.setItem('wwk-quote', m[1]); if (/[?&]notes\b/.test(location.search)) sessionStorage.setItem('wwk-notes', m[1]); } catch (e) { /* no storage: the archive opens as usual */ }
       location.replace('/');
     })();
   </script>
