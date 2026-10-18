@@ -22,6 +22,10 @@
 @font-face { font-family: 'Rondeau'; src: url('https://fonts.wordswekeep.org/rondeau.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Curly';   src: url('https://fonts.wordswekeep.org/curly.woff2') format('woff2');   font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Kid';     src: url('https://fonts.wordswekeep.org/kid.woff2') format('woff2');     font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Briega';  src: url('https://fonts.wordswekeep.org/briega.woff2') format('woff2');  font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'King';    src: url('https://fonts.wordswekeep.org/king.woff2') format('woff2');    font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Absans';  src: url('https://fonts.wordswekeep.org/absans.woff2') format('woff2');  font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Auserif'; src: url('https://fonts.wordswekeep.org/auserif.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
 
 :root {
   --native-serif: 'Noto Serif SC', 'Songti SC', serif;
@@ -94,6 +98,40 @@
 [data-font="kid"]     { --qf-family: 'Kid', var(--native-sans);      --qf-style: normal; --qf-leading: 1.3; --qf-tracking: -0.01em; --qf-native: var(--qn-sans, var(--native-sans)); --qf-native-scale: var(--qn-sans-scale); --qf-native-leading: var(--qn-sans-leading); --qf-native-tracking: var(--qn-sans-tracking); --qf-native-weight: var(--qn-sans-weight); }
 [data-font="kid"][data-tier="l"]  { --qf-scale: 0.9688; }     /* 62 / 64 */
 [data-font="kid"][data-tier="m"]  { --qf-scale: 0.8333; }     /* 40 / 48 */
+
+/* Briega, King (At Briega Regular, At King Book; 2026-10-18): no Figma board — rough starting
+   values from their proportions against the faces already tuned (Briega's x-height and width are
+   Fig's, a little wider; King is narrow, Print's x-height), for Bill to tune in the Fonts tab.
+   Both are serifs. Briega's ss01 is its floral ornaments, left off; King takes ss01 (its "Gothic
+   alternates": A E F H K R a) and its ligatures (fi fl), Bill 2026-10-18. */
+[data-font="briega"]  { --qf-family: 'Briega', var(--native-serif);  --qf-style: normal; --qf-leading: 1.25; --qf-tracking: -0.015em; --qf-features: "liga" 1, "clig" 1; }
+[data-font="briega"][data-tier="l"]  { --qf-scale: 0.85; }
+[data-font="briega"][data-tier="m"],
+[data-font="briega"][data-tier="s"],
+[data-font="briega"][data-tier="xs"] { --qf-scale: 0.8; }
+
+[data-font="king"]    { --qf-family: 'King', var(--native-serif);    --qf-style: normal; --qf-leading: 1.15; --qf-tracking: 0em; --qf-features: "liga" 1, "clig" 1, "ss01" 1; }
+[data-font="king"][data-tier="m"]  { --qf-scale: 0.95; }
+[data-font="king"][data-tier="s"],
+[data-font="king"][data-tier="xs"] { --qf-scale: 0.9; }
+
+/* Absans, Auserif (Absans Regular, Aujournuit Regular; 2026-10-18): rough starting values like
+   Briega's and King's, for Bill to tune in the Fonts tab. Absans is a sans (its original language falls
+   back to the sans), Auserif a serif. Absans takes its discretionary ligatures (dlig: tt, ttt) and its
+   kerning asked for by name (Bill, 2026-10-18). Auserif must NOT take clig: the font's contextual
+   ligatures turn words into zodiac signs — "leo" in Napoleon, leopard; venus, aries, libra… — so it
+   asks for "clig" 0 where every other face asks for 1. */
+[data-font="absans"]  { --qf-family: 'Absans', var(--native-sans);   --qf-style: normal; --qf-leading: 1.2; --qf-tracking: -0.02em; --qf-features: "liga" 1, "clig" 1, "dlig" 1, "kern" 1; --qf-native: var(--qn-sans, var(--native-sans)); --qf-native-scale: var(--qn-sans-scale); --qf-native-leading: var(--qn-sans-leading); --qf-native-tracking: var(--qn-sans-tracking); --qf-native-weight: var(--qn-sans-weight); }
+[data-font="absans"][data-tier="l"]  { --qf-scale: 0.85; }
+[data-font="absans"][data-tier="m"],
+[data-font="absans"][data-tier="s"],
+[data-font="absans"][data-tier="xs"] { --qf-scale: 0.8; }
+
+[data-font="auserif"] { --qf-family: 'Auserif', var(--native-serif); --qf-style: normal; --qf-leading: 1.2; --qf-tracking: -0.01em; --qf-features: "liga" 1, "clig" 0; }
+[data-font="auserif"][data-tier="l"]  { --qf-scale: 0.9; }
+[data-font="auserif"][data-tier="m"],
+[data-font="auserif"][data-tier="s"],
+[data-font="auserif"][data-tier="xs"] { --qf-scale: 0.85; }
 
 /* The original-language version is set in Noto (serif or sans, by the face's character) at the
    site's own native size: the face's scale does not apply to it. */
