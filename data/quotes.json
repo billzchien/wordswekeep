@@ -619,7 +619,7 @@
     "context": null,
     "annotations": [],
     "reflection": "Creatives are often seen as second rate citizens, expected to be able to handle routines, practices and customs like non creatives would, but fail to see the need for this restriction. Leading to them being excluded form life. Yet, everything non-creative people consume every single day, often for hours, was made by people like this. The quote to me is a help for all creatives stuck in a reality that will destroy them if they can’t find a smart hack to survive it.",
-    "keptBy": "Petra Quilitz",
+    "keptBy": "Petra",
     "submittedAt": "2026-07-27T17:53:06",
     "approvedAt": "2026-07-27T17:53:06",
     "font": "kid"
@@ -898,5 +898,34 @@
     "submittedAt": "2026-10-18T21:19:10.047Z",
     "font": "instrument",
     "id": 30
+  },
+  {
+    "status": "live",
+    "text": "I don’t sing because I’m happy. I’m happy because I sing.",
+    "originalLanguage": null,
+    "categories": [
+      "drive"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "William James",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": {
+      "title": "What is an Emotion?",
+      "year": 1884,
+      "kind": "writing",
+      "link": "https://emotion.wisc.edu/wp-content/uploads/sites/1353/2020/11/James_1884_What_is_an_Emotion.pdf"
+    },
+    "context": "In that original academic text, James wrote: “We don’t laugh because we’re happy—we’re happy because we laugh.” Over the decades, educators, music therapists, and psychologists adapted his original “laughing” phrasing into “singing” to directly explain the therapeutic, physical benefits of music on the human brain.",
+    "annotations": [],
+    "reflection": "The first time I read these lines, I had a huge epiphany. I was young, and I was starting to feel more in control of my life. I understood that I do not need to sit around and wait for the spirit to come over me — I can cultivate the spirit with my actions.",
+    "keptBy": null,
+    "approvedAt": "2026-10-19T21:36:51.396Z",
+    "submittedAt": "2026-10-19T13:54:48.355Z",
+    "font": "curly",
+    "id": 31
   }
 ]
