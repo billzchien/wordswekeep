@@ -437,7 +437,7 @@
 .ctl input[type="number"] { -moz-appearance: textfield; }
 .ctl input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .ctl button.field { text-align: left; cursor: pointer; font-feature-settings: var(--text-features); } /* Comparison: a field that reads On / Off; a click turns it */
-/* The face dropdown (css/form.css → .combo): faces still being tuned in ink, settled ones in grey. */
+/* The face dropdown (css/form.css → .combo): every face in ink, in FONTS order. */
 .ctl.ctl--face { width: calc(140 * var(--u)); }
 @media (min-width: 1024px) { .ctl.ctl--face { width: calc(var(--col2) - var(--m) - var(--g)); } }
 /* A phone: the face on its own row, then the eight fields in two rows of four, all the same width and the
@@ -448,11 +448,10 @@
   .ctl { width: auto; min-width: 0; }
   .ctl.ctl--face { width: auto; grid-column: 1 / -1; }
 }
-.ctl--face .field { color: var(--head); }
+.ctl--face .field { color: var(--ink); } /* every face in ink (Bill, 2026-10-18: no new faces to come); until then the settled ones were grey and the fresh ones ink */
 .ctl--face .combo-btn { pointer-events: none; color: var(--ink); }
 .ctl--face .combo-list { max-height: none; top: calc(100% + 1px); }
-.ctl--face .combo-item { color: var(--head); }
-.ctl--face .combo-item.is-fresh, .ctl--face .field.is-fresh { color: var(--ink); }
+.ctl--face .combo-item { color: var(--ink); }
 
 .face-board {
   --colw: calc((100vw - 2 * var(--m) - 5 * var(--g)) / 6);

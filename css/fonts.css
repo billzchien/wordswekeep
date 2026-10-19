@@ -13,7 +13,6 @@
    library's Fonts tab (data/faces.json) is laid over them by js (app.js, admin.js → facesCSS).
    The files are served by the fonts Worker (workers/fonts) to this site's pages only. */
 
-@font-face { font-family: 'Print';   src: url('https://fonts.wordswekeep.org/print.woff2') format('woff2');   font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Grotesk'; src: url('https://fonts.wordswekeep.org/grotesk.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Poet';    src: url('https://fonts.wordswekeep.org/poet.woff2') format('woff2');    font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Sketch';  src: url('https://fonts.wordswekeep.org/sketch.woff2') format('woff2');  font-weight: 400; font-style: normal; font-display: swap; }
@@ -25,7 +24,6 @@
 @font-face { font-family: 'Kid';     src: url('https://fonts.wordswekeep.org/kid.woff2') format('woff2');     font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Briega';  src: url('https://fonts.wordswekeep.org/briega.woff2') format('woff2');  font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'King';    src: url('https://fonts.wordswekeep.org/king.woff2') format('woff2');    font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Absans';  src: url('https://fonts.wordswekeep.org/absans.woff2') format('woff2');  font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Auserif'; src: url('https://fonts.wordswekeep.org/auserif.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
 
 :root {
@@ -39,11 +37,6 @@
 [data-tier="xl"] { --qf-scale: 0.85; }
 
 /* Instrument: the site's own settings (app.css, tokens.css) — nothing to set. */
-
-[data-font="print"]   { --qf-family: 'Print', var(--native-serif);   --qf-style: normal; --qf-leading: 1.25; --qf-tracking: -0.015em; }
-[data-font="print"][data-tier="m"]  { --qf-scale: 0.9167; }
-[data-font="print"][data-tier="s"],
-[data-font="print"][data-tier="xs"] { --qf-scale: 0.9; }
 
 [data-font="grotesk"] { --qf-family: 'Grotesk', var(--native-sans);  --qf-style: normal; --qf-leading: 1.2; --qf-tracking: -0.01em; --qf-native: var(--qn-sans, var(--native-sans)); --qf-native-scale: var(--qn-sans-scale); --qf-native-leading: var(--qn-sans-leading); --qf-native-tracking: var(--qn-sans-tracking); --qf-native-weight: var(--qn-sans-weight); }
 [data-font="grotesk"][data-tier="m"]  { --qf-scale: 0.875; }  /* 42 / 48 */
@@ -129,19 +122,10 @@
 [data-font="king"][data-tier="s"],
 [data-font="king"][data-tier="xs"] { --qf-scale: 0.9; }
 
-/* Absans, Auserif (Absans Regular, Aujournuit Regular; 2026-10-18): rough starting values like
-   Briega's and King's, for Bill to tune in the Fonts tab. Absans is a sans (its original language falls
-   back to the sans), Auserif a serif. Absans takes its discretionary ligatures (dlig: tt, ttt) and its
-   kerning asked for by name (Bill, 2026-10-18). Auserif must NOT take clig: the font's contextual
-   ligatures turn words into zodiac signs — "leo" in Napoleon, leopard; venus, aries, libra… — so it
-   asks for "clig" 0 where every other face asks for 1. */
-[data-font="absans"]  { --qf-family: 'Absans', var(--native-sans);   --qf-style: normal; --qf-leading: 1.2; --qf-tracking: -0.02em; --qf-features: "liga" 1, "clig" 1, "dlig" 1, "kern" 1; --qf-native: var(--qn-sans, var(--native-sans)); --qf-native-scale: var(--qn-sans-scale); --qf-native-leading: var(--qn-sans-leading); --qf-native-tracking: var(--qn-sans-tracking); --qf-native-weight: var(--qn-sans-weight); }
-[data-font="absans"][data-tier="l"]  { --qf-scale: 0.85; }
-[data-font="absans"][data-tier="xl"] { --qf-scale: 0.7225; } /* XShort: 0.85 × Short */
-[data-font="absans"][data-tier="m"],
-[data-font="absans"][data-tier="s"],
-[data-font="absans"][data-tier="xs"] { --qf-scale: 0.8; }
-
+/* Auserif (Aujournuit Regular; 2026-10-18): a serif, rough starting values like Briega's and King's,
+   for Bill to tune in the Fonts tab. It must NOT take clig: the font's contextual ligatures turn words
+   into zodiac signs — "leo" in Napoleon, leopard; venus, aries, libra… — so it asks for "clig" 0 where
+   every other face asks for 1. (Print and Absans removed, Bill 2026-10-18.) */
 [data-font="auserif"] { --qf-family: 'Auserif', var(--native-serif); --qf-style: normal; --qf-leading: 1.2; --qf-tracking: -0.01em; --qf-features: "liga" 1, "clig" 0; }
 [data-font="auserif"][data-tier="l"]  { --qf-scale: 0.9; }
 [data-font="auserif"][data-tier="xl"] { --qf-scale: 0.765; } /* XShort: 0.85 × Short */

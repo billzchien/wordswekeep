@@ -64,8 +64,6 @@
   const FONTS = [
     { key: 'instrument', name: 'Instrument', not: [],
       latin: 'A1-A3 A5 A7-AB AE-B0 B4 B6-B8 BA-BB BF-107 10A-113 116-11B 11E-123 126-127 12A-12B 12E-133 136-137 139-13E 141-148 14A-14D 150-15B 15E-161 164-165 16A-17E 1CD-1CE 218-21B 237 1E80-1E85 1E9E 1EF2-1EF3 2013-2014 2018-201A 201C-201E 2022 2026 2039-203A 20AC' },
-    { key: 'print',      name: 'Print',      not: [],
-      latin: 'A1-AC AE-B4 B6-131 134-137 139-13E 141-148 14A-165 168-17E 181 186 18A 18E-190 197-199 19D 1A0-1A1 1AF-1B0 1B3-1B4 1CD-1DD 1E2-1E3 1E6-1E7 218-21B 232-233 237 245 1E04-1E05 1E0C-1E0F 1E20-1E21 1E24-1E2B 1E32-1E3B 1E40-1E49 1E56-1E5F 1E62-1E63 1E6C-1E6F 1E80-1E85 1E88-1E89 1E8C-1E8F 1E92-1E96 1E9E 1EA0-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2039-203A 2044 2070 2074-2079 2080-2089 20A1 20A6 20A9 20AB-20AC' },
     { key: 'grotesk',    name: 'Grotesk',    not: [],
       latin: 'A1-A3 A5-B4 B6-137 139-148 14A-17E 192 1FC-1FF 218-21B 237 1E80-1E85 1EBC-1EBD 1EF2-1EF3 1EF8-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 2044 20AC' },
     { key: 'round',      name: 'Round',      not: [],
@@ -92,8 +90,6 @@
       latin: 'A1-A3 A5 A7-AB AD-B0 B4 B6-B8 BA-BB BF-148 14A-17E 18F 1F4-1F5 1FC-1FF 218-21B 237 1E80-1E85 1E9E 1EF2-1EF3 2011 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203B 2042 2051 2055 205C-205D 20AC' },
     { key: 'king',       name: 'King',      not: [],
       latin: 'A1-A3 A5 A7-AB AD-B0 B4 B6-B8 BA-BB BF-148 14A-17E 18F 1F4-1F5 1FC-1FF 218-21B 237 1E80-1E85 1E9E 1EF2-1EF3 2011 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2032-2033 2039-203A 20AA 20AC' },
-    { key: 'absans',     name: 'Absans',    not: [],
-      latin: 'A1-AC AE-17E 18F 192 197 19D 1E6-1E7 1FE-1FF 218-21B 237 244 1E10-1E11 1E20-1E21 1E24-1E25 1E36-1E37 1E62-1E63 1E80-1E85 1E9E 1EB8-1EB9 1EBC-1EBD 1ECC-1ECD 1EF2-1EF3 1EF8-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2032-2033 2039-203A 203C-203D 2042 2044 2070 2074-2079 207D-207E 2080-2089 208D-208E 20AA 20AC' },
     { key: 'auserif',    name: 'Auserif',   not: [],
       latin: 'A1-AC AE-113 116-12B 12E-132 134-137 139-148 14C-14D 150-165 168-17E 18F 192 1CD-1CE 1D1-1D2 218-21B 237 1E20-1E21 1E80-1E85 1E9E 1EBC-1EBD 1EF2-1EF3 1EF8-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 2044 2070 20AC' },
   ];
@@ -146,7 +142,7 @@
   }
   const RTL_SCRIPTS = new Set(['arab', 'hebr']);
   const DEFAULT_FONT = 'instrument', LONG_FONT = 'goudy'; // a quote with no face of its own: Instrument, or Goudy when it is long
-  const FONT_FILES = ['print', 'grotesk', 'poet', 'sketch', 'author', 'fig', 'stone', 'rondeau', 'curly', 'kid', 'briega', 'king', 'absans', 'auserif']; // the licensed faces, by name (the Google fonts come from the same Worker, by css2)
+  const FONT_FILES = ['grotesk', 'poet', 'sketch', 'author', 'fig', 'stone', 'rondeau', 'curly', 'kid', 'briega', 'king', 'auserif']; // the licensed faces, by name (the Google fonts come from the same Worker, by css2)
 
   // A shuffled copy (Fisher–Yates). The deck is dealt once per visit / per category, so ↑ and ↓
   // stay consistent within it, but the order is never the archive's numbering.
