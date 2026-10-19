@@ -937,7 +937,7 @@ ul { list-style: none; }
   .menu {
     --rule: #b2b2b2;
     --menu-sym: clamp(96px, 18.8vh, 160px);   /* 160 in an 852 window */
-    --row: clamp(50px, 7.75vh, 66px);         /* 66 */
+    --row: clamp(44px, 5vh, 66px);            /* 5% of the window (Bill, 2026-10-19; it was 7.75%, at least 50): 44 in an 852 window, 47 in a 932 one; never under 44, the smallest tap target */
     --list-top: calc(20px + var(--menu-sym) + min(40px, 4.7vh));
   }
   /* Only the list scrolls, under a top bar that holds Back and fades the rows out (as the notes'
@@ -946,7 +946,7 @@ ul { list-style: none; }
     top: 0; bottom: 0; left: 0; right: 0;
     padding: calc(var(--list-top) - (var(--row) - var(--lh)) / 2) var(--m) 20px;
     overflow-y: auto;
-    overscroll-behavior: none; /* no rubber band (Bill, 2026-10-19): pulled past its end, the list's last row — Add words and Privacy — rose above its place at the foot */
+    overscroll-behavior: contain;
     scrollbar-width: none;
   }
   .cat-list::-webkit-scrollbar { display: none; }
@@ -971,6 +971,10 @@ ul { list-style: none; }
   .cat-list > .cat-last { display: flex; flex-direction: column; }
   .cat-last > .cat-rule { display: block; order: 2; border-top: var(--hairline) solid var(--rule); } /* the line under Romance, under its description when that is open there (js/app.js → placeDesc puts it in the li); its own element, so it fades with the row */
   .menu-foot { display: flex; justify-content: space-between; align-items: flex-end; min-height: var(--row); margin-top: auto; }
+  /* …and never higher than that (Bill, 2026-10-19): scrolled to the end and pulled further (the rubber
+     band), the rows go on up and the row stays at its place at the foot, as a sticky one does — its
+     top held at most one row above the bottom of the list's view (which leaves out its 20 of padding). */
+  .menu-foot { position: sticky; top: calc(100% - var(--row)); z-index: 1; }
   .menu-privacy { display: none; }
   /* A fade at the foot while there is more below (Bill, 2026-10-18: a hint to scroll): the top bar's
      mirror, shown only then (.has-more, js/app.js → menuMore), so it never lies over the last row. */
