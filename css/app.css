@@ -433,10 +433,13 @@ ul { list-style: none; }
 .q-wrap.is-typing .lang,
 .q-wrap.is-wiping .lang { visibility: hidden; }
 /* A word of the quote wrapped to fade in by itself (js/app.js → wordsIn, buildScraps): its box takes
-   in the room its ink may reach (the script faces' tails), with the same negative margin so nothing
-   moves — iOS Safari redraws a fading word box by box, and wiped the tails of the neighbouring
-   lines that lay inside it (js: drawWhole). */
-.q-word { padding: var(--ink-y) var(--ink-x); margin: calc(-1 * var(--ink-y)) calc(-1 * var(--ink-x)); }
+   in the room its ink may reach above and below (the script faces' tails), with the same negative
+   margin so nothing moves — iOS Safari redraws a fading word box by box, and wiped the tails of the
+   neighbouring lines that lay inside it (js: drawWhole). Above and below only: padding at a word's
+   sides cuts the face's kerning with the spaces beside it, so the words sat apart while they faded
+   and slid back as the wrappers came off — Round's by up to 2.4px at XShort (Bill, 2026-10-18: "a small
+   subtle adjustment jump" on No. 17); every other face kerns no spaces. */
+.q-word { padding: var(--ink-y) 0; margin: calc(-1 * var(--ink-y)) 0; }
 /* While the 中 / EN button comes in (.lang.is-in, a quarter of a second), iOS puts the quote's
    wrapper on a layer of its own (it is centred by a transform, and the button inside it animates)
    and crops that layer at its box: No. 25's italic "y", first on its line, lost its tail for that
