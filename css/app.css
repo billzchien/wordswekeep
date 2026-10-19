@@ -937,7 +937,7 @@ ul { list-style: none; }
   .menu {
     --rule: #b2b2b2;
     --menu-sym: clamp(96px, 18.8vh, 160px);   /* 160 in an 852 window */
-    --row: clamp(44px, 5vh, 66px);            /* 5% of the window (Bill, 2026-10-19; it was 7.75%, at least 50): 44 in an 852 window, 47 in a 932 one; never under 44, the smallest tap target */
+    --row: clamp(48px, 5vh, 66px);            /* 5% of the window, at least 48 (Bill, 2026-10-19; it was 7.75%, at least 50, then at least 44 — too small): 48 on phones up to 960 tall */
     --list-top: calc(20px + var(--menu-sym) + min(40px, 4.7vh));
   }
   /* Only the list scrolls, under a top bar that holds Back and fades the rows out (as the notes'
