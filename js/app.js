@@ -452,7 +452,7 @@
       // none, so insert one.
       out = /[ \u00a0\n]/.test(out[at - 1] || '') ? out.slice(0, at - 1) + '\n' + out.slice(at) : out.slice(0, at) + '\n' + out.slice(at);
     }
-    lockedLines = { text, broken: out };
+    lockedLines = { text, broken: out, size: parseFloat(getComputedStyle(quoteEl).fontSize) }; // size: on a phone the notes quote takes the main quote's own size (Bill, 2026-10-19: it shrank — a grown short quote, or a Short one stepped down to Medium, whose notes copy is built at Short)
   }
 
   // A short quote is meant to sit on one or two lines. Where it takes more — a wide face, a
@@ -470,27 +470,37 @@
      it stays within GROW.lines lines in GROW.fill of the column, and never past GROW.maxPx. Only
      ever larger; the main page only (the notes quote takes its lines, at its own size); the rag
      rules then break it at the new size. On localhost the test page sets GROW (postMessage). */
-  const GROW = { from: 3, lines: 3, fill: 0.9, maxPx: 48, words: 3 }; // Bill's values from the test page (2026-10-18)
-  function growShort(quoteEl) {
+  const GROW = { from: 3, lines: 3, fill: 0.9, maxPx: 48, words: 3, keep: 1.15 }; // Bill's values from the test page (2026-10-18)
+  function growShort(quoteEl, cap = Infinity) {
     quoteEl.style.removeProperty('--q-grow'); quoteEl.style.removeProperty('--q-fill');
     if (!GROW.lines || !mqMobile.matches || !track.contains(quoteEl)) return;
     const base = lineCount(quoteEl);
     if (base > GROW.from) return;
-    // Grown, it may take more lines (up to GROW.lines) only with GROW.words words a line or more:
-    // fewer left a word alone or a sentence in scraps ("Journey's / not / just a band.", "Nothing /
-    // grows under / the big tree." — they keep their two lines, larger). A quote at XShort or Short is
-    // already sized to its lines: it keeps them.
+    // Grown, it may take more lines (up to GROW.lines) only if every line but the last can have
+    // GROW.words words and the last two (Bill: the last line is left to the orphan rule): fewer left a
+    // word alone or a sentence in scraps ("Journey's / not / just a band.", "Nothing / grows under /
+    // the big tree." — they keep their two lines, larger), while "Who looks outside / dreams; who
+    // looks / inside awakes." (3, 3, 2) may. A quote at XShort or Short is already sized to its
+    // lines: it keeps them.
     const words = (quoteEl.textContent.match(/\S+/g) || []).length;
-    const most = quoteEl.dataset.tier === 'xl' || quoteEl.dataset.tier === 'l' ? base : Math.max(base, Math.min(GROW.lines, Math.floor(words / GROW.words)));
+    const most = quoteEl.dataset.tier === 'xl' || quoteEl.dataset.tier === 'l' ? base : Math.max(base, Math.min(GROW.lines, cap, 1 + Math.floor((words - 2) / GROW.words)));
     const top = GROW.maxPx / parseFloat(getComputedStyle(quoteEl).fontSize);
     if (top <= 1.01) return;
     // Measured in a box 1% narrower than it will be: grown to the very edge, a line would fit only to
     // the pixel, and the rag (it measures the box 1px short) would take one more line.
     quoteEl.style.setProperty('--q-fill', String(GROW.fill * 0.99));
-    const fits = (g) => { quoteEl.style.setProperty('--q-grow', String(g)); return lineCount(quoteEl) <= most; };
-    let lo = 1, hi = top;
-    if (fits(hi)) lo = hi;
-    else for (let i = 0; i < 7; i++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; } // to within 1% of the way
+    const largest = (lines) => { // the largest growth that keeps it within `lines` lines, to within 1% of the way
+      const fits = (g) => { quoteEl.style.setProperty('--q-grow', String(g)); return lineCount(quoteEl) <= lines; };
+      let lo = 1, hi = top;
+      if (fits(hi)) return hi;
+      for (let i = 0; i < 7; i++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+      return lo;
+    };
+    // On its own lines first (Bill, 2026-10-19: No. 18 "Let your dog take / you on a walk." grown, not
+    // "Let your dog / take you / on a walk."); a line more only when those barely grow (under
+    // GROW.keep) — No. 9's two lines already fill the column, so it takes three.
+    let lo = largest(base);
+    if (lo < GROW.keep && most > base) lo = largest(most);
     if (lo <= 1.01) { quoteEl.style.removeProperty('--q-grow'); quoteEl.style.removeProperty('--q-fill'); return; }
     quoteEl.style.setProperty('--q-grow', lo.toFixed(3));
     quoteEl.style.setProperty('--q-fill', String(GROW.fill));
@@ -505,6 +515,22 @@
     }
     growShort(quoteEl);
     evenLines(quoteEl);
+    // Grown, the rag must still keep Bill's rules: no line but the last of one or two words under half
+    // the box, no last line under a quarter (RAG_LONE_MIN, RAG_LAST_FLOOR). Where it cannot ("Let your
+    // dog / take you / on a walk.", No. 18 at 393), the quote takes a line fewer, and at the last not
+    // grown at all.
+    for (let tries = 0; tries < 2 && quoteEl.style.getPropertyValue('--q-grow') && grownFlaw(quoteEl); tries++) {
+      const lines = lineCount(quoteEl);
+      evenLines.reset(quoteEl); growShort(quoteEl, lines - 1); evenLines(quoteEl);
+    }
+    if (quoteEl.style.getPropertyValue('--q-grow') && grownFlaw(quoteEl)) {
+      evenLines.reset(quoteEl); quoteEl.style.removeProperty('--q-grow'); quoteEl.style.removeProperty('--q-fill'); evenLines(quoteEl);
+    }
+  }
+  function grownFlaw(quoteEl) {
+    const box = quoteEl.getBoundingClientRect().width, lines = [];
+    measureWords(quoteEl).forEach((w) => { const l = lines[lines.length - 1]; if (l && Math.abs(w.top - l.top) <= 4) { l.n++; l.left = Math.min(l.left, w.left); l.right = Math.max(l.right, w.right); } else lines.push({ top: w.top, n: 1, left: w.left, right: w.right }); });
+    return lines.some((l, k) => (k < lines.length - 1 ? l.n <= 2 && l.right - l.left < RAG_LONE_MIN * box : lines.length > 1 && l.right - l.left < RAG_LAST_FLOOR * box));
   }
   const fitDeck = () => { flushLanding(); track.querySelectorAll('.quote').forEach(fitTier); };
   // After a change the page is free again before the new quote's slowest words have quite
@@ -870,7 +896,8 @@
       : '';
     const script = showOrig && !inFace ? quoteScript(orig.text, q.author && q.author.country) : '';
     const nativeAttr = showOrig ? `${inFace ? '' : ` data-native data-script="${script}"`}${RTL_SCRIPTS.has(script) ? ' dir="rtl"' : ''} lang="${esc(orig.lang)}"` : ''; // data-native = set in Noto, in its script's (css/fonts.css); Arabic and Hebrew read right to left
-    return `${langBtn}<blockquote class="quote${locked ? ' quote--locked' : ''}" data-tier="${tierAs || size}"${size === 'l' || size === 'xl' ? ` data-short="${size}"` : ''} data-font="${font}"${nativeAttr}>${body}</blockquote>`;
+    const grown = locked && lockedLines.size && mqMobile.matches ? ` style="font-size: ${lockedLines.size}px"` : ''; // (a phone: notes and the page are one size)
+    return `${langBtn}<blockquote class="quote${locked ? ' quote--locked' : ''}" data-tier="${tierAs || size}"${size === 'l' || size === 'xl' ? ` data-short="${size}"` : ''} data-font="${font}"${nativeAttr}${grown}>${body}</blockquote>`;
   }
 
   /* ---------- Deck ---------- */
