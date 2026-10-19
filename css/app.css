@@ -343,7 +343,7 @@ ul { list-style: none; }
   white-space: pre-line;
   overflow-wrap: break-word;
   text-wrap: auto; /* every line is filled as far as it goes, the same in every browser. Not `pretty`: Safari re-balances the whole paragraph with it and leaves lines short ("to live, each / has to do."), Chrome does not. No single-word last lines and no stranded openers: js/app.js → noOrphans */
-  font-size: calc(var(--q-size) * var(--qf-scale, 1));
+  font-size: calc(var(--q-size) * var(--qf-scale, 1) * var(--q-grow, 1)); /* --q-grow: a short quote grown on a phone (js/app.js → growShort) */
   width: var(--q-width);
   max-width: 100%;
 }
@@ -458,7 +458,7 @@ ul { list-style: none; }
 
 @media (max-width: 599px) {
   .slide .q-wrap { left: var(--m); right: var(--m); }
-  .slide .quote { max-width: 100%; } /* the notes quote is full width on a phone, not 4 columns */
+  .slide .quote { max-width: calc(100% * var(--q-fill, 1)); } /* the notes quote is full width on a phone, not 4 columns; --q-fill: a short quote grown (js/app.js → growShort) */
   /* Every quote's box runs margin to margin; the rag is evened by js/app.js (evenLines), as at every width. */
   .lang { left: 0; top: -48px; --lang-to-x: 0px; } /* above the quote: it slips straight down towards it, and comes back up */
 }
@@ -847,9 +847,11 @@ ul { list-style: none; }
 }
 .menu-back { position: absolute; top: calc(20px - var(--cap-offset)); left: var(--m); }
 /* The bottom row (Bill, 2026-10-18): "Add words" stays where it is, lifted over the menu while it
-   is open (.is-menu-open, js/app.js → openMenu), and "Privacy" fades in at the right with Back. */
+   is open (.is-menu-open, js/app.js → openMenu), and "Privacy" fades in at the right with Back.
+   On a phone the two are the list's last row instead (.menu-foot, below). */
 .menu-privacy { position: absolute; right: var(--m); bottom: 20px; }
-.app.is-menu-open .add-btn { z-index: 41; }
+.menu-foot { display: none; }
+@media (min-width: 600px) { .app.is-menu-open .add-btn { z-index: 41; } }
 
 .menu-sym {
   position: absolute;
@@ -959,19 +961,30 @@ ul { list-style: none; }
   }
   .menu-back, .menu-sym { z-index: 2; }
   .menu-sym { left: auto; right: var(--m); top: 20px; translate: none; }
-  /* …and a bottom bar the same, under "Add words" and "Privacy": rows scrolling down fade out
-     before them, and the last can scroll clear of them. */
+  /* "Add words" and "Privacy" (Bill, 2026-10-18): the list's 7th row, under a rule below Romance.
+     A long list (the description open, a short window): it comes after Romance and scrolls with
+     the list. A short one: it stays at the foot of the window, 20 up as "Add words" sits on the
+     page, and the rule stays under Romance (the list is a column filling the window; the row's
+     margin-top: auto takes the room between). The page's own "Add words" goes under the menu. */
+  .cat-list { display: flex; flex-direction: column; }
+  .cat-list > li { flex-shrink: 0; }
+  .cat-list > .cat-last { border-bottom: var(--hairline) solid var(--rule); }
+  .menu-foot { display: flex; justify-content: space-between; align-items: flex-end; min-height: var(--row); margin-top: auto; }
+  .menu-privacy { display: none; }
+  /* A fade at the foot while there is more below (Bill, 2026-10-18: a hint to scroll): the top bar's
+     mirror, shown only then (.has-more, js/app.js → menuMore), so it never lies over the last row. */
   .menu::after {
     content: "";
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    height: calc(40px + var(--lh));
+    height: 58px;
     z-index: 1;
     pointer-events: none;
-    background: linear-gradient(to top, var(--paper) 45%, transparent);
+    background: linear-gradient(to top, var(--paper) 30%, transparent);
+    opacity: 0;
+    transition: opacity 0.2s var(--ease);
   }
-  .cat-list { padding-bottom: calc(40px + var(--lh)); }
-  .menu-privacy { z-index: 2; }
+  .menu.has-more::after { opacity: 1; }
   /* The hairline between rows belongs to the lower row. */
   li + li > .cat-row::before { content: ""; position: absolute; left: 0; right: 0; top: 0; border-top: var(--hairline) solid var(--rule); }
   .cat-row[data-empty] { opacity: 1; } /* the rule keeps its colour: only the name is dimmed */

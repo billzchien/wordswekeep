@@ -464,6 +464,38 @@
     measureWords(quoteEl).forEach((w) => { if (last === null || Math.abs(w.top - last) > 4) { lines++; last = w.top; } });
     return lines;
   }
+  /* ---------- A short quote, grown on a phone (Bill, 2026-10-18; tuned on md/checks/short-size) ----------
+     On a phone a quote of a few lines sat small in a tall empty screen. One that takes up to
+     GROW.from lines at its size grows — the same factor for every line — as far as it can while
+     it stays within GROW.lines lines in GROW.fill of the column, and never past GROW.maxPx. Only
+     ever larger; the main page only (the notes quote takes its lines, at its own size); the rag
+     rules then break it at the new size. On localhost the test page sets GROW (postMessage). */
+  const GROW = { from: 3, lines: 3, fill: 0.9, maxPx: 48, words: 3 }; // Bill's values from the test page (2026-10-18)
+  function growShort(quoteEl) {
+    quoteEl.style.removeProperty('--q-grow'); quoteEl.style.removeProperty('--q-fill');
+    if (!GROW.lines || !mqMobile.matches || !track.contains(quoteEl)) return;
+    const base = lineCount(quoteEl);
+    if (base > GROW.from) return;
+    // Grown, it may take more lines (up to GROW.lines) only with GROW.words words a line or more:
+    // fewer left a word alone or a sentence in scraps ("Journey's / not / just a band.", "Nothing /
+    // grows under / the big tree." — they keep their two lines, larger). A quote at XShort or Short is
+    // already sized to its lines: it keeps them.
+    const words = (quoteEl.textContent.match(/\S+/g) || []).length;
+    const most = quoteEl.dataset.tier === 'xl' || quoteEl.dataset.tier === 'l' ? base : Math.max(base, Math.min(GROW.lines, Math.floor(words / GROW.words)));
+    const top = GROW.maxPx / parseFloat(getComputedStyle(quoteEl).fontSize);
+    if (top <= 1.01) return;
+    // Measured in a box 1% narrower than it will be: grown to the very edge, a line would fit only to
+    // the pixel, and the rag (it measures the box 1px short) would take one more line.
+    quoteEl.style.setProperty('--q-fill', String(GROW.fill * 0.99));
+    const fits = (g) => { quoteEl.style.setProperty('--q-grow', String(g)); return lineCount(quoteEl) <= most; };
+    let lo = 1, hi = top;
+    if (fits(hi)) lo = hi;
+    else for (let i = 0; i < 7; i++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; } // to within 1% of the way
+    if (lo <= 1.01) { quoteEl.style.removeProperty('--q-grow'); quoteEl.style.removeProperty('--q-fill'); return; }
+    quoteEl.style.setProperty('--q-grow', lo.toFixed(3));
+    quoteEl.style.setProperty('--q-fill', String(GROW.fill));
+  }
+  if (LOCAL) window.addEventListener('message', (e) => { if (!e.data || !e.data.wwkGrow) return; Object.assign(GROW, e.data.wwkGrow); fitDeck(); }); // (fitDeck ends any words still landing first)
   function fitTier(quoteEl) {
     if (!quoteEl) return;
     evenLines.reset(quoteEl); // measured as plain text in the full box
@@ -471,6 +503,7 @@
       const steps = quoteEl.dataset.short === 'xl' ? ['xl', 'l', 'm'] : ['l', 'm'];
       for (const t of steps) { quoteEl.dataset.tier = t; if (t === 'm' || lineCount(quoteEl) <= SHORT_MAX_LINES) break; }
     }
+    growShort(quoteEl);
     evenLines(quoteEl);
   }
   const fitDeck = () => { flushLanding(); track.querySelectorAll('.quote').forEach(fitTier); };
@@ -704,6 +737,20 @@
   // is 80 percent." (73%, 92%) against "…of the motherfucker who / plays it is 80 percent." (88%,
   // 77%) — so it costs a line left RAG_HEAVY of the box short, more than a shape.
   const RAG_HEAVY = 0.35;
+  // No spike (Bill, 2026-10-18, No. 22 on his iPhone: "Anybody can play. / The note is only 20 /
+  // percent. The attitude of the / motherfucker who / plays it is 80 percent.", 69 69 99 71 76): a
+  // line more than RAG_SPIKE_STEP of the box longer than both lines around it (the last line not
+  // counted as one of them: a short last line is how a paragraph ends) sticks out further
+  // than a gentle wedge does, so it costs a line left RAG_SPIKE of the box short — more than the
+  // shape it avoided (there: 69 69 76 94 76, "…20 / percent. The attitude / of the motherfucker who /
+  // plays it…").
+  const RAG_SPIKE = 0.35, RAG_SPIKE_STEP = 0.2;
+  // No word alone on a line (Bill, 2026-10-18: "there should be no single word as a line"): one or two
+  // words on a line under RAG_LONE_MIN of the box (Bill: over half is fine, a big face and a short
+  // phrase) cost as much as a line left RAG_LONE of the box short — more than any shape, less than a
+  // stack — so it happens only when nothing else fits; the last line is left to RAG_LAST_MIN. Spaced scripts only (a Chinese character is a word of
+  // its own here); a last line is never one word anyway (noOrphans ties the last two).
+  const RAG_LONE = 1, RAG_LONE_MIN = 0.5, LONE_SCRIPT = /[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Devanagari}\p{N}]/u;
   // Chinese and Japanese (2026-10-08): a line ends best where a phrase does, after ，。、！？ —
   // a line broken mid-phrase costs as much as one left RAG_PHRASE of the box short: a
   // tie-breaker between ways about as even, as SOFT_END is (Bill: even lines first).
@@ -739,11 +786,13 @@
           const stack = above >= 0 && keys[i] && keys[i] === keys[above] ? (RAG_STACK * box) ** 2 : 0;
           const soft = !last && SOFT_END.has(keys[j - 1]) ? (RAG_SOFT * box) ** 2 : 0;
           const phrase = !last && mid[j] ? mid[j] * (RAG_PHRASE * box) ** 2 : 0; // (j: where the next line starts)
-          let shape = 0;
+          let shape = 0, spike = 0;
+          const lone = n > 1 && !last && j - i <= 2 && w < RAG_LONE_MIN * box && LONE_SCRIPT.test(keys[i] || '') ? (RAG_LONE * box) ** 2 : 0; // (one or two words on a line under half the box)
           const above2 = l > 2 && above >= 0 ? trail[l - 3][above] : -1;
           if (above2 >= 0) { // the two lines before this one: i is where the first ends, `above` where the one before it ends
             const w1 = span(above, i), w2 = span(above2, above), step = RAG_STEP * box;
             if ((w - w1 > step && w1 - w2 > step) || (!last && w1 - w > step && w2 - w1 > step)) shape = (RAG_SHAPE * box) ** 2; // (lines that shrink into the last line are how a paragraph ends: no shape)
+            if (!last && w1 - w2 > RAG_SPIKE_STEP * box && w1 - w > RAG_SPIKE_STEP * box) spike = (RAG_SPIKE * box) ** 2; // (the line before this one sticks out past both — unless this one is the last: a short last line is how a paragraph ends)
           }
           let stair = 0;
           const above3 = l > 3 && above2 >= 0 ? trail[l - 4][above2] : -1;
@@ -752,7 +801,7 @@
             if ((b - a > st && c - b > st && w - c > st) || (a - b > st && b - c > st && c - w > st)) stair = (RAG_STAIR * box) ** 2;
           }
           const heavy = last && above >= 0 && w - span(above, i) > RAG_STEP * box ? (RAG_HEAVY * box) ** 2 : 0; // (a last line longer than the one above it)
-          const cost = prev[i] + stack + soft + phrase + shape + stair + heavy + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+          const cost = prev[i] + stack + soft + phrase + shape + spike + lone + stair + heavy + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
           if (cost < cur[j]) { cur[j] = cost; back[j] = i; }
         }
       }
@@ -3305,9 +3354,11 @@
       const cls = ['cat-row', c.key === state.filter && 'is-selected',
         c.key === state.preview && 'is-preview'].filter(Boolean).join(' ');
       const empty = countFor(c.key) === 0;
-      return `<li><button class="${cls}" data-cat="${c.key}"${empty ? ' data-empty' : ''}>
+      return `<li${c === CATEGORIES[CATEGORIES.length - 1] ? ' class="cat-last"' : ''}><button class="${cls}" data-cat="${c.key}"${empty ? ' data-empty' : ''}>
         <span class="cat-name">${esc(c.name)}</span><span class="icon cat-ind"></span></button></li>`;
-    }).join('');
+    }).join('')
+      // Phone only (css .menu-foot): "Add words" and "Privacy" as the list's last row (Bill, 2026-10-18).
+      + '<li class="menu-foot"><button class="link" id="menuAdd" role="link" data-href="add">Add words</button><button class="link" role="link" data-href="privacy" data-out>Privacy</button></li>';
     updateMenuPreview();
   }
 
@@ -3472,6 +3523,18 @@
   let menuBusy = false;
   const easeCurve = () => getComputedStyle(document.documentElement).getPropertyValue('--ease').trim() || 'ease';
 
+  // The rows that fade in and out one after another: the categories, and on a phone the last row
+  // with "Add words" and "Privacy" (hidden elsewhere: left out, so the timing is unchanged there).
+  // Phone: is there more of the list below what shows? (css .menu.has-more: the fade at the foot).
+  // Written only when the answer changes; asked as the list scrolls and as its contents change size
+  // (the description folding open and shut).
+  function menuMore() {
+    const list = $('catList'), more = mqMobile.matches && list.scrollHeight - list.scrollTop - list.clientHeight > 1;
+    if (more !== $('menu').classList.contains('has-more')) $('menu').classList.toggle('has-more', more);
+  }
+  $('catList').addEventListener('scroll', menuMore, { passive: true });
+  if (window.ResizeObserver) { const ro = new ResizeObserver(menuMore); ro.observe($('catList')); ro.observe(document.querySelector('.cat-desc')); }
+  const menuRows = () => [...document.querySelectorAll('#catList .cat-row, #catList .menu-foot')].filter((el) => el.offsetParent !== null);
   function openMenu() {
     if (menuBusy || modeBusy || langBusy || state.animating) return;
     const reveal = () => {
@@ -3479,16 +3542,17 @@
       renderMenu();
       app.classList.add('is-menu-open');
       $('menu').hidden = false;
-      focusInto($('menu'), document.querySelector('#catList .cat-row.is-selected') || $('menuBack'), [$('addBtn')]);
+      focusInto($('menu'), document.querySelector('#catList .cat-row.is-selected') || $('menuBack'), mqMobile.matches ? [] : [$('addBtn')]); // (a phone: the menu's own Add words, in its list)
       menuSymOpen(state.filter);
       sizeDescLine(true); // the hairline is at full length as the menu appears; it glides only between items
+      menuMore();
       if (state.mode === 'main') app.classList.add('is-typing'); // Notes and the arrows go under the menu already hidden: they type back in with the quote on close
       menuBusy = false;
       if (reduceMotion.matches) return;
       const easing = easeCurve();
       // Each element fades up to its own opacity (an empty category's row is dimmed by css), not to 1.
       const fadeIn = (el, delay) => el.animate([{ opacity: 0 }, { opacity: getComputedStyle(el).opacity }], { duration: MENU_ITEM_MS, delay, easing, fill: 'backwards' });
-      document.querySelectorAll('#catList .cat-row').forEach((row, i) => {
+      menuRows().forEach((row, i) => {
         fadeIn(row, i * MENU_STAGGER_MS);
       });
       [document.querySelector('.cat-desc'), $('menuBack'), $('menuPrivacy'), $('menuApply')].forEach((el) => fadeIn(el, 0)); // the symbol is not faded: it draws in
@@ -3524,7 +3588,7 @@
     menuBusy = true;
     const easing = easeCurve();
     const fadeOut = (el, delay) => el.animate([{ opacity: getComputedStyle(el).opacity }, { opacity: 0 }], { duration: MENU_OUT_MS, delay, easing, fill: 'forwards' });
-    const rows = [...document.querySelectorAll('#catList .cat-row')];
+    const rows = menuRows();
     rows.forEach((row, i) => {
       fadeOut(row, i * MENU_STAGGER_MS);
     });
@@ -4080,10 +4144,13 @@
   const LEAVE_MENU_MS = 300;
   const NOTES_CUT_S = 0.05; // the music, cut as notes open with their sound (Bill, 2026-10-15): short enough to be a cut, long enough not to click
   const LEAVE_MUSIC_S = 0.6; // playing music fades out over this, and the page waits for it: a new page stops the old one's sound (Bill, 2026-10-13)
-  $('addBtn').addEventListener('click', (e) => {
+  // The page's "Add words", and on a phone the menu's (its list's last row).
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest && e.target.closest('#addBtn, #menuAdd');
+    if (!btn) return;
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // a new tab: `follow` opens it
     e.preventDefault();
-    const href = e.currentTarget.dataset.href;
+    const href = btn.dataset.href;
     const fromMenu = !$('menu').hidden;
     session.set('wwk-arrive', fromMenu ? 'menu' : '1');
     app.classList.toggle('is-leaving-menu', fromMenu);
@@ -4092,7 +4159,7 @@
     if (playing) music.stop(LEAVE_MUSIC_S);
     musicLeaving = true; musicSync();
     setTimeout(() => { location.href = href; }, Math.max(playing ? LEAVE_MUSIC_S * 1000 : 0, reduceMotion.matches ? 0 : fromMenu ? LEAVE_MENU_MS : LEAVE_MS));
-  });
+  }, true); // (capturing: before `follow`, which would go at once)
   window.addEventListener('pageshow', () => app.classList.remove('is-leaving', 'is-leaving-menu')); // back button (bfcache)
 
   /* ---------- Music (Figma 555:563; js/music.js plays it) ----------
