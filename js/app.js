@@ -743,14 +743,16 @@
   // counted as one of them: a short last line is how a paragraph ends) sticks out further
   // than a gentle wedge does, so it costs a line left RAG_SPIKE of the box short — more than the
   // shape it avoided (there: 69 69 76 94 76, "…20 / percent. The attitude / of the motherfucker who /
-  // plays it…").
-  const RAG_SPIKE = 0.35, RAG_SPIKE_STEP = 0.2;
+  // plays it…"). 25%, not 20%: at 20% No. 14 on a phone lost "…Contentment greets the / mind
+  // that wanders past; A host / …" for a gap after "and sounds of pure" (89 between 59 and 65 counted).
+  const RAG_SPIKE = 0.35, RAG_SPIKE_STEP = 0.25;
   // No word alone on a line (Bill, 2026-10-18: "there should be no single word as a line"): one or two
   // words on a line under RAG_LONE_MIN of the box (Bill: over half is fine, a big face and a short
   // phrase) cost as much as a line left RAG_LONE of the box short — more than any shape, less than a
-  // stack — so it happens only when nothing else fits; the last line is left to RAG_LAST_MIN. Spaced scripts only (a Chinese character is a word of
+  // stack — so it happens only when nothing else fits. The last line may be one phrase of any few
+  // words (it is never one word: noOrphans) but costs the same under RAG_LAST_FLOOR of the box (Bill). Spaced scripts only (a Chinese character is a word of
   // its own here); a last line is never one word anyway (noOrphans ties the last two).
-  const RAG_LONE = 1, RAG_LONE_MIN = 0.5, LONE_SCRIPT = /[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Devanagari}\p{N}]/u;
+  const RAG_LONE = 1, RAG_LONE_MIN = 0.5, RAG_LAST_FLOOR = 0.25, LONE_SCRIPT = /[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Devanagari}\p{N}]/u;
   // Chinese and Japanese (2026-10-08): a line ends best where a phrase does, after ，。、！？ —
   // a line broken mid-phrase costs as much as one left RAG_PHRASE of the box short: a
   // tie-breaker between ways about as even, as SOFT_END is (Bill: even lines first).
@@ -788,6 +790,7 @@
           const phrase = !last && mid[j] ? mid[j] * (RAG_PHRASE * box) ** 2 : 0; // (j: where the next line starts)
           let shape = 0, spike = 0;
           const lone = n > 1 && !last && j - i <= 2 && w < RAG_LONE_MIN * box && LONE_SCRIPT.test(keys[i] || '') ? (RAG_LONE * box) ** 2 : 0; // (one or two words on a line under half the box)
+          const orphan = last && n > 1 && w < RAG_LAST_FLOOR * box && LONE_SCRIPT.test(keys[i] || '') ? (RAG_LONE * box) ** 2 : 0; // (a last line under a quarter of the box)
           const above2 = l > 2 && above >= 0 ? trail[l - 3][above] : -1;
           if (above2 >= 0) { // the two lines before this one: i is where the first ends, `above` where the one before it ends
             const w1 = span(above, i), w2 = span(above2, above), step = RAG_STEP * box;
@@ -801,7 +804,7 @@
             if ((b - a > st && c - b > st && w - c > st) || (a - b > st && b - c > st && c - w > st)) stair = (RAG_STAIR * box) ** 2;
           }
           const heavy = last && above >= 0 && w - span(above, i) > RAG_STEP * box ? (RAG_HEAVY * box) ** 2 : 0; // (a last line longer than the one above it)
-          const cost = prev[i] + stack + soft + phrase + shape + spike + lone + stair + heavy + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+          const cost = prev[i] + stack + soft + phrase + shape + spike + lone + orphan + stair + heavy + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
           if (cost < cur[j]) { cur[j] = cost; back[j] = i; }
         }
       }
