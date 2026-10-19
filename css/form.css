@@ -595,6 +595,10 @@ textarea.field::-webkit-scrollbar { display: none; }
 html.is-arriving .count, html.is-arriving .arrows,
 html.is-arriving .step:first-child .content > .group > *, html.is-arriving .step:first-child .content > .btn { opacity: 0; }
 .form.is-arriving .arrows { animation: fade-in var(--chrome-in) var(--ease) both; }
+/* From the archive's open menu (Bill, 2026-10-18): no logo was showing there, so the logo fades in
+   with the chrome instead of being there already. */
+html.is-from-menu .home { opacity: 0; }
+html.is-from-menu .form.is-arriving .home { opacity: 1; animation: fade-in var(--chrome-in) var(--ease) both; }
 /* The pager comes in once the form's blocks have landed (--pager-at, from js/form.js), by parts, 100ms apart: the current number fades up 10px, the line draws
    left to right (the grey track, and the dark fill 50ms behind it), the total fades up 10px. */
 .form.is-arriving .count { opacity: 1; --pager-in: 300ms; --pager-gap: 100ms; }

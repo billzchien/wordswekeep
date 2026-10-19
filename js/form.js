@@ -1897,7 +1897,7 @@
     form.style.setProperty('--pager-at', `${blocksDone}ms`);
     form.classList.add('is-arriving');
     reqIn(steps[0]); // the asterisk, once the blocks have landed
-    setTimeout(() => { form.classList.remove('is-arriving'); document.documentElement.classList.remove('is-arriving'); }, blocksDone + 600);
+    setTimeout(() => { form.classList.remove('is-arriving'); document.documentElement.classList.remove('is-arriving', 'is-from-menu'); }, blocksDone + 600);
     focusStep(0, blocksDone); // the cursor, once the blocks have landed
   } else { reqIn(steps[0]); focusStep(0, 0); } // opened directly: the asterisk the same wait; the cursor at once
 })();

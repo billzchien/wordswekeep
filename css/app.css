@@ -164,6 +164,7 @@ ul { list-style: none; }
 /* Leaving for the form ("Add words"): everything but the logo fades out in 100ms, then the
    page changes; the form page fades its content in around the same logo (js/form.js). */
 .app.is-leaving > :not(.menu-btn) { opacity: 0; transition: opacity 0.1s var(--ease); }
+.app.is-leaving.is-leaving-menu > * { opacity: 0; transition: opacity 0.3s var(--ease); } /* from the open menu: no logo to carry over — the menu and all fade, slower (js: LEAVE_MENU_MS) */
 .app.is-arriving > .chrome:not(.menu-btn):not(.notes-btn):not(.arrows) { animation: fade-in var(--chrome-in) var(--ease) both; } /* back from the form (Notes and the arrows wait for the typing) */
 .app.is-into-thoughts > .notes, .app.is-into-thoughts > .notes-btn { animation: fade-in var(--chrome-in) var(--ease) both; } /* back from the form's "Add thoughts instead": straight into notes, no typing (js/app.js → intoThoughts) */
 /* While the quote types itself in (js/app.js → arrive), Notes and the arrows are held back; as

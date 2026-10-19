@@ -31,6 +31,7 @@ html.pv-page::-webkit-scrollbar { display: none; }
   max-width: calc(100vw - var(--col3) - var(--m));
   padding-top: calc(var(--m) + var(--sym)); /* the text starts level with the symbol's foot */
   padding-bottom: 160px;
+  animation: fade-in var(--chrome-in) var(--ease) both; /* the words fade in as the page opens, while the symbol draws in (Bill, 2026-10-18); reduced motion: there at once (app.css) */
 }
 .pv-updated { color: #565656; padding-left: 2em; } /* the form's --placeholder grey (css/form.css); indented as the sections' text (Bill, 2026-10-10) */
 .pv-body { margin-top: 4em; display: flex; flex-direction: column; gap: 2em; } /* 60 under the title, 30 between sections (Figma, at 15) */

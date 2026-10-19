@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="css/form.css">
   <!-- Arriving from the archive: mark it before the first paint, so the form's blocks are hidden
        until they fade up (js/form.js plays the entrance and clears both classes). -->
-  <script>try { if (sessionStorage.getItem('wwk-arrive')) document.documentElement.classList.add('is-arriving'); } catch (e) {}</script>
+  <script>try { const a = sessionStorage.getItem('wwk-arrive'); if (a) document.documentElement.classList.add('is-arriving'); if (a === 'menu') document.documentElement.classList.add('is-from-menu'); } catch (e) {}</script> <!-- is-from-menu: the archive's menu was open, no logo was there to carry over: it fades in too (css/form.css) -->
 </head>
 <body>
   <div class="form" id="form">

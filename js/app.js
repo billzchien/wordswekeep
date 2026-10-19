@@ -4075,20 +4075,27 @@
 
   /* ---------- Add words: hand over to the form ---------- */
   const LEAVE_MS = 100;
+  // From the open menu (Bill, 2026-10-18: it was a jump): there is no logo at the top left to carry
+  // over (it drew itself out as the menu opened), so everything fades, the menu with it, over
+  // LEAVE_MENU_MS before the form opens, and the form fades its logo in with the rest
+  // (wwk-arrive = 'menu', js/form.js).
+  const LEAVE_MENU_MS = 300;
   const NOTES_CUT_S = 0.05; // the music, cut as notes open with their sound (Bill, 2026-10-15): short enough to be a cut, long enough not to click
   const LEAVE_MUSIC_S = 0.6; // playing music fades out over this, and the page waits for it: a new page stops the old one's sound (Bill, 2026-10-13)
   $('addBtn').addEventListener('click', (e) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // a new tab: `follow` opens it
     e.preventDefault();
     const href = e.currentTarget.dataset.href;
-    session.set('wwk-arrive', '1');
+    const fromMenu = !$('menu').hidden;
+    session.set('wwk-arrive', fromMenu ? 'menu' : '1');
+    app.classList.toggle('is-leaving-menu', fromMenu);
     app.classList.add('is-leaving');
     const playing = !!music && music.state().playing;
     if (playing) music.stop(LEAVE_MUSIC_S);
     musicLeaving = true; musicSync();
-    setTimeout(() => { location.href = href; }, Math.max(playing ? LEAVE_MUSIC_S * 1000 : 0, reduceMotion.matches ? 0 : LEAVE_MS));
+    setTimeout(() => { location.href = href; }, Math.max(playing ? LEAVE_MUSIC_S * 1000 : 0, reduceMotion.matches ? 0 : fromMenu ? LEAVE_MENU_MS : LEAVE_MS));
   });
-  window.addEventListener('pageshow', () => app.classList.remove('is-leaving')); // back button (bfcache)
+  window.addEventListener('pageshow', () => app.classList.remove('is-leaving', 'is-leaving-menu')); // back button (bfcache)
 
   /* ---------- Music (Figma 555:563; js/music.js plays it) ----------
      Each category's own loop, on the main page and under the menu, never in notes. Whatever

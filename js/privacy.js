@@ -16,6 +16,19 @@ document.addEventListener('keydown', (e) => { // a span with role="link" answers
   if (e.key === 'Enter' && e.target.matches && e.target.matches('span[data-href]')) follow(e.target, e);
 });
 
+/* ---------- No word alone on the last line (Bill, 2026-10-18; as js/app.js → noOrphans) ----------
+   In every paragraph and list item the last two words are tied (a no-break space in the last text
+   that has one), so "when you sent / it." never happens. Done once, before the words fade in. */
+document.querySelectorAll('.pv-col p, .pv-col li').forEach((el) => {
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), texts = [];
+  for (let n; (n = walker.nextNode());) texts.push(n);
+  for (let i = texts.length - 1; i >= 0; i--) {
+    const t = texts[i].nodeValue, at = t.trimEnd().lastIndexOf(' ');
+    if (at > 0 && t.slice(0, at).trim()) { texts[i].nodeValue = `${t.slice(0, at)}\u00a0${t.slice(at + 1)}`; return; }
+    if (at > 0 || t.trim()) return; // a word with nothing before it in this text: the tie would go across a link; left alone
+  }
+});
+
 /* ---------- Smooth (eased) wheel scrolling ----------
    Wheel and trackpad input moves a target; the page glides after it, covering SCROLL_EASE of the
    remaining distance every frame. Touch keeps the device's own momentum; keys, the scrollbar and
