@@ -3385,7 +3385,7 @@
         c.key === state.preview && 'is-preview'].filter(Boolean).join(' ');
       const empty = countFor(c.key) === 0;
       return `<li${c === CATEGORIES[CATEGORIES.length - 1] ? ' class="cat-last"' : ''}><button class="${cls}" data-cat="${c.key}"${empty ? ' data-empty' : ''}>
-        <span class="cat-name">${esc(c.name)}</span><span class="icon cat-ind"></span></button></li>`;
+        <span class="cat-name">${esc(c.name)}</span><span class="icon cat-ind"></span></button>${c === CATEGORIES[CATEGORIES.length - 1] ? '<span class="cat-rule" aria-hidden="true"></span>' : ''}</li>`; // (cat-rule: the phone's line under Romance, its own element so it fades with the row: Bill, 2026-10-19)
     }).join('')
       // Phone only (css .menu-foot): "Add words" and "Privacy" as the list's last row (Bill, 2026-10-18).
       + '<li class="menu-foot"><button class="link" id="menuAdd" role="link" data-href="add">Add words</button><button class="link" role="link" data-href="privacy" data-out>Privacy</button></li>';
@@ -3584,6 +3584,8 @@
       const fadeIn = (el, delay) => el.animate([{ opacity: 0 }, { opacity: getComputedStyle(el).opacity }], { duration: MENU_ITEM_MS, delay, easing, fill: 'backwards' });
       menuRows().forEach((row, i) => {
         fadeIn(row, i * MENU_STAGGER_MS);
+        const rule = row.closest('li') && row.closest('li').querySelector(':scope > .cat-rule');
+        if (rule && rule.offsetParent !== null) fadeIn(rule, i * MENU_STAGGER_MS); // (the line under Romance, with Romance)
       });
       [document.querySelector('.cat-desc'), $('menuBack'), $('menuPrivacy'), $('menuApply')].forEach((el) => fadeIn(el, 0)); // the symbol is not faded: it draws in
     };
@@ -3618,11 +3620,13 @@
     menuBusy = true;
     const easing = easeCurve();
     const fadeOut = (el, delay) => el.animate([{ opacity: getComputedStyle(el).opacity }, { opacity: 0 }], { duration: MENU_OUT_MS, delay, easing, fill: 'forwards' });
-    const rows = menuRows();
+    const rows = menuRows().filter((el) => !el.classList.contains('menu-foot')); // (the phone's Add words / Privacy row goes with Back, not last: Bill, 2026-10-19)
     rows.forEach((row, i) => {
       fadeOut(row, i * MENU_STAGGER_MS);
+      const rule = row.closest('li') && row.closest('li').querySelector(':scope > .cat-rule');
+      if (rule && rule.offsetParent !== null) fadeOut(rule, i * MENU_STAGGER_MS); // (the line under Romance, with Romance)
     });
-    [document.querySelector('.cat-desc'), $('menuSym'), $('menuBack'), $('menuPrivacy'), $('menuApply')].forEach((el) => fadeOut(el, 0));
+    [document.querySelector('.cat-desc'), $('menuSym'), $('menuBack'), $('menuPrivacy'), $('menuApply'), document.querySelector('#catList .menu-foot')].forEach((el) => el && fadeOut(el, 0));
 
     const itemsGone = MENU_OUT_MS + Math.max(0, rows.length - 1) * MENU_STAGGER_MS;
     const wrap = currentWrap();

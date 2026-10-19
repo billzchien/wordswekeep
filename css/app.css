@@ -850,7 +850,7 @@ ul { list-style: none; }
    is open (.is-menu-open, js/app.js → openMenu), and "Privacy" fades in at the right with Back.
    On a phone the two are the list's last row instead (.menu-foot, below). */
 .menu-privacy { position: absolute; right: var(--m); bottom: 20px; }
-.menu-foot { display: none; }
+.menu-foot, .cat-rule { display: none; }
 @media (min-width: 600px) { .app.is-menu-open .add-btn { z-index: 41; } }
 
 .menu-sym {
@@ -946,7 +946,7 @@ ul { list-style: none; }
     top: 0; bottom: 0; left: 0; right: 0;
     padding: calc(var(--list-top) - (var(--row) - var(--lh)) / 2) var(--m) 20px;
     overflow-y: auto;
-    overscroll-behavior: contain;
+    overscroll-behavior: none; /* no rubber band (Bill, 2026-10-19): pulled past its end, the list's last row — Add words and Privacy — rose above its place at the foot */
     scrollbar-width: none;
   }
   .cat-list::-webkit-scrollbar { display: none; }
@@ -968,7 +968,8 @@ ul { list-style: none; }
      margin-top: auto takes the room between). The page's own "Add words" goes under the menu. */
   .cat-list { display: flex; flex-direction: column; }
   .cat-list > li { flex-shrink: 0; }
-  .cat-list > .cat-last { border-bottom: var(--hairline) solid var(--rule); }
+  .cat-list > .cat-last { display: flex; flex-direction: column; }
+  .cat-last > .cat-rule { display: block; order: 2; border-top: var(--hairline) solid var(--rule); } /* the line under Romance, under its description when that is open there (js/app.js → placeDesc puts it in the li); its own element, so it fades with the row */
   .menu-foot { display: flex; justify-content: space-between; align-items: flex-end; min-height: var(--row); margin-top: auto; }
   .menu-privacy { display: none; }
   /* A fade at the foot while there is more below (Bill, 2026-10-18: a hint to scroll): the top bar's
