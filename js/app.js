@@ -877,6 +877,25 @@
     return t;
   }
 
+  // An annotated word's underline, ANN_BELOW under the baseline whatever the face (css/app.css → .ann):
+  // the face's box reaches `descent` under the baseline, so the line is lifted from the box's foot by
+  // the difference, or the box lengthened by it. Measured per quote with annotations, in its own face
+  // (the original's words in theirs), and again once a face has come in.
+  const ANN_BELOW = 0.16;
+  const annCanvas = document.createElement('canvas').getContext('2d');
+  function annDrops() {
+    document.querySelectorAll('.quote').forEach((q) => {
+      if (!q.querySelector('.ann')) return;
+      const cs = getComputedStyle(q), size = parseFloat(cs.fontSize);
+      annCanvas.font = `${cs.fontStyle} ${cs.fontWeight} ${size}px ${cs.fontFamily}`;
+      const d = annCanvas.measureText('Hg').fontBoundingBoxDescent;
+      if (!size || !Number.isFinite(d)) return; // (no metrics: the css default stands)
+      const lift = d / size - ANN_BELOW;
+      q.style.setProperty('--ann-drop', `${Math.max(0, lift).toFixed(3)}em`);
+      q.style.setProperty('--ann-pad', `${Math.max(0, -lift).toFixed(3)}em`);
+    });
+  }
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', () => annDrops());
   function quoteHTML(q, { original = false, withAnnotations = false, keepLines = false, tierAs = null } = {}) {
     const orig = q.originalLanguage;
     const showOrig = original && orig;
@@ -1431,6 +1450,7 @@
     const wrap = $('nQuoteWrap');
     const tierAs = fittedTier(current(), state.original);
     wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true, keepLines: true, tierAs });
+    annDrops();
     evenLines(wrap.querySelector('.quote:not(.quote--locked)')); // phone: an even rag (a locked quote already has the main quote's lines)
     // Belt and braces: if a locked line does not fit here after all (it would wrap into an
     // orphan), let the quote wrap naturally rather than show a broken line.
@@ -1438,7 +1458,7 @@
     if (locked) {
       const wanted = locked.textContent.split('\n').length;
       const got = new Set(measureWords(locked).map((w) => Math.round(w.top))).size;
-      if (got !== wanted) { wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true, tierAs }); evenLines(wrap.querySelector('.quote')); }
+      if (got !== wanted) { wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: true, tierAs }); evenLines(wrap.querySelector('.quote')); annDrops(); }
     }
     wrap.classList.toggle('has-lang', !!current().originalLanguage);
     layoutNotes();
@@ -2410,7 +2430,7 @@
       el.getAnimations().forEach((anim) => anim.cancel()); // one dash animation at a time
       const thickness = getComputedStyle(el).backgroundSize.split(' ')[1] || '1px';
       const side = show ? 'left' : 'right'; // wiping away left→right means the line shrinks toward the right
-      const pos = `${side} bottom 0.08em`;
+      const pos = `${side} bottom ${getComputedStyle(el).getPropertyValue('--ann-drop').trim() || '0.08em'}`; // (the line's own height under the baseline: annDrops)
       const none = { backgroundPosition: pos, backgroundSize: `0% ${thickness}` };
       const full = { backgroundPosition: pos, backgroundSize: `100% ${thickness}` };
       el.animate(show ? [none, full] : [full, none], {
@@ -2504,6 +2524,7 @@
     Object.assign(ghost.style, { left: `${old.offsetLeft}px`, top: `${old.offsetTop}px`, width: `${old.offsetWidth}px`, maxWidth: 'none' }); // maxWidth: the incoming quote may be narrower (evenLines narrows a CJK one) and its wrap with it; the ghost keeps the width it had
     // …while the incoming text takes its real place underneath.
     wrap.innerHTML = quoteHTML(current(), { original: state.original, withAnnotations: inNotes, tierAs: inNotes ? fittedTier(current(), state.original) : null });
+    if (inNotes) annDrops();
     if (inNotes) evenLines(wrap.querySelector('.quote')); else fitTier(wrap.querySelector('.quote'));
     wrap.appendChild(ghost);
     wrap.classList.add('is-typing');
@@ -2966,7 +2987,7 @@
 
     // Final layout: the enlarged word sits near where it was in the quote.
     const w = word.offsetWidth, h = word.offsetHeight;
-    const gap = cssPx('--ann-gap', 24); // tokens.css, scaled by --u
+    const gap = cssPx('--ann-gap', 16); // tokens.css (16 desktop, 12 tablet, 8 phone), scaled by --u
     const backGutter = vw >= 600 ? 49 : 0;
     const left = Math.max(m + backGutter, Math.min(rect.left - 14, vw - m - Math.max(w, text.offsetWidth)));
     const top = Math.max(64, Math.min(rect.top - (h - rect.height) / 2, vh - h - text.offsetHeight - gap - 29));

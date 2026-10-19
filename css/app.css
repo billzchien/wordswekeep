@@ -581,6 +581,11 @@ ul { list-style: none; }
   background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 4px) left bottom 0.08em / 100% 1px no-repeat;
 }
 @media (min-resolution: 2dppx) { .ann, .cat-desc [data-href], .pv-mail, .send-note [data-href], .dup-note [data-href], #startOver { background-size: 100% 0.5px; } }
+/* An annotated word's underline sits ANN_BELOW (0.16em) under the baseline in every face (Bill, 2026-10-19,
+   md/checks/ann-space): at the foot of the face's own box it fell 0.07em (Stone) to 0.25em (Goudy) under it.
+   js/app.js → annDrops measures each quote's face: --ann-drop lifts the line from the box's foot, --ann-pad
+   lengthens the box where it stops short of the line (inline padding: the lines do not move). */
+.ann { background-position: left bottom var(--ann-drop, 0.08em); padding-bottom: var(--ann-pad, 0); }
 
 .n-col {
   position: relative;

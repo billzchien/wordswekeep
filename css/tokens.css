@@ -82,7 +82,7 @@ html { -webkit-tap-highlight-color: transparent; }
   --notes-quote-top: calc(240 * var(--u));   /* top of the pinned quote in notes mode */
   --notes-quote-gap: calc(120 * var(--u));   /* quote → "Kept by" */
   --main-quote-lift: calc(40 * var(--u));    /* main quote sits this much above true center */
-  --ann-gap: calc(24 * var(--u));            /* annotation overlay: enlarged word → its note */
+  --ann-gap: calc(16 * var(--u));            /* annotation overlay: enlarged word → its note (Bill, 2026-10-19, md/checks/ann-space: 16 desktop, 12 tablet, 8 phone; it was 24) */
 
   /* ---------- Mark (logo / category mark) — grows with the type ---------- */
   --mark: calc(24 * var(--u));   /* the symbol at the top left of every page, and beside a category's name in notes */
@@ -110,6 +110,7 @@ html { -webkit-tap-highlight-color: transparent; }
     --quote-s: calc(32 * var(--u));   --quote-s-notes: calc(32 * var(--u));
     --quote-xs: calc(26 * var(--u));  --quote-xs-notes: calc(26 * var(--u));
     --quote-annotation: calc(48 * var(--u));
+    --ann-gap: calc(12 * var(--u));
   }
 }
 
@@ -122,6 +123,7 @@ html { -webkit-tap-highlight-color: transparent; }
     --quote-s: calc(28 * var(--u));   --quote-s-notes: calc(28 * var(--u));
     --quote-xs: calc(22 * var(--u));  --quote-xs-notes: calc(22 * var(--u));
     --quote-annotation: calc(40 * var(--u));
+    --ann-gap: calc(8 * var(--u));
   }
 }
 
