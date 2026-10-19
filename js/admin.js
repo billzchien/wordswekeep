@@ -2314,7 +2314,7 @@
 
   const TUNE = { scaleXL: 'tScaleXL', scaleL: 'tScaleL', scaleM: 'tScaleM', scaleS: 'tScaleS', leadingXL: 'tLeadingXL', leading: 'tLeading', tracking: 'tTracking' }; // what can be tuned → its field
   const FACE_SAMPLES = [
-    ['xl', 'XShort', 'Keep going.'],
+    ['xl', 'XShort', 'Keep going and yes slay.'],
     ['l', 'Short', 'Hustlers don’t stop. They keep going.'],
     ['m', 'Medium', 'Anybody can play. The note is only 20 percent. The attitude of the motherfucker who plays it is 80 percent.'],
     ['s', 'Long', 'The amazing thing is that every atom in your body came from a star that exploded. And, the atoms in your left hand probably came from a different star than your right hand. It really is the most poetic thing I know about physics: You are all stardust.'],
