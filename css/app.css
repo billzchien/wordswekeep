@@ -353,6 +353,7 @@ ul { list-style: none; }
    The box is measured in the tier's em, whatever the face's own scale — except a short quote's,
    which widens with its face's scale, so a face set larger still fits the same words on its two
    lines (Bill, 2026-10-06); the slide's four columns still cap it. */
+.quote[data-tier="xl"] { --q-size: var(--quote-xl); --q-width: 7.29em;  --q-ratio: 1.0909; }  /* 700 / 96 · 96/88: XShort, the short quote's box (Bill, 2026-10-18) */
 .quote[data-tier="l"]  { --q-size: var(--quote-l);  --q-width: 10.94em; --q-ratio: 1.0667; }  /* 700 / 64 · 64/60 */
 .quote[data-tier="m"]  { --q-size: var(--quote-m);  --q-width: calc(16.54em / var(--qf-scale, 1)); --q-ratio: 1.0834; }  /* 860 / 52 · 52/48 */
 .quote[data-tier="s"]  { --q-size: var(--quote-s);  --q-width: calc(21.5em / var(--qf-scale, 1));  --q-ratio: 1.25; }    /* 860 / 40 · 40/32 */
@@ -557,6 +558,7 @@ ul { list-style: none; }
 .quote--locked { white-space: pre-line; text-wrap: auto; } /* plain greedy wrapping, not `pretty`: a
    line that fit on the main screen is left alone, and a line that no longer fits (the window
    changed size) wraps instead of running off the edge — the quote is never cut */
+.notes .quote[data-tier="xl"] { --q-size: var(--quote-xl-notes); }
 .notes .quote[data-tier="l"]  { --q-size: var(--quote-l-notes); }
 .notes .quote[data-tier="m"]  { --q-size: var(--quote-m-notes); }
 .notes .quote[data-tier="s"]  { --q-size: var(--quote-s-notes); }

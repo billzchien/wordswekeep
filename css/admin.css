@@ -399,18 +399,18 @@
   position: absolute; left: 0; top: 0; width: 1168px; min-height: 328px;
   box-sizing: border-box; padding: 56px 0 56px 104px; display: flex; align-items: center;
   transform-origin: 0 0; transform: scale(var(--s, 0.702));
-  --u: 1px; --quote-l: 64px; --quote-m: 52px; --quote-s: 40px; --quote-xs: 32px;
+  --u: 1px; --quote-xl: 96px; --quote-l: 64px; --quote-m: 52px; --quote-s: 40px; --quote-xs: 32px;
   color: var(--ink);
 }
 .font-stage .quote { flex: none; width: 780px; max-width: none; margin: 0; -webkit-user-select: none; user-select: none; } /* every length, a short quote too, as in the archive since 2026-10-06 */
 @media (max-width: 1023px) {
-  .font-stage { width: 768px; min-height: 512px; padding: 64px 0 64px 145px; --quote-l: 48px; --quote-m: 40px; --quote-s: 32px; --quote-xs: 26px; }
-  .font-stage .quote, .font-stage .quote[data-tier="l"] { width: 478px; }
+  .font-stage { width: 768px; min-height: 512px; padding: 64px 0 64px 145px; --quote-xl: 72px; --quote-l: 48px; --quote-m: 40px; --quote-s: 32px; --quote-xs: 26px; }
+  .font-stage .quote, .font-stage .quote[data-tier="l"], .font-stage .quote[data-tier="xl"] { width: 478px; }
 }
 @media (max-width: 599px) {
-  .font-stage { width: 375px; min-height: 334px; padding: 40px 0 40px 20px; --quote-l: 40px; --quote-m: 32px; --quote-s: 28px; --quote-xs: 22px; }
+  .font-stage { width: 375px; min-height: 334px; padding: 40px 0 40px 20px; --quote-xl: 56px; --quote-l: 40px; --quote-m: 32px; --quote-s: 28px; --quote-xs: 22px; }
   .font-stage .quote { width: 335px; }
-  .font-stage .quote[data-tier="l"] { width: 335px; } /* margin to margin like the rest, as in the archive since 2026-10-03 */
+  .font-stage .quote[data-tier="l"], .font-stage .quote[data-tier="xl"] { width: 335px; } /* margin to margin like the rest, as in the archive since 2026-10-03 */
 }
 
 /* ---------- Fonts: tuning the quote faces ----------
@@ -440,10 +440,10 @@
 /* The face dropdown (css/form.css → .combo): faces still being tuned in ink, settled ones in grey. */
 .ctl.ctl--face { width: calc(140 * var(--u)); }
 @media (min-width: 1024px) { .ctl.ctl--face { width: calc(var(--col2) - var(--m) - var(--g)); } }
-/* A phone: the face on its own row, then the six fields in one row, all the same width and the
+/* A phone: the face on its own row, then the eight fields in two rows of four, all the same width and the
    same 4 apart (the groups dissolve), under shortened captions (.h-short). */
 @media (max-width: 599px) {
-  .faces-top { --fpad: calc(6 * var(--u)); display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: calc(12 * var(--u)) calc(4 * var(--u)); }
+  .faces-top { --fpad: calc(6 * var(--u)); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: calc(12 * var(--u)) calc(4 * var(--u)); }
   .ctls { display: contents; }
   .ctl { width: auto; min-width: 0; }
   .ctl.ctl--face { width: auto; grid-column: 1 / -1; }
@@ -466,7 +466,7 @@
 .face-cap { position: absolute; left: 0; top: var(--row-pad); right: 0; color: var(--head); font-feature-settings: var(--numeral-features); }
 @media (max-width: 599px) {
   .face-board { padding-left: 0; }
-  .face-board .quote, .face-board .quote[data-tier="l"] { width: 100%; }
+  .face-board .quote, .face-board .quote[data-tier="l"], .face-board .quote[data-tier="xl"] { width: 100%; }
 }
 /* A phone's top line holds four tabs and the button: the tabs sit closer, the button is as wide
    as its word, and the Fonts tab keeps Save only (a reload is its Reset). */

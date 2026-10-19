@@ -59,11 +59,13 @@ html { -webkit-tap-highlight-color: transparent; }
 
   /* ---------- Type: quote scale ----------
      Tier is picked by quote length (js/app.js → tier()):
-     l ≤ 64 chars · m ≤ 160 · s ≤ 260 · xs longer. CJK characters count double.
+     xl ≤ 24 chars (XShort, Bill 2026-10-18: 1.5× Short) · l ≤ 64 · m ≤ 160 · s ≤ 260 · xs longer.
+     CJK characters count double.
      Each tier has a main size and a notes-mode size. */
   --quote-leading: 1.15;
   --quote-native-leading: 1.5;
   --quote-native-scale: 0.8;   /* CJK glyphs fill the whole em, so they run at 80% of the tier size */
+  --quote-xl: calc(96 * var(--u));  --quote-xl-notes: calc(88 * var(--u));
   --quote-l: calc(64 * var(--u));   --quote-l-notes: calc(60 * var(--u));
   --quote-m: calc(52 * var(--u));   --quote-m-notes: calc(48 * var(--u));
   --quote-s: calc(40 * var(--u));   --quote-s-notes: calc(32 * var(--u));
@@ -102,6 +104,7 @@ html { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 1023px) {
   :root {
     --text-size: calc(16 * var(--u));  --text-native-size: calc(12 * var(--u));
+    --quote-xl: calc(72 * var(--u));  --quote-xl-notes: calc(72 * var(--u));
     --quote-l: calc(48 * var(--u));   --quote-l-notes: calc(48 * var(--u));
     --quote-m: calc(40 * var(--u));   --quote-m-notes: calc(40 * var(--u));
     --quote-s: calc(32 * var(--u));   --quote-s-notes: calc(32 * var(--u));
@@ -113,6 +116,7 @@ html { -webkit-tap-highlight-color: transparent; }
 /* Mobile */
 @media (max-width: 599px) {
   :root {
+    --quote-xl: calc(56 * var(--u));  --quote-xl-notes: calc(56 * var(--u));
     --quote-l: calc(40 * var(--u));   --quote-l-notes: calc(40 * var(--u));
     --quote-m: calc(32 * var(--u));   --quote-m-notes: calc(32 * var(--u));
     --quote-s: calc(28 * var(--u));   --quote-s-notes: calc(28 * var(--u));

@@ -208,6 +208,7 @@
   function tier(text, cjkWeight = 4) {
     const cjk = (text.match(/[぀-ヿ㐀-鿿가-힯]/g) || []).length;
     const weight = text.length + cjk * (cjkWeight - 1);
+    if (weight <= 24) return 'xl'; // XShort (Bill, 2026-10-18): 1.5× Short
     if (weight <= 64) return 'l';
     if (weight <= 160) return 'm';
     if (weight <= 260) return 's';
@@ -470,9 +471,9 @@
   function fitTier(quoteEl) {
     if (!quoteEl) return;
     evenLines.reset(quoteEl); // measured as plain text in the full box
-    if (quoteEl.hasAttribute('data-short')) {
-      quoteEl.dataset.tier = 'l';
-      if (lineCount(quoteEl) > SHORT_MAX_LINES) quoteEl.dataset.tier = 'm';
+    if (quoteEl.hasAttribute('data-short')) { // XShort → Short → Medium, the first that holds it in two lines
+      const steps = quoteEl.dataset.short === 'xl' ? ['xl', 'l', 'm'] : ['l', 'm'];
+      for (const t of steps) { quoteEl.dataset.tier = t; if (t === 'm' || lineCount(quoteEl) <= SHORT_MAX_LINES) break; }
     }
     evenLines(quoteEl);
   }
@@ -821,7 +822,7 @@
       : '';
     const script = showOrig && !inFace ? quoteScript(orig.text, q.author && q.author.country) : '';
     const nativeAttr = showOrig ? `${inFace ? '' : ` data-native data-script="${script}"`}${RTL_SCRIPTS.has(script) ? ' dir="rtl"' : ''} lang="${esc(orig.lang)}"` : ''; // data-native = set in Noto, in its script's (css/fonts.css); Arabic and Hebrew read right to left
-    return `${langBtn}<blockquote class="quote${locked ? ' quote--locked' : ''}" data-tier="${tierAs || size}"${size === 'l' ? ' data-short' : ''} data-font="${font}"${nativeAttr}>${body}</blockquote>`;
+    return `${langBtn}<blockquote class="quote${locked ? ' quote--locked' : ''}" data-tier="${tierAs || size}"${size === 'l' || size === 'xl' ? ` data-short="${size}"` : ''} data-font="${font}"${nativeAttr}>${body}</blockquote>`;
   }
 
   /* ---------- Deck ---------- */
@@ -3686,6 +3687,7 @@
       if (!/^[a-z]+$/.test(key) || !s || ![s.l, s.m, s.s, f.leading, f.tracking].every(num)) return '';
       const at = `[data-font="${key}"]`;
       return `${at} { --qf-leading: ${f.leading}; --qf-tracking: ${f.tracking / 100}em; }\n`
+        + `${at}[data-tier="xl"] { --qf-scale: ${num(s.xl) ? s.xl : Math.round(s.l * 0.85 * 1e4) / 1e4};${num(f.leadingXL) ? ` --qf-leading: ${f.leadingXL};` : ''} }\n` // XShort: its own size and leading once tuned, else 0.85 × the face's Short and the face's leading
         + `${at}[data-tier="l"] { --qf-scale: ${s.l}; }\n${at}[data-tier="m"] { --qf-scale: ${s.m}; }\n`
         + `${at}[data-tier="s"], ${at}[data-tier="xs"] { --qf-scale: ${s.s}; }`;
     }).join('\n');

@@ -3,7 +3,8 @@
    against the site's quote scale (--qf-scale: its size ÷ Instrument's on the same Figma board),
    its leading, tracking and features. app.css reads these in .quote and .ann-word; the tier
    sizes themselves (tokens.css) are never touched, so notes mode, tablet and phone follow.
-   Tiers: l = Figma "Short" · m = "Medium" · s and xs = "Long".
+   Tiers: xl = "XShort" (2026-10-18: starts at the face's Short scale) · l = Figma "Short" ·
+   m = "Medium" · s and xs = "Long".
    A face has ONE leading and ONE tracking, at every length and every breakpoint — except
    Round, whose short quotes are set at 1.15 (both are
    relative to the type size); only --qf-scale changes with the tier. Where Figma's short board
@@ -32,6 +33,11 @@
   --native-sans: var(--noto-sans);
 }
 
+/* XShort (2026-10-18): every face starts at 0.85 × its Short scale (Bill: 1.5× Short came out too big
+   in some faces), here for a face set at 1 and in each face's own rule below; the Fonts tab tunes it.
+   Its leading is the face's own until the Fonts tab gives it one (data/faces.json → leadingXL). */
+[data-tier="xl"] { --qf-scale: 0.85; }
+
 /* Instrument: the site's own settings (app.css, tokens.css) — nothing to set. */
 
 [data-font="print"]   { --qf-family: 'Print', var(--native-serif);   --qf-style: normal; --qf-leading: 1.25; --qf-tracking: -0.015em; }
@@ -46,12 +52,14 @@
 
 [data-font="round"]   { --qf-family: 'Cal Sans', var(--native-sans); --qf-style: normal; --qf-leading: 1.3; --qf-native: var(--qn-sans, var(--native-sans)); --qf-native-scale: var(--qn-sans-scale); --qf-native-leading: var(--qn-sans-leading); --qf-native-tracking: var(--qn-sans-tracking); --qf-native-weight: var(--qn-sans-weight); }
 [data-font="round"][data-tier="l"]  { --qf-scale: 0.9375; --qf-leading: 1.15; }   /* 60 / 64; the one exception to "one leading per face": a short quote in Round is tighter (Bill, 2026-09-27) */
+[data-font="round"][data-tier="xl"] { --qf-scale: 0.7969; --qf-leading: 1.15; } /* XShort: 0.85 × Short */
 [data-font="round"][data-tier="m"]  { --qf-scale: 0.875; }
 [data-font="round"][data-tier="s"],
 [data-font="round"][data-tier="xs"] { --qf-scale: 0.85; }
 
 [data-font="poet"]    { --qf-family: 'Poet', var(--native-serif);    --qf-style: normal; --qf-leading: 1.1; --qf-tracking: 0.05em; } /* Bill, 2026-09-27 (the boards drew 1.2 and 0) */
 [data-font="poet"][data-tier="l"]  { --qf-scale: 1.875; }     /* 120 / 64 */
+[data-font="poet"][data-tier="xl"] { --qf-scale: 1.5938; } /* XShort: 0.85 × Short */
 [data-font="poet"][data-tier="m"]  { --qf-scale: 1.5; }       /* 72 / 48 */
 [data-font="poet"][data-tier="s"],
 [data-font="poet"][data-tier="xs"] { --qf-scale: 1.2; }       /* 48 / 40 */
@@ -72,18 +80,21 @@
 /* Fig, Stone, Rondeau: Figma Type 404:720 (Instrument on those boards: 64 / 48 / 40). */
 [data-font="fig"]     { --qf-family: 'Fig', var(--native-sans);      --qf-style: normal; --qf-leading: 1.22; --qf-tracking: -0.02em; --qf-features: "liga" 1, "clig" 1, "ss01" 1; --qf-native: var(--qn-sans, var(--native-sans)); --qf-native-scale: var(--qn-sans-scale); --qf-native-leading: var(--qn-sans-leading); --qf-native-tracking: var(--qn-sans-tracking); --qf-native-weight: var(--qn-sans-weight); } /* ss01 = the alternate a and y */
 [data-font="fig"][data-tier="l"]  { --qf-scale: 0.88; }       /* scales, leading and tracking tuned by Bill, 2026-10-03 (the boards drew 0.9688 / 0.8333 / 0.8, 1.3, -1.5%) */
+[data-font="fig"][data-tier="xl"] { --qf-scale: 0.748; } /* XShort: 0.85 × Short */
 [data-font="fig"][data-tier="m"]  { --qf-scale: 0.85; }
 [data-font="fig"][data-tier="s"],
 [data-font="fig"][data-tier="xs"] { --qf-scale: 0.9; }
 
 [data-font="stone"]   { --qf-family: 'Stone', var(--native-serif);   --qf-style: normal; --qf-leading: 1.3; --qf-tracking: -0.015em; --qf-features: "liga" 1, "clig" 1, "ss07" 1; } /* ss07 = the font's alternate a without its alternate g (workers/fonts/tools/convert.py) */
-[data-font="stone"][data-tier="l"]  { --qf-features: "liga" 1, "clig" 1, "ss07" 1, "ss02" 1, "ss03" 1; } /* a short quote also takes the swirly r (ss02) and the pen terminals (ss03), as on the short board */
+[data-font="stone"][data-tier="l"],
+[data-font="stone"][data-tier="xl"] { --qf-features: "liga" 1, "clig" 1, "ss07" 1, "ss02" 1, "ss03" 1; } /* a short quote also takes the swirly r (ss02) and the pen terminals (ss03), as on the short board */
 [data-font="stone"][data-tier="m"]  { --qf-scale: 0.86; }    /* scales, leading and tracking tuned by Bill, 2026-10-03 (the boards drew 0.8333 / 0.8, 1.35, -1%) */
 [data-font="stone"][data-tier="s"],
 [data-font="stone"][data-tier="xs"] { --qf-scale: 0.85; }
 
 [data-font="rondeau"] { --qf-family: 'Rondeau', var(--native-serif); --qf-style: normal; --qf-leading: 1.05; --qf-tracking: 0.0015em; --qf-features: "liga" 1, "clig" 1; } /* ligatures: see app.css .quote — asked for by name in every face since 2026-10-03, because a browser drops them (fi, ff, ffi) as soon as letter-spacing is not 0 */
 [data-font="rondeau"][data-tier="l"]  { --qf-scale: 1.12; }   /* scales, leading and tracking tuned by Bill, 2026-10-03 (the boards drew 1.125 / 1.0833 / 1.05, 1.15, 0) */
+[data-font="rondeau"][data-tier="xl"] { --qf-scale: 0.952; } /* XShort: 0.85 × Short */
 [data-font="rondeau"][data-tier="m"],
 [data-font="rondeau"][data-tier="s"],
 [data-font="rondeau"][data-tier="xs"] { --qf-scale: 1.05; }
@@ -93,10 +104,12 @@
    Curly's original language falls back to the serif, Kid's to the sans (Bill, 2026-10-10). */
 [data-font="curly"]   { --qf-family: 'Curly', var(--native-serif);   --qf-style: normal; --qf-leading: 1.2; --qf-tracking: -0.07em; }
 [data-font="curly"][data-tier="l"]  { --qf-scale: 0.9688; }   /* 62 / 64 */
+[data-font="curly"][data-tier="xl"] { --qf-scale: 0.8235; } /* XShort: 0.85 × Short */
 [data-font="curly"][data-tier="m"]  { --qf-scale: 0.8333; }   /* 40 / 48 */
 
 [data-font="kid"]     { --qf-family: 'Kid', var(--native-sans);      --qf-style: normal; --qf-leading: 1.3; --qf-tracking: -0.01em; --qf-native: var(--qn-sans, var(--native-sans)); --qf-native-scale: var(--qn-sans-scale); --qf-native-leading: var(--qn-sans-leading); --qf-native-tracking: var(--qn-sans-tracking); --qf-native-weight: var(--qn-sans-weight); }
 [data-font="kid"][data-tier="l"]  { --qf-scale: 0.9688; }     /* 62 / 64 */
+[data-font="kid"][data-tier="xl"] { --qf-scale: 0.8235; } /* XShort: 0.85 × Short */
 [data-font="kid"][data-tier="m"]  { --qf-scale: 0.8333; }     /* 40 / 48 */
 
 /* Briega, King (At Briega Regular, At King Book; 2026-10-18): no Figma board — rough starting
@@ -106,6 +119,7 @@
    alternates": A E F H K R a) was on at first and is off again (Bill, 2026-10-18). */
 [data-font="briega"]  { --qf-family: 'Briega', var(--native-serif);  --qf-style: normal; --qf-leading: 1.25; --qf-tracking: -0.015em; --qf-features: "liga" 1, "clig" 1; }
 [data-font="briega"][data-tier="l"]  { --qf-scale: 0.85; }
+[data-font="briega"][data-tier="xl"] { --qf-scale: 0.7225; } /* XShort: 0.85 × Short */
 [data-font="briega"][data-tier="m"],
 [data-font="briega"][data-tier="s"],
 [data-font="briega"][data-tier="xs"] { --qf-scale: 0.8; }
@@ -123,12 +137,14 @@
    asks for "clig" 0 where every other face asks for 1. */
 [data-font="absans"]  { --qf-family: 'Absans', var(--native-sans);   --qf-style: normal; --qf-leading: 1.2; --qf-tracking: -0.02em; --qf-features: "liga" 1, "clig" 1, "dlig" 1, "kern" 1; --qf-native: var(--qn-sans, var(--native-sans)); --qf-native-scale: var(--qn-sans-scale); --qf-native-leading: var(--qn-sans-leading); --qf-native-tracking: var(--qn-sans-tracking); --qf-native-weight: var(--qn-sans-weight); }
 [data-font="absans"][data-tier="l"]  { --qf-scale: 0.85; }
+[data-font="absans"][data-tier="xl"] { --qf-scale: 0.7225; } /* XShort: 0.85 × Short */
 [data-font="absans"][data-tier="m"],
 [data-font="absans"][data-tier="s"],
 [data-font="absans"][data-tier="xs"] { --qf-scale: 0.8; }
 
 [data-font="auserif"] { --qf-family: 'Auserif', var(--native-serif); --qf-style: normal; --qf-leading: 1.2; --qf-tracking: -0.01em; --qf-features: "liga" 1, "clig" 0; }
 [data-font="auserif"][data-tier="l"]  { --qf-scale: 0.9; }
+[data-font="auserif"][data-tier="xl"] { --qf-scale: 0.765; } /* XShort: 0.85 × Short */
 [data-font="auserif"][data-tier="m"],
 [data-font="auserif"][data-tier="s"],
 [data-font="auserif"][data-tier="xs"] { --qf-scale: 0.85; }

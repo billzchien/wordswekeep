@@ -149,7 +149,7 @@
   function tier(text, cjkWeight = 4) { // js/app.js → tier (2 when sizing the original language)
     const cjk = (text.match(/[぀-ヿ㐀-鿿가-힯]/g) || []).length;
     const weight = text.length + cjk * (cjkWeight - 1);
-    return weight <= 64 ? 'l' : weight <= 160 ? 'm' : weight <= 260 ? 's' : 'xs';
+    return weight <= 24 ? 'xl' : weight <= 64 ? 'l' : weight <= 160 ? 'm' : weight <= 260 ? 's' : 'xs';
   }
   const fontFits = (key, t) => { const f = FONTS.find((x) => x.value === key); return !!f && !f.not.includes(t); };
   const fontFor = (key, t) => (fontFits(key, t) ? key : (t === 's' || t === 'xs' ? 'goudy' : 'instrument'));
@@ -2063,7 +2063,7 @@
     const shown = inFace && key === 'poet' ? text.replace(/…/g, '...') : text; // Poet has no ellipsis
     const script = inFace ? '' : quoteScript(text, edit && edit.draft.author && edit.draft.author.country);
     const attrs = inFace ? '' : ` data-native data-script="${script}"${script === 'arab' || script === 'hebr' ? ' dir="rtl"' : ''}`;
-    return `<blockquote class="quote" data-tier="${t}"${t === 'l' ? ' data-short' : ''} data-font="${esc(key)}"${attrs}>${esc(noOrphans(shown.trim()))}</blockquote>`;
+    return `<blockquote class="quote" data-tier="${t}"${t === 'l' || t === 'xl' ? ` data-short="${t}"` : ''} data-font="${esc(key)}"${attrs}>${esc(noOrphans(shown.trim()))}</blockquote>`;
   };
   function drawFont() {
     if (!edit) return;
@@ -2074,16 +2074,18 @@
     $('fontStageNative').innerHTML = original ? quoteIn(original, key, true) : '';
     sizeFont();
   }
-  // As in the archive (js/app.js → fitTier): a short quote that takes more than two lines is
-  // set in the medium size. Counted on the preview itself, and again when its face has loaded.
+  // As in the archive (js/app.js → fitTier): an XShort quote that takes more than two lines is
+  // set Short, a short one Medium. Counted on the preview itself, and again when its face has loaded.
   function fitFont(q) {
     if (!q || !q.firstChild) return;
     plainLines(q);
-    q.dataset.tier = 'l';
-    const r = document.createRange(); r.selectNodeContents(q);
-    let lines = 0, last = null;
-    [...r.getClientRects()].filter((b) => b.width > 0).forEach((b) => { if (last === null || Math.abs(b.top - last) > b.height / 2) { lines++; last = b.top; } });
-    if (lines > 2) q.dataset.tier = 'm';
+    const lineCount = () => {
+      const r = document.createRange(); r.selectNodeContents(q);
+      let lines = 0, last = null;
+      [...r.getClientRects()].filter((b) => b.width > 0).forEach((b) => { if (last === null || Math.abs(b.top - last) > b.height / 2) { lines++; last = b.top; } });
+      return lines;
+    };
+    for (const t of q.dataset.short === 'xl' ? ['xl', 'l', 'm'] : ['l', 'm']) { q.dataset.tier = t; if (t === 'm' || lineCount() <= 2) break; }
   }
   // The archive's rag (js/app.js → evenLines / ragBreaks, copied: change both), so the preview
   // breaks where the archive does: the same number of lines as plain filling takes, and
@@ -2296,6 +2298,7 @@
       if (!/^[a-z]+$/.test(key) || !s || ![s.l, s.m, s.s, f.leading, f.tracking].every(num)) return '';
       const at = `[data-font="${key}"]`;
       return `${at} { --qf-leading: ${f.leading}; --qf-tracking: ${f.tracking / 100}em; }\n`
+        + `${at}[data-tier="xl"] { --qf-scale: ${num(s.xl) ? s.xl : Math.round(s.l * 0.85 * 1e4) / 1e4};${num(f.leadingXL) ? ` --qf-leading: ${f.leadingXL};` : ''} }\n` // XShort: its own size and leading once tuned, else 0.85 × the face's Short and the face's leading
         + `${at}[data-tier="l"] { --qf-scale: ${s.l}; }\n${at}[data-tier="m"] { --qf-scale: ${s.m}; }\n`
         + `${at}[data-tier="s"], ${at}[data-tier="xs"] { --qf-scale: ${s.s}; }`;
     }).join('\n');
@@ -2313,14 +2316,15 @@
     applyFaces();
   }
 
-  const TUNE = { scaleL: 'tScaleL', scaleM: 'tScaleM', scaleS: 'tScaleS', leading: 'tLeading', tracking: 'tTracking' }; // what can be tuned → its field
+  const TUNE = { scaleXL: 'tScaleXL', scaleL: 'tScaleL', scaleM: 'tScaleM', scaleS: 'tScaleS', leadingXL: 'tLeadingXL', leading: 'tLeading', tracking: 'tTracking' }; // what can be tuned → its field
   const FACE_SAMPLES = [
-    ['l', 'Short', 'You be it. Be about it.'],
+    ['xl', 'XShort', 'Keep going.'],
+    ['l', 'Short', 'Hustlers don’t stop. They keep going.'],
     ['m', 'Medium', 'Anybody can play. The note is only 20 percent. The attitude of the motherfucker who plays it is 80 percent.'],
     ['s', 'Long', 'The amazing thing is that every atom in your body came from a star that exploded. And, the atoms in your left hand probably came from a different star than your right hand. It really is the most poetic thing I know about physics: You are all stardust.'],
   ];
   // A board holds no more than its length allows (the limits of tier(): a CJK character counts as 4).
-  const TIER_MAX = { l: 64, m: 160, s: 260 };
+  const TIER_MAX = { xl: 24, l: 64, m: 160, s: 260 };
   const weight = (text) => text.length + (text.match(/[぀-ヿ㐀-鿿가-힯]/g) || []).length * 3;
   const clip = (text, max) => { let out = ''; for (const ch of text) { if (weight(out + ch) > max) break; out += ch; } return out; };
   const FACE_LIST = [...FONTS.filter((f) => f.fresh), ...FONTS.filter((f) => !f.fresh)]; // the ones still being tuned first
@@ -2340,12 +2344,13 @@
   // that are not shown.
   function asSetOf(key) {
     const out = {};
-    [['l', 'scaleL'], ['m', 'scaleM'], ['s', 'scaleS']].forEach(([t, id]) => {
+    [['xl', 'scaleXL'], ['l', 'scaleL'], ['m', 'scaleM'], ['s', 'scaleS']].forEach(([t, id]) => {
       const probe = document.createElement('blockquote');
       probe.className = 'quote'; probe.dataset.tier = t; probe.dataset.font = key; probe.style.cssText = 'position:absolute;visibility:hidden';
       $('faceBoards').appendChild(probe);
       const cs = getComputedStyle(probe), px = parseFloat(cs.fontSize);
       out[id] = rnd(parseFloat(cs.getPropertyValue('--qf-scale')) || 1, 4);
+      if (t === 'xl') out.leadingXL = rnd(parseFloat(cs.lineHeight) / px, 3); // XShort's own leading (2026-10-18)
       if (t === 'm') { out.leading = rnd(parseFloat(cs.lineHeight) / px, 3); out.tracking = cs.letterSpacing === 'normal' ? 0 : rnd(parseFloat(cs.letterSpacing) / px * 100, 2); }
       probe.remove();
     });
@@ -2375,11 +2380,12 @@
     const now = (id) => (tune[id] != null ? tune[id] : asSet[id]);
     const was = (id, unit = '') => (now(id) !== asSet[id] ? `was ${asSet[id]}${unit}` : '');
     $('faceBoards').querySelectorAll('.quote:not(.is-ref)').forEach((q) => {
-      const id = { l: 'scaleL', m: 'scaleM' }[q.dataset.tier] || 'scaleS';
-      if (tune.leading != null) q.style.setProperty('--qf-leading', tune.leading);
+      const id = { xl: 'scaleXL', l: 'scaleL', m: 'scaleM' }[q.dataset.tier] || 'scaleS';
+      const lead = q.dataset.tier === 'xl' ? 'leadingXL' : 'leading'; // XShort has its own leading; the other lengths share one
+      if (tune[lead] != null) q.style.setProperty('--qf-leading', tune[lead]);
       if (tune.tracking != null) q.style.setProperty('--qf-tracking', `${tune.tracking / 100}em`);
       if (tune[id] != null) q.style.setProperty('--qf-scale', tune[id]);
-      q.closest('.face-board').dataset.was = [was('leading'), was('tracking', '%'), was(id)].join('|');
+      q.closest('.face-board').dataset.was = [was(lead), was('tracking', '%'), was(id)].join('|');
     });
     Object.entries(TUNE).forEach(([id, el]) => { if (document.activeElement !== $(el)) $(el).value = now(id); });
     $('facesReset').disabled = !face.tune[f.value];
@@ -2413,14 +2419,19 @@
     const next = clone(faces);
     Object.keys(face.tune).forEach((key) => {
       const v = { ...asSetOf(key), ...face.tune[key] };
-      next[key] = { scale: { l: v.scaleL, m: v.scaleM, s: v.scaleS }, leading: v.leading, tracking: v.tracking };
+      next[key] = { scale: { xl: v.scaleXL, l: v.scaleL, m: v.scaleM, s: v.scaleS }, leading: v.leading, leadingXL: v.leadingXL, tracking: v.tracking };
     });
     $('facesSave').disabled = true;
     if (remote) {
       let r;
       try { r = await call('/faces', 'PUT', { faces: next }); } catch (e) { r = null; }
       if (r && r.status === 401) { await signIn(); return saveFaces(); }
-      if (!r || !r.ok) { $('facesSave').disabled = false; if (await ask('That could not be published. Nothing on the site changed.', 'Try again', 'Not yet')) return saveFaces(); return; }
+      if (!r || !r.ok) { // a value the library refuses is named (the Worker's limits: Tracking -30 to 20…)
+        const why = r && r.status === 400 ? ((await r.json().catch(() => ({}))).error || '') : '';
+        $('facesSave').disabled = false;
+        if (await ask(`That could not be published${why ? `: ${why}` : ''}. Nothing on the site changed.`, 'Try again', 'Not yet')) return saveFaces();
+        return;
+      }
       faces = (await r.json()).faces;
     } else { faces = next; localStorage.setItem(FACES_KEY, JSON.stringify(faces)); }
     face.tune = {};
