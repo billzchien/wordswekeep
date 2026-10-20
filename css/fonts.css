@@ -25,6 +25,7 @@
 @font-face { font-family: 'Briega';  src: url('https://fonts.wordswekeep.org/briega.woff2') format('woff2');  font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'King';    src: url('https://fonts.wordswekeep.org/king.woff2') format('woff2');    font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Auserif'; src: url('https://fonts.wordswekeep.org/auserif.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Headline'; src: url('https://fonts.wordswekeep.org/headline.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
 
 :root {
   --native-serif: 'Noto Serif SC', 'Songti SC', serif;
@@ -132,6 +133,17 @@
 [data-font="auserif"][data-tier="m"],
 [data-font="auserif"][data-tier="s"],
 [data-font="auserif"][data-tier="xs"] { --qf-scale: 0.85; }
+
+/* Headline (Shop Rag; 2026-10-19): capitals only — the converted file sets every lowercase letter in
+   its capital (workers/fonts/tools/convert.py → caps_only), so a quote is all capitals wherever it is
+   drawn. Rough starting values for Bill to tune in the Fonts tab: its capitals start at about Instrument's
+   capital height, set tighter. */
+[data-font="headline"] { --qf-family: 'Headline', var(--native-sans); --qf-style: normal; --qf-leading: 1.05; --qf-tracking: 0em; --qf-native: var(--qn-sans, var(--native-sans)); --qf-native-scale: var(--qn-sans-scale); --qf-native-leading: var(--qn-sans-leading); --qf-native-tracking: var(--qn-sans-tracking); --qf-native-weight: var(--qn-sans-weight); }
+[data-font="headline"][data-tier="l"]  { --qf-scale: 0.95; }
+[data-font="headline"][data-tier="xl"] { --qf-scale: 0.8075; } /* XShort: 0.85 × Short */
+[data-font="headline"][data-tier="m"]  { --qf-scale: 0.9; }
+[data-font="headline"][data-tier="s"],
+[data-font="headline"][data-tier="xs"] { --qf-scale: 0.85; }
 
 /* The original-language version is set in Noto (serif or sans, by the face's character) at the
    site's own native size: the face's scale does not apply to it. */

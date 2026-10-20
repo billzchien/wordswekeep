@@ -123,8 +123,10 @@
       latin: 'A1-A3 A5 A7-AB AD-B0 B4 B6-B8 BA-BB BF-148 14A-17E 18F 1F4-1F5 1FC-1FF 218-21B 237 1E80-1E85 1E9E 1EF2-1EF3 2011 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2032-2033 2039-203A 20AA 20AC' },
     { value: 'auserif',    label: 'Auserif',   not: [],
       latin: 'A1-AC AE-113 116-12B 12E-132 134-137 139-148 14C-14D 150-165 168-17E 18F 192 1CD-1CE 1D1-1D2 218-21B 237 1E20-1E21 1E80-1E85 1E9E 1EBC-1EBD 1EF2-1EF3 1EF8-1EF9 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203A 2044 2070 20AC' },
+    { value: 'headline',   label: 'Headline',  not: [],
+      latin: 'A1-A3 A5 AB AD BB BF-CF D1-D6 D8-DD E0-EF F1-F6 F8-FD FF-101 106-107 10C-10D 110-113 12A-12B 141-144 14C-14D 152-153 15A-15B 160-161 16A-16B 178-17A 17D-17E 2010-2014 2018-2019 201C-201D 202F 205F 20AC' },
   ];
-  const FONT_FILES = ['grotesk', 'poet', 'sketch', 'author', 'fig', 'stone', 'rondeau', 'curly', 'kid', 'briega', 'king', 'auserif'];
+  const FONT_FILES = ['grotesk', 'poet', 'sketch', 'author', 'fig', 'stone', 'rondeau', 'curly', 'kid', 'briega', 'king', 'auserif', 'headline'];
   // An original-language quote written in Latin letters (Spanish, French, Vietnamese, pinyin…)
   // is set in the quote's own face when the face has every character it needs; anything else —
   // another script, or a letter the face lacks — is set in Noto. `latin`: what a face has beyond
