@@ -1,4 +1,13 @@
 {
+  "absans": {
+    "scale": {
+      "l": 1,
+      "m": 0.95,
+      "s": 1
+    },
+    "leading": 1.3,
+    "tracking": -1.5
+  },
   "auserif": {
     "scale": {
       "xl": 1.2,
@@ -28,7 +37,7 @@
       "m": 1,
       "s": 1
     },
-    "leading": 1.2,
+    "leading": 1.18,
     "leadingXL": 1.1,
     "tracking": -3
   },
@@ -50,7 +59,7 @@
       "m": 1,
       "s": 0.9
     },
-    "leading": 1.22,
+    "leading": 1.2,
     "leadingXL": 1.1,
     "tracking": -2
   },
@@ -61,7 +70,7 @@
       "m": 0.95,
       "s": 0.95
     },
-    "leading": 1.15,
+    "leading": 1.2,
     "leadingXL": 1,
     "tracking": -3
   },
@@ -72,7 +81,7 @@
       "m": 0.9,
       "s": 1
     },
-    "leading": 1.2,
+    "leading": 1.13,
     "leadingXL": 1,
     "tracking": -1
   },
@@ -85,7 +94,7 @@
     },
     "leading": 1.05,
     "leadingXL": 0.95,
-    "tracking": 1
+    "tracking": 0
   },
   "instrument": {
     "scale": {
@@ -142,6 +151,15 @@
     "leadingXL": 1,
     "tracking": 0.15
   },
+  "rose": {
+    "scale": {
+      "l": 1.2,
+      "m": 1.125,
+      "s": 1.1
+    },
+    "leading": 1.15,
+    "tracking": -4
+  },
   "round": {
     "scale": {
       "xl": 1,
@@ -149,7 +167,7 @@
       "m": 0.875,
       "s": 0.9
     },
-    "leading": 1.3,
+    "leading": 1.22,
     "leadingXL": 1.1,
     "tracking": 0
   },
@@ -171,7 +189,7 @@
       "m": 0.86,
       "s": 0.85
     },
-    "leading": 1.3,
+    "leading": 1.22,
     "leadingXL": 1.1,
     "tracking": -1.5
   }
