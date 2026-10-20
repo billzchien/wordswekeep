@@ -23,7 +23,7 @@
 @font-face { font-family: 'Curly';   src: url('https://fonts.wordswekeep.org/curly.woff2') format('woff2');   font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Kid';     src: url('https://fonts.wordswekeep.org/kid.woff2') format('woff2');     font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Briega';  src: url('https://fonts.wordswekeep.org/briega.woff2') format('woff2');  font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: 'King';    src: url('https://fonts.wordswekeep.org/king.woff2') format('woff2');    font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'King';    src: url('https://fonts.wordswekeep.org/king.woff2?v=2') format('woff2');    font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Auserif'; src: url('https://fonts.wordswekeep.org/auserif.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Headline'; src: url('https://fonts.wordswekeep.org/headline.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
 
@@ -109,7 +109,8 @@
 /* Briega, King (At Briega Regular, At King Book; 2026-10-18): no Figma board — rough starting
    values from their proportions against the faces already tuned (Briega's x-height and width are
    Fig's, a little wider; King is narrow, Print's x-height), for Bill to tune in the Fonts tab.
-   Both are serifs. Briega's ss01 is its floral ornaments, left off; King's ss01 (its "Gothic
+   Both are serifs. King is At King Light since 2026-10-19 (Book before; ?v=2 in its address makes
+   browsers fetch the new file). Briega's ss01 is its floral ornaments, left off; King's ss01 (its "Gothic
    alternates": A E F H K R a) was on at first and is off again (Bill, 2026-10-18). */
 [data-font="briega"]  { --qf-family: 'Briega', var(--native-serif);  --qf-style: normal; --qf-leading: 1.25; --qf-tracking: -0.015em; --qf-features: "liga" 1, "clig" 1; }
 [data-font="briega"][data-tier="l"]  { --qf-scale: 0.85; }
