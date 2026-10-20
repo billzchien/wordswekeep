@@ -2155,28 +2155,32 @@
       return lines;
     };
     if (words.length < 2 || count() < 2) return;
-    const box = q.getBoundingClientRect().width - 1;
+    const full = q.getBoundingClientRect().width - 1;
     const before = words.map((w, k) => (k ? text.slice(words[k - 1].end, w.start) : '\n'));
     const gapAt = words.findIndex((w, k) => k && before[k] === ' ' && sameLine(w, words[k - 1]));
     const space = gapAt > 0 ? Math.max(words[gapAt].left - words[gapAt - 1].right, words[gapAt - 1].left - words[gapAt].right) : parseFloat(getComputedStyle(q).fontSize) * 0.25; // (right to left, the word before is to the right)
     const gap = before.map((b) => (/^[  ]+$/.test(b) ? space : 0));
-    const breaks = [];
-    let from = 0;
-    for (let k = 1; k <= words.length; k++) {
-      if (k < words.length && !before[k].includes('\n')) continue;
-      const part = words.slice(from, k);
-      const cut = ragBreaks(part.map((w) => w.width), part.map((w, i) => i > 0 && (before[from + i] === ' ' || !!w.glued)), gap.slice(from, k), box,
-        part.map((w) => stackKey(w.text)), part.map((w, i) => (i > 0 && w.glued ? w.cost : i > 0 && !CLAUSE_END.test(part[i - 1].text) ? RAG_PHRASE_SPACED : 0)));
-      if (!cut) return;
-      cut.forEach((c) => breaks.push(from + c));
-      from = k;
+    for (const fit of RAG_REFIT) { // (then a little narrower: js/app.js)
+      const box = full * fit;
+      const breaks = [];
+      let from = 0;
+      for (let k = 1; k <= words.length; k++) {
+        if (k < words.length && !before[k].includes('\n')) continue;
+        const part = words.slice(from, k);
+        const cut = ragBreaks(part.map((w) => w.width), part.map((w, i) => i > 0 && (before[from + i] === ' ' || !!w.glued || (from + i === words.length - 1 && before[from + i] === NBSP && (w.width >= RAG_LAST_WORD * box || part[i - 1].width + space + w.width > box)))), gap.slice(from, k), box,
+          part.map((w) => stackKey(w.text)), part.map((w, i) => (i > 0 && w.glued ? w.cost : i > 0 && !CLAUSE_END.test(part[i - 1].text) ? RAG_PHRASE_SPACED : 0)));
+        if (!cut) return;
+        cut.forEach((c) => breaks.push(from + c));
+        from = k;
+      }
+      if (!breaks.length) return;
+      let out = text;
+      breaks.slice().reverse().forEach((k) => { const at = words[k].start; out = before[k] === ' ' || before[k] === NBSP ? `${out.slice(0, at - 1)}\n${out.slice(at)}` : `${out.slice(0, at)}\n${out.slice(at)}`; });
+      node.data = out;
+      q._plain = text;
+      if (count() === before.filter((b) => b.includes('\n')).length + breaks.length) return; // the browser must agree line for line
+      plainLines(q);
     }
-    if (!breaks.length) return;
-    let out = text;
-    breaks.slice().reverse().forEach((k) => { const at = words[k].start; out = before[k] === ' ' ? `${out.slice(0, at - 1)}\n${out.slice(at)}` : `${out.slice(0, at)}\n${out.slice(at)}`; });
-    node.data = out;
-    q._plain = text;
-    if (count() !== before.filter((b) => b.includes('\n')).length + breaks.length) plainLines(q); // the browser must agree line for line
   }
   // No stacks (Bill, 2026-10-06): two lines in a row should not start with the same word
   // ("you … / you …", "the person … / the person …") — the eye can lose its place, and the left
@@ -2198,7 +2202,9 @@
   const RAG_STAIR = 0.5, RAG_STAIR_STEP = 0.02; // four lines in a row each growing or each shrinking, the last included (js/app.js)
   const RAG_HEAVY = 0.35; // a last line more than RAG_STEP longer than the one above it (js/app.js)
   const RAG_SPIKE = 0.35, RAG_SPIKE_STEP = 0.25; // a line more than RAG_SPIKE_STEP longer than both lines around it (js/app.js)
-  const RAG_LONE = 1, RAG_LONE_MIN = 0.5, RAG_LAST_FLOOR = 0.25, LONE_SCRIPT = /[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Devanagari}\p{N}]/u; // one word alone on a line (js/app.js)
+  const RAG_LAST_WORD = 0.4; // a last word this wide may take the last line alone (js/app.js)
+  const RAG_FIRST = 0.2, RAG_FIRST_MIN = 0.66; // a first line under RAG_FIRST_MIN of the box costs a little (js/app.js)
+  const RAG_LONE = 1, RAG_LONE_MIN = 0.5, RAG_LAST_FLOOR = 0.25, RAG_LONE_PHRASE = 0.4, RAG_REFIT = [1, 0.985, 0.97], LONE_SCRIPT = /[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Devanagari}\p{N}]/u; // one word alone on a line (js/app.js)
   const RAG_PHRASE = 0.15; // Chinese and Japanese: a line broken mid-phrase (not after ，。、！？) costs this much of the box short — a tie-breaker (js/app.js)
   const RAG_SPLIT = 2; // …twice that inside a word (js/app.js)
   const CLAUSE_END = /[,;:.!?…—–)\]"'”’»。，、！？；：]$/, RAG_PHRASE_SPACED = 1; // a spaced language's line ending without punctuation (js/app.js)
@@ -2225,7 +2231,8 @@
           const soft = !last && SOFT_END.has(keys[j - 1]) ? (RAG_SOFT * box) ** 2 : 0;
           const phrase = !last && mid[j] ? mid[j] * (RAG_PHRASE * box) ** 2 : 0;
           let shape = 0, spike = 0;
-          const lone = n > 1 && !last && j - i <= 2 && w < RAG_LONE_MIN * box && LONE_SCRIPT.test(keys[i] || '') ? (RAG_LONE * box) ** 2 : 0; // (one or two words on a line under half the box)
+          const lone = n > 1 && !last && j - i <= 2 && w < (mid[j] ? RAG_LONE_MIN : RAG_LONE_PHRASE) * box && LONE_SCRIPT.test(keys[i] || '') ? (RAG_LONE * box) ** 2 : 0; // (one or two words on a line under half the box)
+          const firstShort = l === 1 && i === 0 && !last && w < RAG_FIRST_MIN * box ? (RAG_FIRST * box) ** 2 : 0; // (a first line under RAG_FIRST_MIN of the box)
           const orphan = last && n > 1 && w < RAG_LAST_FLOOR * box && LONE_SCRIPT.test(keys[i] || '') ? (RAG_LONE * box) ** 2 : 0; // (a last line under a quarter of the box)
           const above2 = l > 2 && above >= 0 ? trail[l - 3][above] : -1;
           if (above2 >= 0) { // the two lines before this one: i is where the first ends, `above` where the one before it ends
@@ -2240,7 +2247,7 @@
             if ((b - a > st && c - b > st && w - c > st) || (a - b > st && b - c > st && c - w > st)) stair = (RAG_STAIR * box) ** 2;
           }
           const heavy = last && above >= 0 && w - span(above, i) > RAG_STEP * box ? (RAG_HEAVY * box) ** 2 : 0; // (a last line longer than the one above it)
-          const cost = prev[i] + stack + soft + phrase + shape + spike + lone + orphan + stair + heavy + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+          const cost = prev[i] + stack + soft + phrase + shape + spike + lone + firstShort + orphan + stair + heavy + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
           if (cost < cur[j]) { cur[j] = cost; back[j] = i; }
         }
       }

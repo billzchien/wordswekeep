@@ -694,7 +694,9 @@
     const single = node && node.nodeType === 3 && quoteEl.childNodes.length === 1;
     if (single && quoteEl._plain != null) node.data = quoteEl._plain;
     quoteEl._plain = null;
+    quoteEl.style.overflowWrap = 'normal'; // (measured whole: a word the browser broke to fit — "dif / ferent." — measures wrong)
     const measured = measureWords(quoteEl);
+    quoteEl.style.overflowWrap = '';
     const cjk = measured.some((w) => w.cjk);
     if (!single) return cjk ? undefined : narrowBox(quoteEl); // annotations inside: the simpler rule (a CJK quote is never narrowed: Bill, 2026-10-03)
     const text = node.data;
@@ -704,7 +706,7 @@
     const plain = () => (noSpace || cjk ? undefined : narrowBox(quoteEl)); // where the rag cannot be set: a quote without spaces stays as it falls
     const lines = new Set(words.map((w) => Math.round(w.top))).size;
     if (lines < 2) return;
-    const box = quoteEl.getBoundingClientRect().width - 1;
+    const full = quoteEl.getBoundingClientRect().width - 1;
     // What sits before each word: a space (a break may go there), a newline (a break is
     // there), nothing between two glued words (a break may go there too, with no space to
     // replace), or anything else — a no-break space, a word joiner — which ties it to the word before.
@@ -712,25 +714,32 @@
     const gapAt = words.findIndex((w, k) => k && before[k] === ' ' && Math.abs(w.top - words[k - 1].top) < 4);
     const space = gapAt > 0 ? Math.max(words[gapAt].left - words[gapAt - 1].right, words[gapAt - 1].left - words[gapAt].right) : parseFloat(getComputedStyle(quoteEl).fontSize) * 0.25; // (right to left, the word before is to the right)
     const gap = before.map((b) => (/^[  ]+$/.test(b) ? space : 0)); // (glued words, a hyphen's parts: none)
-    const breaks = []; // indices of the words that start a new line
-    let from = 0;
-    for (let k = 1; k <= words.length; k++) {
-      if (k < words.length && !before[k].includes('\n')) continue;
-      const part = words.slice(from, k);
-      const cut = ragBreaks(part.map((w) => w.width), part.map((w, i) => i > 0 && (before[from + i] === ' ' || !!w.glued)), gap.slice(from, k), box,
-        part.map((w) => stackKey(w.text)), part.map((w, i) => (i > 0 && w.glued ? w.cost : i > 0 && !CLAUSE_END.test(part[i - 1].text) ? RAG_PHRASE_SPACED : 0)));
-      if (!cut) return plain();
-      cut.forEach((c) => breaks.push(from + c));
-      from = k;
+    // The browser must agree line for line. Where a line it was given does not fit after all (the
+    // words' widths summed can come out a hair under the line set whole: No. 5 in Sketch at 375 wrapped
+    // its first line), the rag is set again in a box RAG_REFIT narrower each time, then back to plain.
+    for (const fit of RAG_REFIT) {
+      const box = full * fit;
+      const breaks = []; // indices of the words that start a new line
+      let from = 0;
+      for (let k = 1; k <= words.length; k++) {
+        if (k < words.length && !before[k].includes('\n')) continue;
+        const part = words.slice(from, k);
+        const cut = ragBreaks(part.map((w) => w.width), part.map((w, i) => i > 0 && (before[from + i] === ' ' || !!w.glued || (from + i === words.length - 1 && before[from + i] === NBSP && (w.width >= RAG_LAST_WORD * box || part[i - 1].width + space + w.width > box)))), gap.slice(from, k), box,
+          part.map((w) => stackKey(w.text)), part.map((w, i) => (i > 0 && w.glued ? w.cost : i > 0 && !CLAUSE_END.test(part[i - 1].text) ? RAG_PHRASE_SPACED : 0)));
+        if (!cut) return plain();
+        cut.forEach((c) => breaks.push(from + c));
+        from = k;
+      }
+      if (!breaks.length) return;
+      let out = text;
+      breaks.slice().reverse().forEach((k) => { const at = words[k].start; out = before[k] === ' ' || before[k] === NBSP ? `${out.slice(0, at - 1)}\n${out.slice(at)}` : `${out.slice(0, at)}\n${out.slice(at)}`; }); // a space becomes the break; between glued words one is put in
+      const paragraphs = before.filter((b) => b.includes('\n')).length;
+      node.data = out;
+      quoteEl._plain = text;
+      if (lineCount(quoteEl) === paragraphs + breaks.length) return;
+      node.data = text; quoteEl._plain = null;
     }
-    if (!breaks.length) return;
-    let out = text;
-    breaks.slice().reverse().forEach((k) => { const at = words[k].start; out = before[k] === ' ' ? `${out.slice(0, at - 1)}\n${out.slice(at)}` : `${out.slice(0, at)}\n${out.slice(at)}`; }); // a space becomes the break; between glued words one is put in
-    const paragraphs = before.filter((b) => b.includes('\n')).length;
-    node.data = out;
-    quoteEl._plain = text;
-    // The browser must agree line for line; if a line it was given does not fit after all, back to plain.
-    if (lineCount(quoteEl) !== paragraphs + breaks.length) { node.data = text; quoteEl._plain = null; plain(); }
+    plain();
   }
   // (evenLines and ragBreaks are copied in js/admin.js for the library's preview: change both.)
   // One paragraph: `width` of each word, `open[i]` whether a line may start at word i. Returns
@@ -772,13 +781,27 @@
   // plays it…"). 25%, not 20%: at 20% No. 14 on a phone lost "…Contentment greets the / mind
   // that wanders past; A host / …" for a gap after "and sounds of pure" (89 between 59 and 65 counted).
   const RAG_SPIKE = 0.35, RAG_SPIKE_STEP = 0.25;
+  // The last word alone (Bill, 2026-10-19): noOrphans ties the last two words, but a last word as wide
+  // as RAG_LAST_WORD of the box may take the last line by itself ("…pretty soon… everything's /
+  // different."): the tie is opened for the rag to choose, and becomes the break if it does. So is a tie
+  // wider than the box (No. 5 at 375: Safari broke "dif / ferent." inside the word).
+  const RAG_LAST_WORD = 0.4;
+  // The first line full (Bill, 2026-10-19, No. 5 on his iPhone: "You know what's / weird? Day by day, /
+  // nothing seems to / change, but pretty soon… / everything's different.", 65 73 67 99 91, three short
+  // lines before two full ones, over "You know what's weird? / Day by day, nothing / seems to change, but /
+  // pretty soon… / everything's different.", 92 78 83 50 92): the first line sets the measure, so one
+  // under RAG_FIRST_MIN of the box costs as much as a line left RAG_FIRST of the box short — a little.
+  const RAG_FIRST = 0.2, RAG_FIRST_MIN = 0.66;
+  const RAG_REFIT = [1, 0.985, 0.97]; // the box evenLines sets the rag in, then narrower where the browser disagrees
   // No word alone on a line (Bill, 2026-10-18: "there should be no single word as a line"): one or two
   // words on a line under RAG_LONE_MIN of the box (Bill: over half is fine, a big face and a short
   // phrase) cost as much as a line left RAG_LONE of the box short — more than any shape, less than a
   // stack — so it happens only when nothing else fits. The last line may be one phrase of any few
   // words (it is never one word: noOrphans) but costs the same under RAG_LAST_FLOOR of the box (Bill). Spaced scripts only (a Chinese character is a word of
   // its own here); a last line is never one word anyway (noOrphans ties the last two).
-  const RAG_LONE = 1, RAG_LONE_MIN = 0.5, RAG_LAST_FLOOR = 0.25, LONE_SCRIPT = /[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Devanagari}\p{N}]/u;
+  // One or two words that end a clause ("pretty soon…") are a phrase of their own: they count from
+  // RAG_LONE_PHRASE of the box, not RAG_LONE_MIN (Bill, 2026-10-19, No. 5 on a 420 phone).
+  const RAG_LONE = 1, RAG_LONE_MIN = 0.5, RAG_LONE_PHRASE = 0.4, RAG_LAST_FLOOR = 0.25, LONE_SCRIPT = /[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Devanagari}\p{N}]/u;
   // Chinese and Japanese (2026-10-08): a line ends best where a phrase does, after ，。、！？ —
   // a line broken mid-phrase costs as much as one left RAG_PHRASE of the box short: a
   // tie-breaker between ways about as even, as SOFT_END is (Bill: even lines first).
@@ -815,7 +838,8 @@
           const soft = !last && SOFT_END.has(keys[j - 1]) ? (RAG_SOFT * box) ** 2 : 0;
           const phrase = !last && mid[j] ? mid[j] * (RAG_PHRASE * box) ** 2 : 0; // (j: where the next line starts)
           let shape = 0, spike = 0;
-          const lone = n > 1 && !last && j - i <= 2 && w < RAG_LONE_MIN * box && LONE_SCRIPT.test(keys[i] || '') ? (RAG_LONE * box) ** 2 : 0; // (one or two words on a line under half the box)
+          const lone = n > 1 && !last && j - i <= 2 && w < (mid[j] ? RAG_LONE_MIN : RAG_LONE_PHRASE) * box && LONE_SCRIPT.test(keys[i] || '') ? (RAG_LONE * box) ** 2 : 0; // (one or two words on a line under half the box)
+          const firstShort = l === 1 && i === 0 && !last && w < RAG_FIRST_MIN * box ? (RAG_FIRST * box) ** 2 : 0; // (a first line under RAG_FIRST_MIN of the box)
           const orphan = last && n > 1 && w < RAG_LAST_FLOOR * box && LONE_SCRIPT.test(keys[i] || '') ? (RAG_LONE * box) ** 2 : 0; // (a last line under a quarter of the box)
           const above2 = l > 2 && above >= 0 ? trail[l - 3][above] : -1;
           if (above2 >= 0) { // the two lines before this one: i is where the first ends, `above` where the one before it ends
@@ -830,7 +854,7 @@
             if ((b - a > st && c - b > st && w - c > st) || (a - b > st && b - c > st && c - w > st)) stair = (RAG_STAIR * box) ** 2;
           }
           const heavy = last && above >= 0 && w - span(above, i) > RAG_STEP * box ? (RAG_HEAVY * box) ** 2 : 0; // (a last line longer than the one above it)
-          const cost = prev[i] + stack + soft + phrase + shape + spike + lone + orphan + stair + heavy + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+          const cost = prev[i] + stack + soft + phrase + shape + spike + lone + firstShort + orphan + stair + heavy + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
           if (cost < cur[j]) { cur[j] = cost; back[j] = i; }
         }
       }
