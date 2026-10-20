@@ -85,6 +85,17 @@
     "leadingXL": 1,
     "tracking": -1
   },
+  "headline": {
+    "scale": {
+      "xl": 1.2,
+      "l": 1.2,
+      "m": 1.2,
+      "s": 1.1
+    },
+    "leading": 1.05,
+    "leadingXL": 0.95,
+    "tracking": 1
+  },
   "instrument": {
     "scale": {
       "xl": 1.15,
