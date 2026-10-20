@@ -1,6 +1,5 @@
 User-agent: *
 Disallow: /admin/
 Disallow: /styleguide
-Disallow: /symbols-tuning
 
 Sitemap: https://wordswekeep.org/sitemap.xml
