@@ -222,6 +222,9 @@
     // Step 5, as the thoughts box: the name, then "Add words" and its line, appear once there are
     // words, and go if they are deleted (Bill, 2026-10-10) — in space kept for them (css .reveal).
     $('fKeptByWrap').classList.toggle('is-in', valid[4]()); $('submitWrap').classList.toggle('is-in', valid[4]());
+    // Step 1: "In original language +" appears once the words in English are typed, and goes if they
+    // are deleted (Bill, 2026-10-22) — in its kept space, so Next below it never moves.
+    $('origToggleIn').classList.toggle('is-in', !!data.text.trim()); $('ideaIn').classList.toggle('is-in', !data.text.trim()); // (while it is empty, "Need an idea" in that place: ideas)
     // Step 3: "Where can we find this quote?" appears once "Who said or wrote it?" is answered, and
     // goes if it is undone (Bill, 2026-10-17) — in its kept space, so nothing moves; what was
     // chosen there stays. Arrived, it drops the slide's translate (a translate makes a layer, and
@@ -742,6 +745,123 @@
 
   $('fText').addEventListener('input', (e) => { data.text = e.target.value; refresh(); showSameWords(); });
   $('fOriginal').addEventListener('input', (e) => { data.original = e.target.value; showSameWords(); clearTimeout(guessWhere.t); guessWhere.t = setTimeout(guessWhere, 400); }); // (once the typing pauses: where it is from)
+  /* ---------- Step 1: "Need an idea" ----------
+     (Bill, 2026-10-22; tuned on md/checks/idea.) While the field is empty, "Need an idea" sits where
+     "In original language +" goes once it is not (css .idea-row: one at a time). A tap: the question
+     (or the prompt before) and the link fade up and out; then a prompt fades up in the question's
+     place while the field and what follows glide to keep its gap (transform only); then the link comes
+     back, reading "Another idea". The prompts are Bill's (md/form-prompts.md — keep the two in step),
+     drawn as the archive deals its quotes (js/app.js → deal): the categories take turns evenly — the
+     one shown least this visit, at random among equals, never the same twice running — and within
+     one, a prompt never shown on this device first, then the one shown longest ago (localStorage
+     wwk-prompts-seen: prompt → minutes when last shown), so someone back to add more words gets ones
+     they have not seen. Two that read alike never follow each other (IDEA_APART). The last two words
+     are tied (noOrphans): no word alone on a line. */
+  const IDEAS = {
+    Perspective: [
+      'What did someone say that changed how you see things?',
+      'What line in a book did you underline?',
+      'Which lyric changed how you think about time?',
+      'What did an elder say that made sense later?',
+      'What did you read by chance and never forget?',
+    ],
+    Growth: [
+      'What did someone say that helped you at your lowest?',
+      'What line helped you start over?',
+      'Which speech said what you needed to hear?',
+      'What advice did you only understand later?',
+      'Which words helped you forgive?',
+      'What words got you through a hard time?',
+    ],
+    Drive: [
+      'What words get you out of bed?',
+      'What line do you listen to before something hard?',
+      'What did someone say that kept you going?',
+      'Which line reminds you why you started?',
+      'What did you read that made you act?',
+    ],
+    Community: [
+      'What did a friend say that made you feel less alone?',
+      'Which family words do you hear in your own voice?',
+      'What kind thing did a stranger say that you never forgot?',
+      'What words changed how you treat people?',
+      'What’s a saying from your culture that everyone should hear?',
+    ],
+    Romance: [
+      'What words helped you through a breakup?',
+      'Which lyric sounds like your love story?',
+      'What did someone say that made you feel loved?',
+      'Which line taught you what love is?',
+      'What did someone you loved say that still warms you?',
+    ],
+    Anytime: [
+      'What words have you remembered for years?',
+      'What words did you once copy into a notebook?',
+      'What’s a line you still say to yourself?',
+      'What did someone tell you that you never forgot?',
+    ],
+  };
+  const IDEA_APART = [['What did someone tell you that you never forgot?', 'What kind thing did a stranger say that you never forgot?']];
+  const IDEA_SEEN_KEY = 'wwk-prompts-seen';
+  const ideas = (() => {
+    const all = Object.entries(IDEAS).flatMap(([cat, list]) => list.map((text) => ({ cat, text })));
+    const perCat = {};
+    let shown = null, lastCat = null, busy = false;
+    const seenMap = () => { try { return JSON.parse(localStorage.getItem(IDEA_SEEN_KEY) || '{}') || {}; } catch (e) { return {}; } };
+    const any = (list) => list[Math.floor(Math.random() * list.length)];
+    function next() {
+      const seen = seenMap();
+      const apart = new Set(IDEA_APART.filter((pair) => pair.includes(shown)).flat());
+      let pool = all.filter((p) => p.text !== shown && !apart.has(p.text));
+      if (!pool.length) pool = all.filter((p) => p.text !== shown);
+      const fresh = pool.filter((p) => !seen[p.text]); if (fresh.length) pool = fresh; // (never shown here: these first, whatever their category)
+      const cats = [...new Set(pool.map((p) => p.cat))], others = cats.filter((c) => c !== lastCat), open = others.length ? others : cats;
+      const least = Math.min(...open.map((c) => perCat[c] || 0));
+      const cat = any(open.filter((c) => (perCat[c] || 0) === least));
+      const inCat = pool.filter((p) => p.cat === cat), oldest = Math.min(...inCat.map((p) => seen[p.text] || 0));
+      const p = any(inCat.filter((x) => (seen[x.text] || 0) === oldest));
+      perCat[cat] = (perCat[cat] || 0) + 1; lastCat = cat; shown = p.text;
+      seen[p.text] = Math.floor(Date.now() / 60000);
+      try { localStorage.setItem(IDEA_SEEN_KEY, JSON.stringify(seen)); } catch (e) {}
+      return p.text;
+    }
+    const step = steps[0], group = step.querySelector('.group'), q = group.querySelector('.q');
+    const own = $('qOwn'), idea = $('qIdea'), need = $('ideaNeed'), more = $('ideaMore');
+    const after = () => [q, ...[...group.children].filter((el) => q.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING),
+      ...[...step.querySelector('.content').children].filter((el) => group.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING)]; // (the step's content is centred: a shorter question moves itself too)
+    function swap(text) {
+      busy = true;
+      const ms = reduceMotion.matches ? 0 : FOLD_MS;
+      const going = idea.hidden ? own : idea;
+      going.classList.add('is-out'); need.classList.add('is-out'); more.classList.add('is-out');
+      setTimeout(() => {
+        const els = after(), before = els.map((el) => el.getBoundingClientRect().top);
+        own.hidden = true; own.classList.remove('is-out');
+        idea.classList.remove('is-out'); idea.classList.add('is-entering'); idea.hidden = false;
+        idea.querySelector('p').textContent = noOrphans(text);
+        void idea.offsetWidth; idea.classList.remove('is-entering');
+        if (ms) els.forEach((el, i) => { // from where it was to where it is, on the compositor
+          const dy = before[i] - el.getBoundingClientRect().top;
+          if (!dy) return;
+          el.classList.remove('idea-glide'); el.style.transform = `translateY(${dy}px)`;
+          void el.offsetWidth;
+          el.classList.add('idea-glide'); el.style.transform = '';
+          setTimeout(() => el.classList.remove('idea-glide'), ms);
+        });
+        setTimeout(() => { more.classList.remove('is-out'); }, ms); // the link, once the prompt is in
+        setTimeout(() => { busy = false; }, 2 * ms);
+      }, ms);
+    }
+    $('ideaBtn').addEventListener('click', () => { if (!busy) swap(next()); });
+    return {
+      // The question as the page opens (reset, "Start over"): at once, no motion.
+      reset() {
+        own.hidden = false; idea.hidden = true; [own, idea].forEach((f) => f.classList.remove('is-out', 'is-entering'));
+        need.classList.remove('is-out'); more.classList.add('is-out');
+      },
+    };
+  })();
+
   // Figma frame 1-2: the toggle row goes away and the second field appears under the first.
   // The toggle and the field fold in opposite directions at the same time, so the column's
   // height only ever changes smoothly and nothing below it jumps.
@@ -1570,6 +1690,7 @@
     sameQuote = null; sourceFrom = null; showSameWords(); fold($('sourceNote'), false);
     Object.assign(guess, { country: '', origin: '', ownCountry: false, ownOrigin: false });
     keptNote(false);
+    ideas.reset();
   }
   function reset(landed) {
     clearFields();

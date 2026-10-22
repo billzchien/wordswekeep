@@ -568,19 +568,20 @@ ul { list-style: none; }
 .notes .quote[data-tier="xs"] { --q-size: var(--quote-xs-notes); }
 
 /* Annotated words (and the link in a menu description, the privacy page's email address — Bill,
-   2026-10-10): hairline dashed underline. */
+   2026-10-10; the form's "Need an idea", 2026-10-22): hairline dashed underline. */
 .ann,
 .cat-desc [data-href],
 .pv-mail,
 .send-note [data-href],
 .dup-note [data-href],
-#startOver {
+#startOver,
+.idea-label > span {
   cursor: pointer;
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone; /* an underlined phrase may now wrap: each line gets its own full underline */
   background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 4px) left bottom 0.08em / 100% 1px no-repeat;
 }
-@media (min-resolution: 2dppx) { .ann, .cat-desc [data-href], .pv-mail, .send-note [data-href], .dup-note [data-href], #startOver { background-size: 100% 0.5px; } }
+@media (min-resolution: 2dppx) { .ann, .cat-desc [data-href], .pv-mail, .send-note [data-href], .dup-note [data-href], #startOver, .idea-label > span { background-size: 100% 0.5px; } }
 /* An annotated word's underline sits ANN_BELOW (0.16em) under the baseline in every face (Bill, 2026-10-19,
    md/checks/ann-space): at the foot of the face's own box it fell 0.07em (Stone) to 0.25em (Goudy) under it.
    js/app.js → annDrops measures each quote's face: --ann-drop lifts the line from the box's foot, --ann-pad

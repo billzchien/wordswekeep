@@ -557,6 +557,24 @@ textarea.field::-webkit-scrollbar { display: none; }
 .reveal.is-in.is-settled { translate: none; } /* arrived: no layer of its own, so a dropdown's list inside opens over what follows (js/form.js → refresh, the source group) */
 @media (prefers-reduced-motion: reduce) { .reveal, .reveal.is-in { transition: none; } }
 
+/* Step 1's "Need an idea" (Bill, 2026-10-22; js/form.js → ideas). It and "In original language +"
+   share one place, each in its kept space (.reveal): the link while the field is empty, the other once
+   it is not — one after the other, never both at once (the one coming waits the fade's length). */
+.idea-row { display: grid; }
+.idea-row > * { grid-area: 1 / 1; }
+#origToggleWrap.is-open > .idea-row { overflow: visible; } /* (the fold clips only while it opens or shuts) */
+.idea-row > .reveal.is-in { transition: opacity var(--fold-ms, 200ms) var(--ease) var(--fold-ms, 200ms), translate var(--fold-ms, 200ms) var(--ease) var(--fold-ms, 200ms), visibility 0s linear var(--fold-ms, 200ms); }
+.idea-label { display: grid; }
+.idea-label > span { grid-area: 1 / 1; justify-self: start; transition: opacity var(--fold-ms, 200ms) var(--ease), visibility 0s; }
+.idea-label > span.is-out { opacity: 0; visibility: hidden; transition: opacity var(--fold-ms, 200ms) var(--ease), visibility 0s linear var(--fold-ms, 200ms); }
+/* A tap: the question (or the prompt before) and the link fade up and out; then the prompt fades up
+   into place while the field glides to keep its gap (transform only); then the link comes back. */
+.q-face { display: flex; flex-direction: column; transition: opacity var(--fold-ms, 200ms) var(--ease), translate var(--fold-ms, 200ms) var(--ease); }
+.q-face.is-out { opacity: 0; translate: 0 calc(-8 * var(--u)); pointer-events: none; }
+.q-face.is-entering { opacity: 0; translate: 0 calc(8 * var(--u)); transition: none; }
+.idea-glide { transition: transform var(--fold-ms, 200ms) var(--ease); }
+@media (prefers-reduced-motion: reduce) { .q-face, .idea-glide, .idea-label > span, .idea-row > .reveal.is-in { transition: none; } }
+
 /* Already in the collection (Bill, 2026-10-11; js/form.js → sameWords / sameSource).
    Step 1: the same words — one line under Next, ~12 below it as the send note, in the ink, with
    the dashed underline (css/app.css → .ann); placed under the button, so it takes no room and

@@ -41,15 +41,25 @@
       <section class="step" data-step="0" aria-label="Step 1 of 5">
         <div class="content">
           <div class="group group--16">
+            <!-- The question, or in its place a prompt from "Need an idea" (js/form.js → ideas; Bill, 2026-10-22):
+                 one face shows at a time; the asterisk hangs off the question block and stays through a change. -->
             <div class="q">
-              <div class="q-title"><p>Words you hold onto?</p><span class="icon req" aria-hidden="true"></span></div>
-              <p class="q-desc" id="textDesc">Quotes from a book, a film, a song, a speech, or anywhere else</p> <!-- after a reload, "We kept your words from last time" (js/form.js → draft) -->
+              <div class="q-face" id="qOwn">
+                <div class="q-title"><p>Words you hold onto?</p></div>
+                <p class="q-desc" id="textDesc">Anything you read, heard, or were told</p> <!-- after a reload, "We kept your words from last time" (js/form.js → draft) -->
+              </div>
+              <div class="q-face" id="qIdea" hidden aria-live="polite"><div class="q-title"><p></p></div></div>
+              <span class="icon req" aria-hidden="true"></span>
             </div>
             <div class="stack">
               <div class="fw"><textarea class="field" id="fText" placeholder="The words, in English" rows="3" required aria-label="The words, in English"></textarea></div>
               <div class="fold" id="fOriginalWrap" hidden><div class="fw fw--closable"><textarea class="field" id="fOriginal" placeholder="The words in original language" rows="3" aria-label="The words in original language"></textarea><button type="button" class="fw-close" id="origClose" aria-label="Remove the original language"><span class="icon icon-x"></span></button></div></div>
             </div>
-            <div class="fold is-open" id="origToggleWrap"><div><button type="button" class="more" id="origToggle"><span>In original language</span><span class="icon icon-plus"></span></button></div></div>
+            <!-- "Need an idea" while the field is empty, "In original language +" once it is not: one place, one at a time. -->
+            <div class="fold is-open" id="origToggleWrap"><div class="idea-row">
+              <div class="reveal" id="origToggleIn"><button type="button" class="more" id="origToggle"><span>In original language</span><span class="icon icon-plus"></span></button></div>
+              <div class="reveal is-in" id="ideaIn"><button type="button" class="more" id="ideaBtn"><span class="idea-label"><span id="ideaNeed">Need an idea</span><span id="ideaMore" class="is-out">Another idea</span></span></button></div>
+            </div></div>
           </div>
           <!-- Appears in its own kept space once the step's required fields are filled (js/form.js → refresh).
                The words already in the collection (js/form.js → sameWords; Bill, 2026-10-18): the line fades in
