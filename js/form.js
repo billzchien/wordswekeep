@@ -760,39 +760,39 @@
   const IDEAS = {
     Perspective: [
       'What did someone say that changed how you see things?',
-      'What line in a book did you underline?',
-      'Which lyric changed how you think about time?',
-      'What did an elder say that made sense later?',
-      'What did you read by chance and never forget?',
+      'What’s a sentence you underlined in a book?',
+      'What lyric changed how you think about life?',
+      'What did someone older say that only made sense later?',
+      'What did you read once and never forget?',
     ],
     Growth: [
       'What did someone say that helped you at your lowest?',
-      'What line helped you start over?',
-      'Which speech said what you needed to hear?',
+      'What words helped you start over?',
+      'What speech said exactly what you needed to hear?',
       'What advice did you only understand later?',
-      'Which words helped you forgive?',
+      'What words helped you forgive someone?',
       'What words got you through a hard time?',
     ],
     Drive: [
       'What words get you out of bed?',
-      'What line do you listen to before something hard?',
+      'What words get you ready for a big moment?',
       'What did someone say that kept you going?',
-      'Which line reminds you why you started?',
-      'What did you read that made you act?',
+      'What words remind you why you started?',
+      'What words push you to finally go for it?',
     ],
     Community: [
       'What did a friend say that made you feel less alone?',
-      'Which family words do you hear in your own voice?',
-      'What kind thing did a stranger say that you never forgot?',
+      'What did your parents say that you now say too?',
+      'What’s the kindest thing a stranger ever said to you?',
       'What words changed how you treat people?',
       'What’s a saying from your culture that everyone should hear?',
     ],
     Romance: [
       'What words helped you through a breakup?',
-      'Which lyric sounds like your love story?',
+      'What lyric sounds like your love story?',
       'What did someone say that made you feel loved?',
-      'Which line taught you what love is?',
-      'What did someone you loved say that still warms you?',
+      'What words taught you what love is?',
+      'What did someone you loved say that still makes you smile?',
     ],
     Anytime: [
       'What words have you remembered for years?',
@@ -801,7 +801,7 @@
       'What did someone tell you that you never forgot?',
     ],
   };
-  const IDEA_APART = [['What did someone tell you that you never forgot?', 'What kind thing did a stranger say that you never forgot?']];
+  const IDEA_APART = [['What did someone tell you that you never forgot?', 'What’s the kindest thing a stranger ever said to you?']];
   const IDEA_SEEN_KEY = 'wwk-prompts-seen';
   const ideas = (() => {
     const all = Object.entries(IDEAS).flatMap(([cat, list]) => list.map((text) => ({ cat, text })));
