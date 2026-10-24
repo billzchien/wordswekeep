@@ -1851,9 +1851,14 @@
   // The confirmation comes in once the page has slid to it: the symbol draws in, the text and
   // the buttons fade up (css .done.is-in).
   $('doneText').textContent = noOrphans($('doneText').textContent);
+  const DONE_SLIDE_MS = 600, DONE_DRAW_MS = 800; // the step's slide (css --step-ms); the symbol's draw-in (symbol-draw-in.json durationMs, until it has loaded)
   function showDone() {
     const done = $('done'), box = done.querySelector('.done-sym');
-    if (window.Music && !slowTab()) Music.effect('submitted'); // (not for a browser that cannot keep up: watchSlide) // its bell with the slide's start (md/checks/sounds/submitted.html, 3b)
+    // Its bell with the slide's start (md/checks/sounds/submitted.html, 3b), and its end with the
+    // symbol's: the drawing starts once the slide is over and takes the draw-in's own length (Bill,
+    // 2026-10-23: the sound went on after the symbol was drawn). Not for a browser that cannot keep up (watchSlide).
+    const drawEnd = ((reduceMotion.matches ? 0 : DONE_SLIDE_MS) + (sym && sym.model && sym.model.S ? sym.model.S.durationMs : DONE_DRAW_MS)) / 1000;
+    if (window.Music && !slowTab()) Music.effect('submitted', { endIn: drawEnd });
     homeUndraw();
     box.classList.toggle('is-static', !sym);
     if (sym) sym.done.drawIn('All', 0);
@@ -1862,7 +1867,7 @@
       if (doneStop) doneStop();
       doneStop = null;
       if (sym) doneStop = sym.lib.play(sym.model, (t) => sym.done.drawIn('All', t));
-    }, reduceMotion.matches ? 0 : 600); // the step's slide (css --step-ms)
+    }, reduceMotion.matches ? 0 : DONE_SLIDE_MS); // the step's slide (css --step-ms)
   }
 
   /* ---------- "Add words": the landing page's label animation ----------
