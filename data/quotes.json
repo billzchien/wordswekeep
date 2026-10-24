@@ -1130,5 +1130,34 @@
     "submittedAt": "2026-10-24T02:08:17.054Z",
     "font": "stone",
     "id": 37
+  },
+  {
+    "status": "live",
+    "text": "You are the one you’ve been waiting for.",
+    "originalLanguage": null,
+    "categories": [
+      "growth"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Kristen Anderson-Lopez and Robert Lopez",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": {
+      "title": "Show Yourself",
+      "year": 2019,
+      "kind": "song",
+      "link": "https://www.youtube.com/watch?v=nrZxwPwmgrw&list=RDnrZxwPwmgrw&start_radio=1"
+    },
+    "context": "From “Show Yourself,” the song in Frozen II where Elsa finally reaches Ahtohallan, the frozen river she has been following a mysterious voice toward for the whole film. She expects to find someone there with the answers. Instead the voice turns out to be her mother’s memory, and the line is what her mother sings back to her: the thing she was searching for was never another person. It was herself, and the power she had spent her life hiding.\n\nThe line echoes an older one, “We are the ones we have been waiting for,” from June Jordan’s 1978 “Poem for South African Women,” later picked up by Alice Walker and Barack Obama.",
+    "annotations": [],
+    "reflection": "Anyone who has seen the film probably remembers this part. Disney really got me. I couldn’t stop the tears when I watched it, because it reminded me of everything I’ve been through to get to where I am. The finding of self really echoes with me: I am the force that has always been by my side, the one that lifts me up when I’m at my lowest.",
+    "keptBy": null,
+    "approvedAt": "2026-10-24T02:47:32.272Z",
+    "submittedAt": "2026-10-24T02:39:55.668Z",
+    "font": "round",
+    "id": 38
   }
 ]
