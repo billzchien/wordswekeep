@@ -65,8 +65,7 @@
     { value: 'other', label: 'Other', name: 'Name' },
     { value: 'unknown', label: 'Not sure' },
   ];
-  const NAMED = new Set(['person', 'acquaintance', 'self', 'character', 'other']); // the kinds with a name and a country
-  const COUNTRY_OPTIONAL = new Set(['character', 'other']); // …which they may leave empty
+  const NAMED = new Set(['person', 'acquaintance', 'self', 'character', 'other']); // the kinds with a name and a country (the country never required: Bill, 2026-10-24)
   const CHARACTER_SKIP = new Set(['personal', 'speech']); // source kinds a fictional character is never from
   // Where a saying is from: a culture, a people, a language or a tradition, as it reads before
   // "proverb" ("Chinese proverb"). One not on the list can be typed. (js/admin.js has the same list.)
@@ -168,16 +167,15 @@
     };
   }
   // Each kind's own check: a known person needs a name — the English or the one in its original
-  // language, either will do — and a country; someone known and oneself, a name and a country;
-  // a fictional character and "Other", a name (the country may stay empty); a saying, where it
-  // is from; "Not sure", nothing.
+  // language, either will do; someone known, oneself, a fictional character and "Other", a name; a
+  // saying, where it is from; "Not sure", nothing. The country is never required (Bill, 2026-10-24:
+  // "let's not make the country mandatory"; it was for a known person, someone known and oneself):
+  // left empty it is sent as none, as "Not sure" is, and the Worker takes it (workers/lib/entry.js).
   function authorOk() {
     const a = data.author;
     if (a.kind === 'saying') return !!a.origin.trim();
     if (a.kind === 'unknown') return true;
-    if (COUNTRY_OPTIONAL.has(a.kind)) return !!a.name.trim();
-    const name = !!a.name.trim() || (a.kind === 'person' && NON_LATIN.has(a.country) && !!a.nativeName.trim());
-    return name && !!a.country;
+    return !!a.name.trim() || (a.kind === 'person' && NON_LATIN.has(a.country) && !!a.nativeName.trim());
   }
 
   // House style: every paragraph of a note starts with a capital letter.
@@ -224,9 +222,8 @@
       const a = data.author;
       if (a.kind === 'saying') return [$('fOrigin').querySelector('.field')];
       if (a.kind === 'unknown') return [];
-      if (COUNTRY_OPTIONAL.has(a.kind)) return [$('fName')];
       const native = a.kind === 'person' && NON_LATIN.has(a.country) && a.nativeName.trim();
-      return [native ? null : $('fName'), $('fCountry').querySelector('.field')];
+      return [native ? null : $('fName')]; // (the country is never required)
     },
     () => [],
     () => [$('fReflection')],
