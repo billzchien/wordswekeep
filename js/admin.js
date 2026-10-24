@@ -762,7 +762,7 @@
     const t = (s) => s.trim();
     const hasSource = !!d.source.kind && d.source.kind !== 'personal';
     q.text = t(d.text);
-    q.originalLanguage = t(d.original) ? { lang: d.lang || detectLang(d.original), text: t(d.original) } : null;
+    q.originalLanguage = t(d.original) ? { lang: d.lang || detectLang(d.original, placeOf(d)), text: t(d.original) } : null;
     q.categories = CATEGORIES.map((c) => c.key).filter((k) => d.categories.includes(k));
     const named = NAMED_KINDS.includes(d.author.kind); // who said it: only the fields its kind has (as the form sends)
     q.author = { kind: d.author.kind || 'person', name: named ? t(d.author.name) || null : null, nativeName: d.author.kind === 'person' && NON_LATIN.has(d.author.country) ? (t(d.author.nativeName) || null) : null,
@@ -795,8 +795,28 @@
     vi: ['ơ', 'ư', 'đ', 'ạ', 'ả', 'ấ', 'ề', 'ệ', 'ộ', 'ữ', ' không ', ' là ', ' của '],
     pl: ['ł', 'ż', 'ś', 'ć', 'ę', 'ą', ' nie ', ' się ', ' jest ', ' to '],
     tr: ['ş', 'ğ', 'ı', ' bir ', ' ve ', ' bu ', ' için ', ' değil '],
+    // Danish, Norwegian, Swedish (Bill, 2026-10-23: No. 37, Kierkegaard, had come in as "other", its
+    // button "Aa"). Danish and Norwegian share most words: each lists them, so only their own words
+    // (mig/meg, af/av, hvad/hva…) tell them apart — and a text with none of those is left "other".
+    da: [' og ', ' ikke ', ' det ', ' jeg ', ' til ', ' er ', ' har ', ' kan ', ' vil ', ' med ', ' som ', ' mig ', ' dig ', ' sig ', ' af ', ' hvad ', ' meget ', ' blive ', ' nu ', 'æ', 'ø', 'aa'],
+    no: [' og ', ' ikke ', ' det ', ' jeg ', ' til ', ' er ', ' har ', ' kan ', ' vil ', ' med ', ' som ', ' meg ', ' deg ', ' seg ', ' av ', ' hva ', ' mye ', ' bli ', ' ikkje ', 'æ', 'ø'],
+    sv: [' och ', ' inte ', ' är ', ' jag ', ' det ', ' att ', ' som ', ' för ', ' med ', ' har ', ' kan ', ' vill ', ' mig ', ' dig ', ' sig ', ' av ', ' vad ', 'ä', 'ö'],
   };
-  function detectLang(text) {
+  // Where it is from settles a close call (Bill, 2026-10-23: "it should know because the country is chosen
+  // as Denmark"): the author's country, or a saying's origin, names a Latin-script language here, and the
+  // guess takes it when the words fit it at least as well as any other (one hint at least) — so Danish
+  // and Norwegian, which share most words, come out as the country says; a Dane quoted in English
+  // (no Danish words at all) stays as the words say.
+  const PLACE_LANG = {
+    DK: 'da', GL: 'da', FO: 'da', NO: 'no', SE: 'sv', AX: 'sv', DE: 'de', AT: 'de', LI: 'de', FR: 'fr', MC: 'fr',
+    ES: 'es', MX: 'es', AR: 'es', CO: 'es', PE: 'es', CL: 'es', VE: 'es', EC: 'es', GT: 'es', CU: 'es', BO: 'es', DO: 'es',
+    HN: 'es', PY: 'es', SV: 'es', NI: 'es', CR: 'es', PA: 'es', UY: 'es', PR: 'es', PT: 'pt', BR: 'pt', AO: 'pt', MZ: 'pt',
+    IT: 'it', SM: 'it', NL: 'nl', SR: 'nl', PL: 'pl', TR: 'tr', VN: 'vi',
+    Danish: 'da', Norwegian: 'no', Swedish: 'sv', German: 'de', French: 'fr', Spanish: 'es', Mexican: 'es', Portuguese: 'pt',
+    Brazilian: 'pt', Italian: 'it', Dutch: 'nl', Polish: 'pl', Turkish: 'tr', Vietnamese: 'vi', Latin: 'la',
+  };
+  const placeOf = (d) => (d && d.author ? (d.author.country && d.author.country !== 'unsure' ? d.author.country : d.author.origin || '') : '');
+  function detectLang(text, from = '') { // from: the author's country code, or a saying's origin
     if (/[\u3040-\u30ff]/.test(text)) return 'ja';
     if (/[\uac00-\ud7af]/.test(text)) return 'ko';
     if (/[\u4e00-\u9fff]/.test(text)) return 'zh';
@@ -808,6 +828,8 @@
     if (/[\u0900-\u097f]/.test(text)) return 'hi';
     const t = ` ${text.toLowerCase().replace(/[.,;:!?"“”«»()\n]/g, ' ').replace(/\s+/g, ' ')} `;
     const scores = Object.entries(LATIN_HINTS).map(([code, hints]) => [code, hints.reduce((n, h) => n + (t.split(h).length - 1), 0)]).sort((a, b) => b[1] - a[1]);
+    const near = PLACE_LANG[from], own = near ? (scores.find(([c]) => c === near) || [, 0])[1] : 0;
+    if (own >= 1 && own >= scores[0][1]) return near;
     return scores[0][1] >= 2 && scores[0][1] > scores[1][1] ? scores[0][0] : 'other';
   }
 
@@ -1142,7 +1164,7 @@
   })();
   bind('fText', (v) => { edit.draft.text = v; followAnn(); drawFont(); });
   // The language is guessed from the words until the admin picks one; a picked language stays.
-  bind('fOriginal', (v) => { edit.draft.original = v; followAnn(); if (!edit.langPicked) { edit.draft.lang = v.trim() ? detectLang(v) : ''; lang.set(edit.draft.lang); } drawFont(); });
+  bind('fOriginal', (v) => { edit.draft.original = v; followAnn(); if (!edit.langPicked) { edit.draft.lang = v.trim() ? detectLang(v, placeOf(edit.draft)) : ''; lang.set(edit.draft.lang); } drawFont(); });
   bind('fName', (v) => { edit.draft.author.name = v; clearTimeout(drawCovers.t); drawCovers.t = setTimeout(drawCovers, 600); clearTimeout(autoSong.t); autoSong.t = setTimeout(autoSong, 600); });
   bind('fNative', (v) => { edit.draft.author.nativeName = v; });
   bind('fTitle', (v) => { edit.draft.source.title = v; clearTimeout(drawCovers.t); drawCovers.t = setTimeout(drawCovers, 600); clearTimeout(autoSong.t); autoSong.t = setTimeout(autoSong, 600); }); // (a book: its covers are looked for again once the typing pauses; a song: its link)
@@ -1185,7 +1207,13 @@
   const UNSURE = 'unsure', NOT_SURE = { value: UNSURE, label: 'Not sure' };
   const NAMED_KINDS = ['person', 'acquaintance', 'self', 'character', 'other']; // the kinds with a name and a country
   const sure = (v) => (v && v !== UNSURE ? v : null); // what is stored: "Not sure" is none
-  const country = combo($('fCountry'), { options: [...REGIONS, NOT_SURE], placeholder: 'Country or region', onChange: (v) => { if (!edit) return; mark('country'); edit.draft.author.country = v; fold($('fNativeWrap'), edit.draft.author.kind === 'person' && NON_LATIN.has(v)); updateDirty(); } });
+  // Where it is from changed: a language not picked by hand is guessed again with it (detectLang → PLACE_LANG).
+  function reguessLang() {
+    if (!edit || edit.langPicked || !edit.draft.original.trim()) return;
+    const g = detectLang(edit.draft.original, placeOf(edit.draft));
+    if (g !== edit.draft.lang) { edit.draft.lang = g; lang.set(g); }
+  }
+  const country = combo($('fCountry'), { options: [...REGIONS, NOT_SURE], placeholder: 'Country or region', onChange: (v) => { if (!edit) return; mark('country'); edit.draft.author.country = v; reguessLang(); fold($('fNativeWrap'), edit.draft.author.kind === 'person' && NON_LATIN.has(v)); updateDirty(); } });
   // Who said it, as on the form (js/form.js → WHO, ORIGINS: keep the lists in step): the fields
   // follow the kind; a saying is where it is from ("Chinese" → "Chinese proverb" on the site).
   // A fictional character and "Other" (2026-10-17): a name and a country, which may be "Not sure";
@@ -1211,13 +1239,13 @@
     country.input.placeholder = countryLabel; country.input.setAttribute('aria-label', countryLabel);
   }
   const who = combo($('fWho'), { options: WHO, placeholder: 'Who said or wrote it', keep: true, select: true, onChange: (v) => { if (!edit || !v || edit.draft.author.kind === v) return; mark('who'); edit.draft.author.kind = v; showWho(v); updateDirty(); autoSong(); } });
-  const origin = combo($('fOrigin'), { options: [...ORIGINS, NOT_SURE], placeholder: 'Where is it from', onChange: (v) => { if (!edit) return; mark('origin'); edit.draft.author.origin = v; updateDirty(); } });
+  const origin = combo($('fOrigin'), { options: [...ORIGINS, NOT_SURE], placeholder: 'Where is it from', onChange: (v) => { if (!edit) return; mark('origin'); edit.draft.author.origin = v; reguessLang(); updateDirty(); } });
   const kind = combo($('fKind'), { options: KINDS, placeholder: 'Source category', onChange: (v) => { linkHint(v); if (!edit) return; mark('kind'); edit.draft.source.kind = v; showSourceFields(!!v && v !== 'personal'); updateDirty(); autoSong(); } });
   const lang = combo($('fLang'), { options: LANGUAGES, placeholder: 'Language', onChange: (v) => {
     if (!edit) return;
     mark('lang');
     edit.langPicked = !!v;
-    edit.draft.lang = v || (edit.draft.original.trim() ? detectLang(edit.draft.original) : ''); // cleared: back to the guess
+    edit.draft.lang = v || (edit.draft.original.trim() ? detectLang(edit.draft.original, placeOf(edit.draft)) : ''); // cleared: back to the guess
     if (!v && edit.draft.lang) setTimeout(() => { if (edit && !edit.langPicked && document.activeElement !== lang.input) lang.set(edit.draft.lang); }, 0);
     updateDirty();
   } });

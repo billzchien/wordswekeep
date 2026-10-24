@@ -117,8 +117,28 @@
     vi: ['ơ', 'ư', 'đ', 'ạ', 'ả', 'ấ', 'ề', 'ệ', 'ộ', 'ữ', ' không ', ' là ', ' của '],
     pl: ['ł', 'ż', 'ś', 'ć', 'ę', 'ą', ' nie ', ' się ', ' jest ', ' to '],
     tr: ['ş', 'ğ', 'ı', ' bir ', ' ve ', ' bu ', ' için ', ' değil '],
+    // Danish, Norwegian, Swedish (Bill, 2026-10-23: No. 37, Kierkegaard, had come in as "other", its
+    // button "Aa"). Danish and Norwegian share most words: each lists them, so only their own words
+    // (mig/meg, af/av, hvad/hva…) tell them apart — and a text with none of those is left "other".
+    da: [' og ', ' ikke ', ' det ', ' jeg ', ' til ', ' er ', ' har ', ' kan ', ' vil ', ' med ', ' som ', ' mig ', ' dig ', ' sig ', ' af ', ' hvad ', ' meget ', ' blive ', ' nu ', 'æ', 'ø', 'aa'],
+    no: [' og ', ' ikke ', ' det ', ' jeg ', ' til ', ' er ', ' har ', ' kan ', ' vil ', ' med ', ' som ', ' meg ', ' deg ', ' seg ', ' av ', ' hva ', ' mye ', ' bli ', ' ikkje ', 'æ', 'ø'],
+    sv: [' och ', ' inte ', ' är ', ' jag ', ' det ', ' att ', ' som ', ' för ', ' med ', ' har ', ' kan ', ' vill ', ' mig ', ' dig ', ' sig ', ' av ', ' vad ', 'ä', 'ö'],
   };
-  function detectLang(text) {
+  // Where it is from settles a close call (Bill, 2026-10-23: "it should know because the country is chosen
+  // as Denmark"): the author's country, or a saying's origin, names a Latin-script language here, and the
+  // guess takes it when the words fit it at least as well as any other (one hint at least) — so Danish
+  // and Norwegian, which share most words, come out as the country says; a Dane quoted in English
+  // (no Danish words at all) stays as the words say.
+  const PLACE_LANG = {
+    DK: 'da', GL: 'da', FO: 'da', NO: 'no', SE: 'sv', AX: 'sv', DE: 'de', AT: 'de', LI: 'de', FR: 'fr', MC: 'fr',
+    ES: 'es', MX: 'es', AR: 'es', CO: 'es', PE: 'es', CL: 'es', VE: 'es', EC: 'es', GT: 'es', CU: 'es', BO: 'es', DO: 'es',
+    HN: 'es', PY: 'es', SV: 'es', NI: 'es', CR: 'es', PA: 'es', UY: 'es', PR: 'es', PT: 'pt', BR: 'pt', AO: 'pt', MZ: 'pt',
+    IT: 'it', SM: 'it', NL: 'nl', SR: 'nl', PL: 'pl', TR: 'tr', VN: 'vi',
+    Danish: 'da', Norwegian: 'no', Swedish: 'sv', German: 'de', French: 'fr', Spanish: 'es', Mexican: 'es', Portuguese: 'pt',
+    Brazilian: 'pt', Italian: 'it', Dutch: 'nl', Polish: 'pl', Turkish: 'tr', Vietnamese: 'vi', Latin: 'la',
+  };
+  const placeOf = () => (data.author.country && data.author.country !== 'unsure' ? data.author.country : data.author.origin || ''); // (called once data is there)
+  function detectLang(text, from = '') { // from: the author's country code, or a saying's origin
     if (/[\u3040-\u30ff]/.test(text)) return 'ja';
     if (/[\uac00-\ud7af]/.test(text)) return 'ko';
     if (/[\u4e00-\u9fff]/.test(text)) return 'zh';
@@ -130,6 +150,8 @@
     if (/[\u0900-\u097f]/.test(text)) return 'hi';
     const t = ` ${text.toLowerCase().replace(/[.,;:!?"“”«»()\n]/g, ' ').replace(/\s+/g, ' ')} `;
     const scores = Object.entries(LATIN_HINTS).map(([code, hints]) => [code, hints.reduce((n, h) => n + (t.split(h).length - 1), 0)]).sort((a, b) => b[1] - a[1]);
+    const near = PLACE_LANG[from], own = near ? (scores.find(([c]) => c === near) || [, 0])[1] : 0;
+    if (own >= 1 && own >= scores[0][1]) return near;
     return scores[0][1] >= 2 && scores[0][1] > scores[1][1] ? scores[0][0] : 'other';
   }
 
@@ -167,7 +189,7 @@
     return {
       status: 'pending',
       text: t(data.text),
-      originalLanguage: original ? { lang: detectLang(original), text: original } : null,
+      originalLanguage: original ? { lang: detectLang(original, placeOf()), text: original } : null,
       categories: CATEGORIES.map((c) => c.key).filter((k) => data.categories.includes(k)),
       author: authorOut(),
       // One link: the site plays it if it is a video (YouTube), otherwise links the source title to it.
@@ -1102,7 +1124,7 @@
   const guess = { country: '', origin: '', ownCountry: false, ownOrigin: false };
   function guessWhere() {
     clearTimeout(guessWhere.t);
-    const lang = data.original.trim() ? detectLang(data.original) : '';
+    const lang = data.original.trim() ? detectLang(data.original, placeOf()) : '';
     const hans = lang === 'zh' && (data.original.match(HANS_ONLY) || []).length > (data.original.match(HANT_ONLY) || []).length; // simplified: China (traditional: Taiwan, Hong Kong, Macau… theirs to pick)
     const c = hans ? 'CN' : LANG_COUNTRY[lang] || '', o = LANG_ORIGIN[lang] || '';
     if (!guess.ownCountry && data.author.country !== c) { guess.country = c; country.set(c); }
@@ -1215,7 +1237,7 @@
   // language and direction (Arabic and Hebrew right to left).
   function quoteLook(el, q) {
     el.classList.toggle('is-native', sheetOrig);
-    if (sheetOrig) { const lang = detectLang(q); el.lang = lang === 'other' ? '' : lang; el.dir = /^[^\p{L}]*[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufeff]/u.test(q) ? 'rtl' : 'ltr'; const look = /[\u3040-\u30ff]/.test(q) ? 'jpan' : /[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]/.test(q) ? 'kore' : /[\u3400-\u9fff]/.test(q) && isHant(q) ? 'hant' : ''; if (look) el.dataset.cjk = look; else delete el.dataset.cjk; }
+    if (sheetOrig) { const lang = detectLang(q, placeOf()); el.lang = lang === 'other' ? '' : lang; el.dir = /^[^\p{L}]*[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufeff]/u.test(q) ? 'rtl' : 'ltr'; const look = /[\u3040-\u30ff]/.test(q) ? 'jpan' : /[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]/.test(q) ? 'kore' : /[\u3400-\u9fff]/.test(q) && isHant(q) ? 'hant' : ''; if (look) el.dataset.cjk = look; else delete el.dataset.cjk; }
     else { el.lang = ''; el.dir = ''; delete el.dataset.cjk; }
   }
   function renderQuote(leaving = []) {
@@ -1354,7 +1376,7 @@
     const btn = $('annLang'), has = !!data.original.trim();
     btn.hidden = !has;
     if (!has) return;
-    const code = sheetOrig ? 'en' : detectLang(data.original);
+    const code = sheetOrig ? 'en' : detectLang(data.original, placeOf());
     const b = LANG_BUTTON[code] || { ...LANG_BUTTON.en, label: /^[a-z]{2}$/.test(code) ? code.toUpperCase() : 'Aa' };
     const key = `${b.font}:${b.weight}`;
     if (!labelFonts.has(key)) { // the label's face (only the pieces with its letters load)
