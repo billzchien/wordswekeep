@@ -1576,11 +1576,12 @@
      anything else): "Adding" erases, "Add words" types back. The line under the button says what is
      happening, in place of its usual words. The words are kept on this device all along (keptWords,
      below) until they have gone. md/checks/adding has every case on a test page; on localhost,
-     add.html?send=slow|offline|drop|tooMany|ourSide plays one of them with the real form. */
+     add.html?send=slow|offline|drop|tooFast|tooMany|ourSide plays one of them with the real form. */
   const SEND_LIMIT_MS = 15000, RETRY_MS = 10000;
   const SEND_SAY = {
     offline: 'You’re offline. The words will be sent once you’re back.', // (Bill: offline and a dropped connection alike)
-    tooMany: 'Too many submissions from here today. Your words are saved on this device; try again tomorrow.',
+    tooFast: 'That’s a lot at once. Your words are saved on this device; try again in a few minutes.', // (more than 3 in 2 minutes: workers/submit BURST_MAX)
+    tooMany: 'Too many submissions today. Your words are saved on this device; try again tomorrow.', // (the whole site's day: workers/submit PER_DAY)
     ourSide: 'Something went wrong on our side. Your words are saved on this device; try again in a minute.',
   };
   const sendNote = $('sendNote'), SEND_NOTE_USUAL = sendNote.innerHTML;
@@ -1603,13 +1604,13 @@
   const FAKE_SEND = LOCAL ? new URLSearchParams(location.search).get('send') : null;
   let fakeTries = 0;
   const later = (ms) => new Promise((r) => setTimeout(r, ms));
-  async function post(entry) { // → 'ok' | 'net' (no connection, no answer in time) | 'tooMany' | 'ourSide'
+  async function post(entry) { // → 'ok' | 'net' (no connection, no answer in time) | 'tooFast' | 'tooMany' | 'ourSide'
     if (!SUBMIT_URL) {
       fakeTries += 1;
       if (FAKE_SEND === 'slow') await later(6000);
       if (FAKE_SEND === 'offline' && fakeTries === 1) return 'net';
       if (FAKE_SEND === 'drop' && fakeTries === 1) { await later(SEND_LIMIT_MS); return 'net'; }
-      if ((FAKE_SEND === 'tooMany' || FAKE_SEND === 'ourSide') && fakeTries === 1) { await later(1500); return FAKE_SEND; }
+      if ((FAKE_SEND === 'tooFast' || FAKE_SEND === 'tooMany' || FAKE_SEND === 'ourSide') && fakeTries === 1) { await later(1500); return FAKE_SEND; }
       // Kept in this browser so the entry can be inspected.
       const key = 'wwk-pending';
       try { const pending = JSON.parse(localStorage.getItem(key) || '[]'); pending.push(entry); localStorage.setItem(key, JSON.stringify(pending)); } catch (e) {}
@@ -1621,7 +1622,9 @@
       const r = await fetch(SUBMIT_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry), signal: stop.signal });
       if (r.ok) return 'ok';
       console.error(`Submit refused: ${r.status}`);
-      return r.status === 429 ? 'tooMany' : 'ourSide';
+      if (r.status !== 429) return 'ourSide';
+      const why = await r.json().catch(() => ({}));
+      return why && why.wait === 'minutes' ? 'tooFast' : 'tooMany';
     } catch (err) {
       return 'net';
     } finally { clearTimeout(limit); }
