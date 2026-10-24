@@ -581,15 +581,23 @@ textarea.field::-webkit-scrollbar { display: none; }
    the centred step never moves. Step 3: the same source — the send note's grey italics under
    the source fields, unfolding (the group's 12 above it; Bill: no space kept for one-line fields). */
 /* Step 1, the words already in the collection (js/form.js → showSameWords; Bill, 2026-10-18): the line
-   fades in 12 above the buttons, in space kept for it — the column is centred, so a line unfolding
-   would lift the field while one types — and Next gives way to "Continue" + "Add thoughts instead",
-   side by side 4 apart, crossfading in its place (opacity only). Too narrow for "Add thoughts
-   instead" beside "Continue" (a phone under ~375 wide; js: fitDupPair): one above the other, the
-   primary on top, hanging below Next's place, so nothing above them moves. */
+   comes in 12 above the buttons, and Next gives way to "Continue" + "Add thoughts instead", side by
+   side 4 apart, crossfading in its place (opacity only). It keeps no space while it is away (Bill,
+   2026-10-24: Next 24 under the field, as on every step): it unfolds as a field does and the buttons
+   slide down for it — while the step keeps its height (.next-wrap.has-dup gives the line's room back
+   below, --dup-h from js), so the centred column does not move and the field stays where it is while
+   one types. Too narrow for "Add thoughts instead" beside "Continue" (a phone under ~375 wide; js:
+   fitDupPair): one above the other, the primary on top, hanging below Next's place. */
 .next-wrap { display: flex; flex-direction: column; }
-.dup-note { margin-bottom: var(--gap-12); opacity: 0; translate: 0 calc(-8 * var(--u)); visibility: hidden;
-  transition: opacity var(--fold-ms, 200ms) var(--ease), translate var(--fold-ms, 200ms) var(--ease), visibility 0s linear var(--fold-ms, 200ms); }
-.dup-note.is-in { opacity: 1; translate: 0 0; visibility: visible; transition: opacity var(--fold-ms, 200ms) var(--ease), translate var(--fold-ms, 200ms) var(--ease), visibility 0s; }
+/* (its .reveal sets the transitions: the room given back below eases with them, as the line unfolds) */
+.next-wrap.reveal { transition: opacity var(--fold-ms, 200ms) var(--ease), translate var(--fold-ms, 200ms) var(--ease), visibility 0s linear var(--fold-ms, 200ms), margin-bottom var(--fold-ms, 200ms) var(--ease); }
+.next-wrap.reveal.is-in { transition: opacity var(--fold-ms, 200ms) var(--ease), translate var(--fold-ms, 200ms) var(--ease), visibility 0s, margin-bottom var(--fold-ms, 200ms) var(--ease); }
+.next-wrap.has-dup { margin-bottom: calc(-1 * (var(--dup-h, 0px) + var(--gap-12))); }
+.dup-note { display: grid; grid-template-rows: 0fr; margin-bottom: 0; opacity: 0; translate: 0 calc(-8 * var(--u)); visibility: hidden;
+  transition: grid-template-rows var(--fold-ms, 200ms) var(--ease), margin-bottom var(--fold-ms, 200ms) var(--ease), opacity var(--fold-ms, 200ms) var(--ease), translate var(--fold-ms, 200ms) var(--ease), visibility 0s linear var(--fold-ms, 200ms); }
+.dup-note.is-in { grid-template-rows: 1fr; margin-bottom: var(--gap-12); opacity: 1; translate: 0 0; visibility: visible;
+  transition: grid-template-rows var(--fold-ms, 200ms) var(--ease), margin-bottom var(--fold-ms, 200ms) var(--ease), opacity var(--fold-ms, 200ms) var(--ease), translate var(--fold-ms, 200ms) var(--ease), visibility 0s; }
+.dup-note > p { min-height: 0; overflow: hidden; }
 .dup-note p { margin: 0; font-style: italic; color: var(--placeholder); }
 .dup-note [data-href] { white-space: nowrap; }
 .next-btns { position: relative; }
@@ -602,7 +610,7 @@ textarea.field::-webkit-scrollbar { display: none; }
 .next-btns.is-dup > .btn { opacity: 0; visibility: hidden; }
 .next-btns:not(.is-dup) > .btn { transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease), background 0.15s var(--ease), color 0.15s var(--ease), opacity var(--fold-ms, 200ms) var(--ease), visibility 0s; }
 .next-btns.is-dup > .dup-pair { opacity: 1; visibility: visible; transition: opacity var(--fold-ms, 200ms) var(--ease), visibility 0s; }
-@media (prefers-reduced-motion: reduce) { .dup-note, .dup-note.is-in, .next-btns > .btn, .next-btns:not(.is-dup) > .btn, .dup-pair, .next-btns.is-dup > .dup-pair { transition-property: border-color, box-shadow, background, color; } }
+@media (prefers-reduced-motion: reduce) { .next-wrap, .dup-note, .dup-note.is-in, .next-btns > .btn, .next-btns:not(.is-dup) > .btn, .dup-pair, .next-btns.is-dup > .dup-pair { transition-property: border-color, box-shadow, background, color; } }
 .send-note.source-note { margin-top: 0; }
 
 /* ---------- Arriving from the archive ----------

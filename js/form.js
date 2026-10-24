@@ -689,7 +689,10 @@
   let sameQuote = null;
   function showSameWords() {
     sameQuote = sameWords(data.text, data.original);
-    $('dupNote').classList.toggle('is-in', !!sameQuote);
+    // The line's room (css .next-wrap.has-dup): measured as it comes, so the step keeps its height.
+    const note = $('dupNote'), wrap = note.parentElement;
+    if (sameQuote) wrap.style.setProperty('--dup-h', `${note.querySelector('p').scrollHeight}px`);
+    note.classList.toggle('is-in', !!sameQuote); wrap.classList.toggle('has-dup', !!sameQuote);
     $('nextBtns').classList.toggle('is-dup', !!sameQuote);
     $('dupPair').inert = !sameQuote;
     steps[0].querySelector('[data-next]').tabIndex = sameQuote ? -1 : 0; // (Next, faded: out of Tab's way)
