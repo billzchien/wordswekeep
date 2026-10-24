@@ -962,5 +962,67 @@
     "submittedAt": "2026-10-20T15:52:24.095Z",
     "font": "king",
     "id": 32
+  },
+  {
+    "status": "live",
+    "text": "We’re all just walking each other home.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective",
+      "community"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Ram Dass",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": {
+      "title": "Walking Each Other Home: Conversations on Loving and Dying",
+      "year": 2018,
+      "kind": "book",
+      "link": "https://www.amazon.com/dp/1683642007?lv=shuf&channelId=500&plpRedirect=mhFallback",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Publication116/v4/29/58/fc/2958fc02-9bb5-b8d8-feb2-af05657574ce/9781683642053.jpg/600x600bb.jpg"
+    },
+    "context": "Ram Dass, born Richard Alpert, was an American spiritual teacher and the author of Be Here Now. He said this line in talks for decades before it became the title of his last book, written with Mirabai Bush, about how to be with people who are dying and with each other along the way.",
+    "annotations": [],
+    "reflection": "It reminds me not to take myself so seriously.",
+    "keptBy": "Zen",
+    "approvedAt": "2026-10-24T01:33:59.034Z",
+    "submittedAt": "2026-10-24T01:02:49.479Z",
+    "font": "poet",
+    "id": 33
+  },
+  {
+    "status": "live",
+    "text": "Not all those who wander are lost.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective",
+      "growth"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "J. R. R. Tolkien",
+      "nativeName": null,
+      "country": "GB",
+      "origin": null
+    },
+    "source": {
+      "title": "The Fellowship of the Ring",
+      "year": 1954,
+      "kind": "book",
+      "link": "https://tolkiengateway.net/wiki/Riddle_of_Strider",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Publication116/v4/07/1a/f4/071af4f1-c83c-aec8-6c09-27f15c42d22d/9780547952017.jpg/600x600bb.jpg"
+    },
+    "context": "The line is from a short poem in The Fellowship of the Ring that begins “All that is gold does not glitter.” Bilbo wrote it about Aragorn, the heir to a throne who spent years as a wandering ranger, and Gandalf includes it in a letter to the hobbits so they will trust him. “Wander” here means to travel without a fixed destination, and the poem argues that this is not the same as being lost.",
+    "annotations": [],
+    "reflection": "Simple, but it hit different at a really uncertain point in my life.",
+    "keptBy": null,
+    "approvedAt": "2026-10-24T01:33:59.034Z",
+    "submittedAt": "2026-10-24T01:31:33.372Z",
+    "font": "stone",
+    "id": 34
   }
 ]
