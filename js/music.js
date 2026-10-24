@@ -165,32 +165,24 @@
     manifest().then((all) => Object.entries(all.effects || {}).forEach(([name, file]) =>
       decode(file).then((buf) => { effectBufs[name] = buf; }, () => {})), () => {});
   };
-  // `opts.endIn` (seconds): the effect fades out over END_FADE_S to end then, however long its file
-  // runs (Bill, 2026-10-23: the "Words submitted" bell ends as its symbol is drawn, not after).
-  const END_FADE_S = 0.3;
-  const effect = (name, opts = {}) => {
+  const effect = (name) => {
     const buf = effectBufs[name], fx = EFFECTS[name] || {};
-    if (!buf || !ctx) return;
-    if (ctx.state !== 'running') { if (!fx.wake) return; ctx.resume().catch(() => {}); } // (started on a waking context, it plays as it wakes)
-    const src = ctx.createBufferSource(), gain = ctx.createGain(), vol = fx.volume ?? 0.15;
-    src.buffer = buf; gain.gain.value = vol;
+    if (!buf || !ctx) return false; // (true once it plays: the form times its slide on it)
+    if (ctx.state !== 'running') { if (!fx.wake) return false; ctx.resume().catch(() => {}); } // (started on a waking context, it plays as it wakes)
+    const src = ctx.createBufferSource(), gain = ctx.createGain();
+    src.buffer = buf; gain.gain.value = fx.volume ?? 0.15;
     src.connect(gain).connect(ctx.destination);
     src.onended = () => { src.disconnect(); gain.disconnect(); };
-    const t0 = ctx.currentTime, end = opts.endIn > 0 && opts.endIn < buf.duration ? opts.endIn : buf.duration;
-    src.start(t0);
-    if (end < buf.duration) {
-      gain.gain.setValueAtTime(vol, t0 + Math.max(0, end - END_FADE_S));
-      gain.gain.linearRampToValueAtTime(0, t0 + end);
-      src.stop(t0 + end + 0.02);
-    }
+    src.start();
     // The music's stop() hands the page back to 'auto' at once, which the iPhone's silent switch
     // mutes: the effect keeps 'playback' until it is over, then 'auto' unless the music is back.
     session('playback');
     // A music cut just before (stop with a short fade) would suspend the context under the effect.
     clearTimeout(suspendTimer);
-    suspendTimer = setTimeout(() => { if (!voice || !voice.on) ctx.suspend().catch(() => {}); }, end * 1000 + 100);
+    suspendTimer = setTimeout(() => { if (!voice || !voice.on) ctx.suspend().catch(() => {}); }, buf.duration * 1000 + 100);
     clearTimeout(effectTimer);
-    effectTimer = setTimeout(() => { if (!voice || !voice.on) session('auto'); }, end * 1000 + 50);
+    effectTimer = setTimeout(() => { if (!voice || !voice.on) session('auto'); }, buf.duration * 1000 + 50);
+    return true;
   };
 
   const listeners = new Set();

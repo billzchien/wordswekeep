@@ -1563,8 +1563,8 @@
 
   // The sound as "Words submitted" comes in (Bill, 2026-10-15: always, music or not): decoded once
   // the page has settled (as the symbols are); woken on arriving at the last step (go()) and again by
-  // the Add words click itself (a browser lets sound start only from a click), played by showDone() — at the click, or as soon as the words
-  // have gone, so its bell always lands with the slide and the drawing (js/music.js → effect).
+  // the Add words click itself (a browser lets sound start only from a click), played by sent() as soon as
+  // the words have gone; the slide follows its bell (SOUND_LEAD_MS) (js/music.js → effect).
   setTimeout(() => { if (window.Music) Music.loadEffects(); }, 1200);
 
   /* ---------- Sending (Bill, 2026-10-18; it was a white spinner) ----------
@@ -1666,13 +1666,22 @@
     retryTimer = setTimeout(attempt, RETRY_MS);
   }
   window.addEventListener('online', () => { if (sending) attempt(); });
+  // The bell first, then the page (Bill, 2026-10-23): the sound waits for the words to have gone,
+  // however long that takes ("Adding" loops meanwhile — "the ding waits until it's set"), and starts as
+  // they have; the slide to "Words submitted" starts SOUND_LEAD_MS after it ("we can set the slide
+  // starting after the bell"; 160ms, Bill's value on md/checks/sounds/last-two.html's dial). The sound
+  // is never cut. No sound (a browser that cannot keep up, or the file not decoded): the slide at once.
+  const SOUND_LEAD_MS = 160;
   function sent() {
     sending = false; sendEntry = null;
     keptWords.clear();
-    go(STEPS, { force: true });
-    showDone();
-    // Once step 5 is out of sight: the button and its line as they were.
-    setTimeout(() => { adding.putBack(); sayUnderButton(null, true); }, reduceMotion.matches ? 0 : 600);
+    const sounding = !!(window.Music && !slowTab() && Music.effect('submitted'));
+    setTimeout(() => {
+      go(STEPS, { force: true });
+      showDone();
+      // Once step 5 is out of sight: the button and its line as they were.
+      setTimeout(() => { adding.putBack(); sayUnderButton(null, true); }, reduceMotion.matches ? 0 : 600);
+    }, sounding ? (LOCAL && Number.isFinite(window.WWK_SOUND_LEAD) ? window.WWK_SOUND_LEAD : SOUND_LEAD_MS) : 0); // (on localhost, md/checks/sounds/last-two.html's dial may set another)
   }
   $('submitBtn').addEventListener('click', submit);
 
@@ -1851,14 +1860,8 @@
   // The confirmation comes in once the page has slid to it: the symbol draws in, the text and
   // the buttons fade up (css .done.is-in).
   $('doneText').textContent = noOrphans($('doneText').textContent);
-  const DONE_SLIDE_MS = 600, DONE_DRAW_MS = 800; // the step's slide (css --step-ms); the symbol's draw-in (symbol-draw-in.json durationMs, until it has loaded)
   function showDone() {
     const done = $('done'), box = done.querySelector('.done-sym');
-    // Its bell with the slide's start (md/checks/sounds/submitted.html, 3b), and its end with the
-    // symbol's: the drawing starts once the slide is over and takes the draw-in's own length (Bill,
-    // 2026-10-23: the sound went on after the symbol was drawn). Not for a browser that cannot keep up (watchSlide).
-    const drawEnd = ((reduceMotion.matches ? 0 : DONE_SLIDE_MS) + (sym && sym.model && sym.model.S ? sym.model.S.durationMs : DONE_DRAW_MS)) / 1000;
-    if (window.Music && !slowTab()) Music.effect('submitted', { endIn: drawEnd });
     homeUndraw();
     box.classList.toggle('is-static', !sym);
     if (sym) sym.done.drawIn('All', 0);
@@ -1867,7 +1870,7 @@
       if (doneStop) doneStop();
       doneStop = null;
       if (sym) doneStop = sym.lib.play(sym.model, (t) => sym.done.drawIn('All', t));
-    }, reduceMotion.matches ? 0 : DONE_SLIDE_MS); // the step's slide (css --step-ms)
+    }, reduceMotion.matches ? 0 : 600); // the step's slide (css --step-ms)
   }
 
   /* ---------- "Add words": the landing page's label animation ----------
