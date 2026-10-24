@@ -986,8 +986,17 @@
       "cover": "https://is1-ssl.mzstatic.com/image/thumb/Publication116/v4/29/58/fc/2958fc02-9bb5-b8d8-feb2-af05657574ce/9781683642053.jpg/600x600bb.jpg"
     },
     "context": "Ram Dass, born Richard Alpert, was an American spiritual teacher and the author of Be Here Now. He said this line in talks for decades before it became the title of his last book, written with Mirabai Bush, about how to be with people who are dying and with each other along the way.",
-    "annotations": [],
-    "reflection": "It reminds me not to take myself so seriously.",
+    "annotations": [
+      {
+        "word": "home",
+        "explanation": "Death, or whatever lies past it."
+      },
+      {
+        "word": "each other",
+        "explanation": "None of us is above anyone else."
+      }
+    ],
+    "reflection": "Life is a shared journey toward the same end, and the point of it is to keep each other company along the way. This quote reminds me not to take myself so seriously.",
     "keptBy": "Zen",
     "approvedAt": "2026-10-24T01:33:59.034Z",
     "submittedAt": "2026-10-24T01:02:49.479Z",
@@ -1024,5 +1033,102 @@
     "submittedAt": "2026-10-24T01:31:33.372Z",
     "font": "stone",
     "id": 34
+  },
+  {
+    "status": "live",
+    "text": "If you don’t have time to do it right, when will you have time to do it over?",
+    "originalLanguage": null,
+    "categories": [
+      "drive"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "John Wooden",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": {
+      "title": null,
+      "year": null,
+      "kind": "other",
+      "link": null
+    },
+    "context": "John Wooden coached the UCLA men’s basketball team to ten national championships and was known for drilling fundamentals, down to how players put on their socks. This line is widely credited to him and was one of his favorite sayings. Jack Nicklaus called it his favorite Wooden quote.",
+    "annotations": [],
+    "reflection": "Helps me with perspective and not cutting corners. What is ‘right’? What is a ‘good’ but not ‘perfect’ solution?",
+    "keptBy": "Ash",
+    "approvedAt": "2026-10-24T02:12:47.498Z",
+    "submittedAt": "2026-10-24T01:53:21.013Z",
+    "font": "headline",
+    "id": 35
+  },
+  {
+    "status": "live",
+    "text": "She was already learning that if you ignore the rules people will, half the time, quietly rewrite them so that they don’t apply to you.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Terry Pratchett",
+      "nativeName": null,
+      "country": "GB",
+      "origin": null
+    },
+    "source": {
+      "title": "Equal Rites",
+      "year": 1987,
+      "kind": "book",
+      "link": "https://www.amazon.com/dp/0552152609?lv=shuf&channelId=500&plpRedirect=mhFallback",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Publication221/v4/e6/63/15/e6631534-2bb9-daf8-3d1d-340a8424e647/9780061804830.jpg/600x600bb.jpg"
+    },
+    "context": "From the third Discworld novel. The line describes what Esk learns as she keeps acting like a wizard anyway, and the people around her adjust rather than stop her.",
+    "annotations": [
+      {
+        "word": "She",
+        "explanation": "Eskarina Smith, an eight-year-old girl who inherits a wizard’s staff in a world where only men can be wizards."
+      }
+    ],
+    "reflection": "It’s true, as long as the rules aren’t the major ones. It lets you blow past the BS and vastly reduces your stress in life.",
+    "keptBy": null,
+    "approvedAt": "2026-10-24T02:12:47.498Z",
+    "submittedAt": "2026-10-24T01:58:44.942Z",
+    "font": "king",
+    "id": 36
+  },
+  {
+    "status": "live",
+    "text": "If you marry, you will regret it; if you do not marry, you will also regret it; if you marry or do not marry, you will regret both.",
+    "originalLanguage": {
+      "lang": "other",
+      "text": "Gift Dig, Du vil fortryde det; gift Dig ikke, Du vil ogsaa fortryde det; gift Dig eller gift Dig ikke, Du vil fortryde begge Dele."
+    },
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Søren Kierkegaard",
+      "nativeName": null,
+      "country": "DK",
+      "origin": null
+    },
+    "source": {
+      "title": "Either/Or",
+      "year": 1843,
+      "kind": "book",
+      "link": "https://www.amazon.com/dp/0140445773?lv=shuf&channelId=500&plpRedirect=mhFallback",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Publication114/v4/15/c8/ea/15c8eaa4-7722-000d-4485-cb4f7972909c/9781400846931.jpg/600x600bb.jpg"
+    },
+    "context": "From the “Diapsalmata,” a run of short aphorisms that opens Either/Or, written under one of Kierkegaard’s pseudonyms. The passage goes on in the same rhythm: laugh at the world’s follies, you will regret it; weep over them, you will regret that too. Kierkegaard’s point is not that choice is pointless but that regret comes with freedom itself; every choice closes a door, so the question is which regret you can live with.",
+    "annotations": [],
+    "reflection": "Regret is part of being free. If regret comes with every choice, I can stop looking for the one with no downside and just pick the regret I am willing to live with.",
+    "keptBy": null,
+    "approvedAt": "2026-10-24T02:12:47.498Z",
+    "submittedAt": "2026-10-24T02:08:17.054Z",
+    "font": "stone",
+    "id": 37
   }
 ]
