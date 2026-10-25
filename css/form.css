@@ -592,6 +592,9 @@ textarea.field::-webkit-scrollbar { display: none; }
 /* (its .reveal sets the transitions: the room given back below eases with them, as the line unfolds) */
 .next-wrap.reveal { transition: opacity var(--fold-ms, 200ms) var(--ease), translate var(--fold-ms, 200ms) var(--ease), visibility 0s linear var(--fold-ms, 200ms), margin-bottom var(--fold-ms, 200ms) var(--ease); }
 .next-wrap.reveal.is-in { transition: opacity var(--fold-ms, 200ms) var(--ease), translate var(--fold-ms, 200ms) var(--ease), visibility 0s, margin-bottom var(--fold-ms, 200ms) var(--ease); }
+/* Step 1: Next comes in with "In original language +", both once "Need an idea" has gone (Bill, 2026-10-24:
+   "the same time, not one after another"; .idea-row's one coming waits the fade's length); they go together too. */
+.step[data-step="0"] .next-wrap.reveal.is-in { transition: opacity var(--fold-ms, 200ms) var(--ease) var(--fold-ms, 200ms), translate var(--fold-ms, 200ms) var(--ease) var(--fold-ms, 200ms), visibility 0s linear var(--fold-ms, 200ms), margin-bottom var(--fold-ms, 200ms) var(--ease); }
 .next-wrap.has-dup { margin-bottom: calc(-1 * (var(--dup-h, 0px) + var(--gap-12))); }
 .dup-note { display: grid; grid-template-rows: 0fr; margin-bottom: 0; opacity: 0; translate: 0 calc(-8 * var(--u)); visibility: hidden;
   transition: grid-template-rows var(--fold-ms, 200ms) var(--ease), margin-bottom var(--fold-ms, 200ms) var(--ease), opacity var(--fold-ms, 200ms) var(--ease), translate var(--fold-ms, 200ms) var(--ease), visibility 0s linear var(--fold-ms, 200ms); }
@@ -610,7 +613,7 @@ textarea.field::-webkit-scrollbar { display: none; }
 .next-btns.is-dup > .btn { opacity: 0; visibility: hidden; }
 .next-btns:not(.is-dup) > .btn { transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease), background 0.15s var(--ease), color 0.15s var(--ease), opacity var(--fold-ms, 200ms) var(--ease), visibility 0s; }
 .next-btns.is-dup > .dup-pair { opacity: 1; visibility: visible; transition: opacity var(--fold-ms, 200ms) var(--ease), visibility 0s; }
-@media (prefers-reduced-motion: reduce) { .next-wrap, .dup-note, .dup-note.is-in, .next-btns > .btn, .next-btns:not(.is-dup) > .btn, .dup-pair, .next-btns.is-dup > .dup-pair { transition-property: border-color, box-shadow, background, color; } }
+@media (prefers-reduced-motion: reduce) { .next-wrap, .step[data-step="0"] .next-wrap.reveal.is-in, .dup-note, .dup-note.is-in, .next-btns > .btn, .next-btns:not(.is-dup) > .btn, .dup-pair, .next-btns.is-dup > .dup-pair { transition-property: border-color, box-shadow, background, color; } }
 .send-note.source-note { margin-top: 0; }
 
 /* ---------- Arriving from the archive ----------
