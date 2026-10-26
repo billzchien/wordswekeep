@@ -1816,14 +1816,18 @@
     });
     if (startOut) pieces.forEach((p) => { if (p.stay) { p.el.style.opacity = '0'; return; } p.el.style.transform = p.out; depth(p, true); p.el.style.fontSize = p.size; room(p, true); p.isOut = true; fadeIn(p.el); });
     const dissolve = () => {
+      let btnIn = false;
       if (real) { // the page is free and the language button comes in; the words finish their fade, then the wrappers come off
         real = false;
-        wrap.classList.remove('is-wiping');
-        wrap.querySelector('.lang')?.classList.add('is-in');
+        btnIn = true;
         flushLanding();
         landing = { finish: unwrap, timer: setTimeout(flushLanding, Math.max(0, ...pieces.map((p) => p.homeMs)) + 30) }; // from the last beat's own start, give or take: every fade is over by then
       }
       pieces.forEach((p) => { const from = shown(p.el); unsettle(p.el); p.el.getAnimations().forEach((a) => a.cancel()); fade(p.el, from, 0, leaveMs(p)); });
+      // The language button's entrance once this work is done and a frame is out (Bill, 2026-10-25, iPhone:
+      // it "jumped a little"): started with it, its first quarter fell in the ~60ms the work above takes
+      // and was never drawn. Out of sight until then (is-wiping).
+      if (btnIn) requestAnimationFrame(() => requestAnimationFrame(() => { wrap.classList.remove('is-wiping'); wrap.querySelector('.lang')?.classList.add('is-in'); }));
       setTimeout(() => layer.remove(), SCRAP_FADE_MS + DEPTH_LINGER_MS + 30);
     };
     return { layer, pose, dissolve, homeMax: Math.round(easeTimeFor(HOME_FADE_DONE, easing) * Math.max(0, ...pieces.map((p) => p.homeMs))), get real() { return real; } };
