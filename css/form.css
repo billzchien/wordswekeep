@@ -267,10 +267,10 @@ textarea.field::-webkit-scrollbar { display: none; }
 .more { display: inline-flex; align-items: center; gap: calc(2 * var(--u)); height: calc(32 * var(--u)); align-self: flex-start; white-space: nowrap; }
 .more--flat { height: auto; }
 .icon-plus     { --src: url(../assets/icons/plus.svg); width: var(--ic); height: var(--ic); }
-/* Beside its words the + sits on their lowercase middle (Bill, 2026-10-25, on a big monitor: "shifted up
-   and not centre aligned"): centred on the line it stood 2–3.5px above it, more as the text grows; 0.13em
-   of the button's own text brings it to within half a pixel at every width (1280 to 2560, phone). */
-.more .icon-plus { translate: 0 0.13em; }
+/* Beside its words the + sits a hair under the line's centre (Bill, 2026-10-25, on a big monitor: the
+   notes' "Add thoughts +" looked "shifted up and not centre aligned"; the lowercase middle, 0.13em, then
+   looked low — his value, set by eye on md/checks/plus: 0.02em of the button's own text). */
+.more .icon-plus { translate: 0 0.02em; }
 .icon-chevron  { --src: url(../assets/icons/chevron.svg); width: var(--ic-chevron); height: var(--ic-chevron); }
 .icon-check    { --src: url(../assets/icons/check.svg); width: var(--box); height: var(--box); }
 /* The navigation arrow, turned to point right, inside the same 18px box as the plus (Figma 226:3107). */
