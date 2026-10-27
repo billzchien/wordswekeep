@@ -67,6 +67,13 @@ ul { list-style: none; }
 }
 .link { display: inline-block; white-space: nowrap; }
 @media (max-resolution: 1.5dppx) { .link, .n-source [data-href] { --line: 1px; } }
+/* A 3× touch screen (iPhone): the hairline, 0.5px, is 1.5 device pixels, which a drawn band rounds by where the
+   line falls — the notes' "Close" came out one row, the source link under it two (Bill, 2026-10-26: "thicker
+   than the one for buttons"); a third of a pixel was one row in Safari but none at all in Chrome. A border is
+   snapped to whole device pixels by every browser: one row, wherever it falls. (No hover there to redraw it.) */
+@media (min-resolution: 2.5dppx) and (hover: none) {
+  .link, .n-source [data-href] { background: none; border-bottom: var(--hairline) solid currentColor; }
+}
 @media (hover: hover) {
   .link:hover,
   .n-source [data-href]:hover { animation: link-draw 0.7s var(--ease); }
