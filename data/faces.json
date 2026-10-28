@@ -125,9 +125,9 @@
       "m": 1.15,
       "s": 1.15
     },
-    "leading": 1.1,
+    "leading": 1.16,
     "leadingXL": 1,
-    "tracking": -2
+    "tracking": -1.8
   },
   "poet": {
     "scale": {
