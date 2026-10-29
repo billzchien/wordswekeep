@@ -375,8 +375,12 @@ textarea.field::-webkit-scrollbar { display: none; }
 .done-sym { width: var(--done-sym); height: var(--done-sym); }
 .done-sym .sym { width: 100%; height: 100%; }
 .done-sym.is-static { background: currentColor; -webkit-mask: url(https://fonts.wordswekeep.org/s/All.svg) center / 100% 100% no-repeat; mask: url(https://fonts.wordswekeep.org/s/All.svg) center / 100% 100% no-repeat; } /* the symbols' files did not load: the still image */
-.done-btns { display: flex; gap: var(--gap-4); width: 100%; }
-.done-btns .btn { flex: 1 1 0; min-width: 0; }
+/* "Add another" the whole column wide, "Back to collection" (a text link) right-aligned 24 under it; the text 24 above
+   them, as every step to its button (Bill, 2026-10-28; the column's 40 until then, with two buttons side by side). */
+.done-btns { display: flex; flex-direction: column; gap: var(--gap-24); width: 100%; }
+.done-btns .btn { flex: none; min-width: 0; }
+.done-btns .link { align-self: flex-end; }
+.done:not(.done--404) > .done-btns { margin-top: calc(var(--gap-24) - var(--gap-40)); } /* (the 404 page keeps its 40) */
 .done > * { opacity: 0; }
 .done.is-in > .done-sym { opacity: 1; }
 .done.is-in > .done-text { animation: rise-in 0.3s var(--ease) 50ms both; }

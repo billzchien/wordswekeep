@@ -163,10 +163,12 @@
              top left logo has drawn itself out; then the text and the buttons fade up. -->
         <div class="content content--40 done" id="done">
           <div class="done-sym"><svg class="sym" id="doneSym" viewBox="0 0 60 60" aria-hidden="true"></svg></div>
-          <p class="done-text" id="doneText">Thank you for sharing these words! You just made the collection a little wiser. We will take it from here.</p>
+          <p class="done-text" id="doneText">Thank you for sharing these words!<br>You just made the collection a little wiser.<br>We will take it from here.</p> <!-- one sentence a line (Bill, 2026-10-28) -->
+          <!-- "Add another" alone, then "Back to collection" as a text link, right-aligned 24 under it (Bill, 2026-10-28;
+               it was "View collection" + "Add another", two buttons side by side). -->
           <div class="done-btns">
-            <button type="button" class="btn" role="link" data-href="./">View collection</button>
             <button type="button" class="btn btn--primary" id="againBtn">Add another</button>
+            <button type="button" class="link" role="link" data-href="./">Back to collection</button>
           </div>
         </div>
       </section>

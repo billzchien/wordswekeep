@@ -1884,7 +1884,7 @@
   }
   // The confirmation comes in once the page has slid to it: the symbol draws in, the text and
   // the buttons fade up (css .done.is-in).
-  $('doneText').textContent = noOrphans($('doneText').textContent);
+  $('doneText').lastChild.textContent = noOrphans($('doneText').lastChild.textContent); // (its last line: the text breaks after each sentence)
   function showDone() {
     const done = $('done'), box = done.querySelector('.done-sym');
     homeUndraw();
