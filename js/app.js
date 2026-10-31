@@ -528,6 +528,39 @@
     if (quoteEl.style.getPropertyValue('--q-grow') && grownFlaw(quoteEl)) {
       evenLines.reset(quoteEl); quoteEl.style.removeProperty('--q-grow'); quoteEl.style.removeProperty('--q-fill'); evenLines(quoteEl);
     }
+    stepDown(quoteEl);
+  }
+  /* ---------- A touch smaller on a phone, for a rag that reads (Bill, 2026-10-30) ----------
+     No. 39 at 402 ("In a world obsessed with / doing, being is not enough. / And it turns life into a
+     project / …", 82 87 97): in its fewest lines, 7, every way begins with the same growing wedge, so the
+     rag rules cannot help. And on a smaller phone it took 8 lines of three or four words, hard to read.
+     So on a phone a Long or XLong quote (RAG_STEP_TIERS) of RAG_FEW_FROM lines or more whose rag has a shape (ragShaped), or whose lines
+     hold under RAG_FEW_WORDS words on average, is set a little smaller, a step of RAG_SIZE_STEP at a time
+     down to RAG_SIZE_MIN of its size, and keeps the first size whose rag has no shape and whose lines hold
+     RAG_FEW_WORDS words (in no more lines). None does: the smallest shape-free size that took fewer lines,
+     else as it was. Any face: measured as drawn. Not a grown quote (growShort has sized it to its lines), nor
+     one in Chinese, Japanese or Thai. On localhost ?nostep leaves it
+     off; ?stepmin=, ?fewwords= and ?steptiers= (m,s,xs) set the values (md/checks/rag-step). */
+  const RAG_SIZE_STEP = 0.01, RAG_FEW_FROM = 5;
+  let RAG_SIZE_MIN = 0.85, RAG_FEW_WORDS = 5, RAG_STEP_TIERS = new Set(['s', 'xs']); // Bill's values (2026-10-30): down to 85%, Long and XLong only (a Medium quote, often a display face, keeps its size)
+  const NO_STEP = LOCAL && /[?&]nostep\b/.test(location.search);
+  if (LOCAL) { const u = new URLSearchParams(location.search); if (u.get('stepmin')) RAG_SIZE_MIN = +u.get('stepmin'); if (u.get('fewwords')) RAG_FEW_WORDS = +u.get('fewwords'); if (u.get('steptiers')) RAG_STEP_TIERS = new Set(u.get('steptiers').split(',')); }
+  function stepDown(quoteEl) {
+    if (NO_STEP || !mqMobile.matches || !track.contains(quoteEl) || quoteEl.style.getPropertyValue('--q-grow') || NO_SPACE.test(quoteEl.textContent) || !RAG_STEP_TIERS.has(quoteEl.dataset.tier)) return; // (Chinese, Japanese, Thai: no words to count, and their rag is set by other rules)
+    const words = (quoteEl.textContent.match(/\S+/g) || []).length, lines = lineCount(quoteEl);
+    const reads = (n) => words / n >= RAG_FEW_WORDS;
+    if (lines < RAG_FEW_FROM || (!quoteEl._shaped && reads(lines))) return;
+    let fallback = null;
+    for (let k = 1 - RAG_SIZE_STEP; k >= RAG_SIZE_MIN - 1e-9; k -= RAG_SIZE_STEP) {
+      evenLines.reset(quoteEl); quoteEl.style.setProperty('--q-grow', k.toFixed(3)); evenLines(quoteEl);
+      const n = lineCount(quoteEl);
+      if (quoteEl._shaped || n > lines) continue;
+      if (reads(n)) return;
+      if (n < lines && (!fallback || n < fallback.n)) fallback = { k, n };
+    }
+    evenLines.reset(quoteEl);
+    if (fallback) quoteEl.style.setProperty('--q-grow', fallback.k.toFixed(3)); else quoteEl.style.removeProperty('--q-grow');
+    evenLines(quoteEl);
   }
   function grownFlaw(quoteEl) {
     const box = quoteEl.getBoundingClientRect().width, lines = [];
@@ -690,6 +723,7 @@
   }
   function evenLines(quoteEl) {
     if (!quoteEl) return;
+    quoteEl._shaped = false; // (set below: the rag chosen still has a shape it could not avoid — fitTier may step the size down)
     if (quoteEl._html == null && quoteEl.querySelector('.ann')) return evenAnnotated(quoteEl);
     quoteEl.style.width = '';
     const node = quoteEl.firstChild;
@@ -722,7 +756,7 @@
     for (const fit of RAG_REFIT) {
       const box = full * fit;
       const breaks = []; // indices of the words that start a new line
-      let from = 0;
+      let from = 0, shaped = false;
       for (let k = 1; k <= words.length; k++) {
         if (k < words.length && !before[k].includes('\n')) continue;
         const part = words.slice(from, k);
@@ -730,6 +764,8 @@
           part.map((w) => stackKey(w.text)), part.map((w, i) => (i > 0 && w.glued ? w.cost : i > 0 && !CLAUSE_END.test(part[i - 1].text) ? RAG_PHRASE_SPACED : 0)));
         if (!cut) return plain();
         cut.forEach((c) => breaks.push(from + c));
+        const ends = [0, ...cut, part.length], lineW = ends.slice(0, -1).map((a, n) => part.slice(a, ends[n + 1]).reduce((t, w, i) => t + w.width + (i ? gap[from + a + i] : 0), 0));
+        shaped = shaped || ragShaped(lineW, box);
         from = k;
       }
       if (!breaks.length) return;
@@ -738,7 +774,7 @@
       const paragraphs = before.filter((b) => b.includes('\n')).length;
       node.data = out;
       quoteEl._plain = text;
-      if (lineCount(quoteEl) === paragraphs + breaks.length) return;
+      if (lineCount(quoteEl) === paragraphs + breaks.length) { quoteEl._shaped = shaped; return; }
       node.data = text; quoteEl._plain = null;
     }
     plain();
@@ -817,6 +853,20 @@
   // "is vast; When looking / down, abundance…" (Bill: keep it), since "…looking down," makes the
   // lines 90 82 74.
   const CLAUSE_END = /[,;:.!?…—–)\]"'”’»。，、！？；：]$/, RAG_PHRASE_SPACED = 1;
+  // Whether lines of these widths make one of the shapes ragBreaks avoids where it can — a wedge or a
+  // diamond (RAG_SHAPE), a stair (RAG_STAIR), a spike (RAG_SPIKE), a heavy ending (RAG_HEAVY): the same
+  // tests, on the lines it chose. True means none of the ways to set the quote in its fewest lines avoided one.
+  function ragShaped(w, box) {
+    const step = RAG_STEP * box, st = RAG_STAIR_STEP * box, last = w.length - 1;
+    for (let t = 1; t <= last; t++) {
+      if (t === last && w[t] - w[t - 1] > step) return true; // heavy ending
+      if (t < 2) continue;
+      if ((w[t] - w[t - 1] > step && w[t - 1] - w[t - 2] > step) || (t !== last && w[t - 1] - w[t] > step && w[t - 2] - w[t - 1] > step)) return true; // wedge, diamond
+      if (t !== last && w[t - 1] - w[t - 2] > RAG_SPIKE_STEP * box && w[t - 1] - w[t] > RAG_SPIKE_STEP * box) return true; // spike
+      if (t >= 3 && ((w[t - 2] - w[t - 3] > st && w[t - 1] - w[t - 2] > st && w[t] - w[t - 1] > st) || (w[t - 3] - w[t - 2] > st && w[t - 2] - w[t - 1] > st && w[t - 1] - w[t] > st))) return true; // stair
+    }
+    return false;
+  }
   const stackKey = (text) => text.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
   function ragBreaks(width, open, gap, box, keys = [], mid = []) {
     const n = width.length, W = [0], G = [0];
@@ -3858,6 +3908,7 @@
       // (Until 2026-10-06 the address was #8.)
       let kept = null;
       try { kept = sessionStorage.getItem('wwk-quote'); } catch (e) {}
+      if (LOCAL && /[?&]q=\d+/.test(location.search)) kept = new URLSearchParams(location.search).get('q'); // (localhost: ?q=39 opens that quote, whatever the tab was on — md/checks frames)
       const wanted = parseInt(kept, 10);
       const found = state.list.findIndex((q) => q.id === wanted);
       // A quote marked "Don't show as the first quote" in the library (`notFirst`) is never the
