@@ -1159,5 +1159,39 @@
     "submittedAt": "2026-10-24T02:39:55.668Z",
     "font": "round",
     "id": 38
+  },
+  {
+    "status": "live",
+    "text": "In a world obsessed with doing, being is not enough. And it turns life into a project that needs managing, not what it is, which is a mystery performing itself through you.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Ste Lane",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": {
+      "title": "Just be",
+      "year": 2026,
+      "kind": "social",
+      "link": "https://www.instagram.com/reel/Ddb-8gwI_yV/?xtok=MWxjM2t3ODF4MWtjMA=="
+    },
+    "context": "From a reel filmed under a tree, in which Ste Lane calls purpose the most dangerous addiction in modern culture. Trees are just treeing and birds are just singing, he says; only humans need to label every walk and every quiet moment as productive. He ends by asking us to drop out of the “cult of seriousness” because it is robbing life of joy.",
+    "annotations": [
+      {
+        "word": "being",
+        "explanation": "Simply existing, without turning it into a task."
+      }
+    ],
+    "reflection": "A realization in life. Not everything needs a purpose. We are addicted to adding a purpose and a productivity label to everything we do, but we don’t need to add meaning to every action. Just existing is enough.",
+    "keptBy": "Ella",
+    "approvedAt": "2026-10-31T00:07:56.460Z",
+    "submittedAt": "2026-10-30T15:22:23.949Z",
+    "font": "grotesk",
+    "id": 39
   }
 ]
