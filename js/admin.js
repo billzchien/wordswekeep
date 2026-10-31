@@ -88,7 +88,7 @@
   const REGION_FIX = { CN: 'China' };
   const regionName = (c) => REGION_FIX[c] || (regionNames ? regionNames.of(c) : c);
   const REGIONS = REGION_CODES.map((c) => ({ value: c, label: regionName(c) })).sort((a, b) => a.label.localeCompare(b.label));
-  const NON_LATIN = new Set(('CN TW HK MO JP KR KP MN RU UA BY KZ KG TJ BG MK RS ME BA GE AM GR CY IL IR IQ SA AE KW QA BH OM YE JO SY LB EG LY TN DZ MA MR SD PS AF PK IN BD NP LK BT MM TH LA KH ET ER').split(' '));
+  const NON_LATIN = new Set(('CN TW HK MO JP KR KP MN RU UA BY KZ KG TJ BG MK RS ME BA GE AM GR CY IL IR IQ SA AE KW QA BH OM YE JO SY LB EG LY TN DZ MA MR SD PS AF PK IN BD NP LK BT MM TH LA KH ET ER SG').split(' '));
   // The quote faces (css/fonts.css), copied from js/app.js: `not` = the length tiers a face is
   // not offered for (none now: every face at every length, Bill 2026-10-03). A quote with no
   // face of its own is Instrument, or Goudy when it is long.

@@ -48,7 +48,7 @@
     .sort((a, b) => a.label.localeCompare(b.label));
   // Regions whose everyday script is not Latin: only there does "Name in original language" show
   // (elsewhere the Latin name is the original). Edit freely.
-  const NON_LATIN = new Set(('CN TW HK MO JP KR KP MN RU UA BY KZ KG TJ BG MK RS ME BA GE AM GR CY IL IR IQ SA AE KW QA BH OM YE JO SY LB EG LY TN DZ MA MR SD PS AF PK IN BD NP LK BT MM TH LA KH ET ER').split(' '));
+  const NON_LATIN = new Set(('CN TW HK MO JP KR KP MN RU UA BY KZ KG TJ BG MK RS ME BA GE AM GR CY IL IR IQ SA AE KW QA BH OM YE JO SY LB EG LY TN DZ MA MR SD PS AF PK IN BD NP LK BT MM TH LA KH ET ER SG').split(' '));
   // Who said or wrote it (Bill, 2026-10-06). `person` — a known person — is the default and what
   // every quote from before has. Each kind asks for its own fields (WHO_FIELDS); "Words from"
   // shows them as js/app.js → whoRows. The same list is in js/admin.js and workers/lib/entry.js.
