@@ -1193,5 +1193,42 @@
     "submittedAt": "2026-10-30T15:22:23.949Z",
     "font": "grotesk",
     "id": 39
+  },
+  {
+    "status": "live",
+    "text": "Love flows where it will, it answers to no one, so why get worked up demanding a reason?",
+    "originalLanguage": {
+      "lang": "zh",
+      "text": "愛情是流動的，不由人的，何必激動著要理由"
+    },
+    "categories": [
+      "romance"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Stefanie Sun",
+      "nativeName": "孙燕姿",
+      "country": "SG",
+      "origin": null
+    },
+    "source": {
+      "title": "Realize",
+      "year": 2000,
+      "kind": "song",
+      "link": "https://music.apple.com/us/song/realize/298837675"
+    },
+    "context": "Stefanie Sun is definitely the Queen of hear-break songs. This song is the last of what her fans called the trilogy of break up songs. “開始懂了” (“Realize”) is a breakup song about quiet, mature acceptance rather than heartbreak. \n\nThe narrator is surprised at herself for not turning back at the cruelest moment. She just watches her lover walk away, which feels unlike her. She realizes that this new gentleness comes from finally, fully understanding something: love flows on its own and can’t be controlled, so there’s no point demanding reasons.\n\nShe chooses to believe her ex left because he was afraid of hurting her, not because he deceived her — if he truly loved her, letting go couldn’t have been easy for him either. He woke her from her dream and announced that happiness wasn’t coming, and she forgave him with a bittersweet smile and moved past it.\n\nThe emotional core is in the final lines: having had yesterday was still good, but tomorrow belongs to her alone, and she’s beginning to understand that happiness is a choice. She chooses to be happy and move on.\n\nThe breakup song trilogy:\n我懷念的（What I Miss）\n我不難過（I am Fine）\n開始懂了（Realize）",
+    "annotations": [
+      {
+        "word": "flows",
+        "explanation": "Love isn’t a thing you hold and control, it’s a current that passes through and keeps moving."
+      }
+    ],
+    "reflection": "This is one of the Stefanie Sun songs I keep in my love song playlist. I listened to it after I broke up, and even when I’m not in a relationship. It’s a reminder that no matter how hard it is to let go when a love journey ends, we have to choose what’s best for ourselves. Say thank you to the version of ourselves that loved, because it was a good time lived, but we gotta say hello to what comes next. And, choose happiness of freedom.",
+    "keptBy": "Cindy",
+    "approvedAt": "2026-10-31T01:28:19.476Z",
+    "submittedAt": "2026-10-31T01:16:55.303Z",
+    "font": "author",
+    "id": 40
   }
 ]
