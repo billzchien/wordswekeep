@@ -2198,7 +2198,7 @@
         if (k < words.length && !before[k].includes('\n')) continue;
         const part = words.slice(from, k);
         const cut = ragBreaks(part.map((w) => w.width), part.map((w, i) => i > 0 && (before[from + i] === ' ' || !!w.glued || (from + i === words.length - 1 && before[from + i] === NBSP && (w.width >= RAG_LAST_WORD * box || part[i - 1].width + space + w.width > box)))), gap.slice(from, k), box,
-          part.map((w) => stackKey(w.text)), part.map((w, i) => (i > 0 && w.glued ? w.cost : i > 0 && !CLAUSE_END.test(part[i - 1].text) ? RAG_PHRASE_SPACED : 0)));
+          part.map((w) => stackKey(w.text)), part.map((w, i) => (i > 0 && w.glued ? w.cost : i > 0 && !CLAUSE_END.test(part[i - 1].text) ? RAG_PHRASE_SPACED : 0)), part.map((w) => (SENTENCE_END.test(w.text) ? 1 : 0)));
         if (!cut) return;
         cut.forEach((c) => breaks.push(from + c));
         from = k;
@@ -2238,58 +2238,105 @@
   const RAG_PHRASE = 0.15; // Chinese and Japanese: a line broken mid-phrase (not after ，。、！？) costs this much of the box short — a tie-breaker (js/app.js)
   const RAG_SPLIT = 2; // …twice that inside a word (js/app.js)
   const CLAUSE_END = /[,;:.!?…—–)\]"'”’»。，、！？；：]$/, RAG_PHRASE_SPACED = 1; // a spaced language's line ending without punctuation (js/app.js)
+  // The rules below and the every-way search: copied from js/app.js (its desktop and tablet rag; the preview is that page).
+  // Desktop and tablet (Bill, 2026-11-01; tuned on his marks, md/checks/rag-exact: 45 quotes and widths, left
+  // the site as it was, right the new rag, each "tuned is better", "live is better" or "okay with now"). There
+  // every way to set the quote in its fewest lines is tried (ragBreaks, step 2), with these on top; with them
+  // it gives what he chose in 20 of the 23 desktop and tablet cases (not No. 5 at 1024 and 768, No. 28 at 1024). A phone keeps
+  // the line-by-line rag as it was: no tuning did better there than leaving it (17 of 22 either way).
+  // · No jump (RAG_JUMP): two lines in a row, the last not counted, more than RAG_JUMP_STEP of the box apart.
+  // · A line that ends a sentence (SENTENCE_END) is a little better: the others cost RAG_SENTENCE.
+  // · No line but the last filled to the edge (RAG_EDGE from RAG_EDGE_MIN).
+  // · A bare "is" at the end of a line RAG_IS_MIN of the box or longer costs RAG_IS, not RAG_SOFT (No. 14: "…the
+  //   universe / is vast;"); a shorter line keeps it ("That dying is / what, to live,"), and "it is," may end one.
+  // (Tried and taken out, Bill: 15 of 18 worse: more weight on a line ending mid-clause, less on a heavy ending.)
+  const RAG_JUMP = 0.25, RAG_JUMP_STEP = 0.22, RAG_SENTENCE = 0.1, RAG_EDGE = 0.15, RAG_EDGE_MIN = 0.97;
+  const RAG_IS = 0.3, RAG_IS_MIN = 0.8;
+  const SENTENCE_END = /[.?!…。！？]["'”’)\]»」』]*$/;
   const stackKey = (text) => text.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
-  function ragBreaks(width, open, gap, box, keys = [], mid = []) {
+  function ragBreaks(width, open, gap, box, keys = [], mid = [], sentence = []) {
+    const desk = true; // (the preview is the desktop page: the tuned rag, js/app.js)
     const n = width.length, W = [0], G = [0];
-    for (let k = 0; k < n; k++) { W.push(W[k] + width[k]); G.push(G[k] + gap[k]); }
+    for (let k = 0; k < n; k++) { W.push(W[k] + width[k]); G.push(G[k] + gap[k]); } // (gap[k]: the space before word k, on one line with it)
     const span = (i, j) => W[j] - W[i] + G[j] - G[i + 1]; // words i…j-1 on one line
-    // best[j] per line count: least cost of setting the first j words in exactly `l` lines.
-    let prev = new Array(n + 1).fill(Infinity), trail = [];
+    // What line `l` (1 = the first), words i…j-1, costs, given where the three lines before it start
+    // (above, above2, above3; -1 where there is none).
+    const lineCost = (i, j, l, above, above2, above3) => {
+      const w = span(i, j), short = box - w, last = j === n;
+      const stack = above >= 0 && keys[i] && keys[i] === keys[above] ? (RAG_STACK * box) ** 2 : 0;
+      const soft = !last && SOFT_END.has(keys[j - 1]) ? ((desk && keys[j - 1] === 'is' && mid[j] && w >= RAG_IS_MIN * box ? RAG_IS : RAG_SOFT) * box) ** 2 : 0; // ("is" at the end of a long line, nothing after it — mid[j]: no comma or stop — RAG_IS)
+      const phrase = !last && mid[j] ? mid[j] * (RAG_PHRASE * box) ** 2 : 0; // (j: where the next line starts)
+      let shape = 0, spike = 0;
+      const lone = n > 1 && !last && j - i <= 2 && w < (mid[j] ? RAG_LONE_MIN : RAG_LONE_PHRASE) * box && LONE_SCRIPT.test(keys[i] || '') ? (RAG_LONE * box) ** 2 : 0; // (one or two words on a line under half the box)
+      const firstShort = l === 1 && i === 0 && !last && w < RAG_FIRST_MIN * box ? (RAG_FIRST * box) ** 2 : 0; // (a first line under RAG_FIRST_MIN of the box)
+      const orphan = last && n > 1 && w < RAG_LAST_FLOOR * box && LONE_SCRIPT.test(keys[i] || '') ? (RAG_LONE * box) ** 2 : 0; // (a last line under a quarter of the box)
+      if (above2 >= 0) { // the two lines before this one: i is where the first ends, `above` where the one before it ends
+        const w1 = span(above, i), w2 = span(above2, above), step = RAG_STEP * box;
+        if ((w - w1 > step && w1 - w2 > step) || (!last && w1 - w > step && w2 - w1 > step)) shape = (RAG_SHAPE * box) ** 2; // (lines that shrink into the last line are how a paragraph ends: no shape)
+        if (!last && w1 - w2 > RAG_SPIKE_STEP * box && w1 - w > RAG_SPIKE_STEP * box) spike = (RAG_SPIKE * box) ** 2; // (the line before this one sticks out past both — unless this one is the last: a short last line is how a paragraph ends)
+      }
+      let stair = 0;
+      if (above3 >= 0) { // four lines: this one and the three before it
+        const a = span(above3, above2), b = span(above2, above), c = span(above, i), st = RAG_STAIR_STEP * box;
+        if ((b - a > st && c - b > st && w - c > st) || (a - b > st && b - c > st && c - w > st)) stair = (RAG_STAIR * box) ** 2;
+      }
+      const heavy = last && above >= 0 && w - span(above, i) > RAG_STEP * box ? (RAG_HEAVY * box) ** 2 : 0; // (a last line longer than the one above it)
+      if (!desk) return stack + soft + phrase + shape + spike + lone + firstShort + orphan + stair + heavy + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+      const jump = above >= 0 && !last && Math.abs(w - span(above, i)) > RAG_JUMP_STEP * box ? (RAG_JUMP * box) ** 2 : 0; // (two lines in a row far apart)
+      const unsentence = !last && sentence.length && !sentence[j - 1] ? (RAG_SENTENCE * box) ** 2 : 0; // (a line that does not end a sentence)
+      const edge = !last && w > RAG_EDGE_MIN * box ? (RAG_EDGE * box) ** 2 : 0; // (a line filled to the edge)
+      return jump + unsentence + edge + stack + soft + phrase + shape + spike + lone + firstShort + orphan + stair + heavy + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+    };
+    // 1. The fewest lines, and a first answer: line by line, the cheapest way to each word for each
+    // line count (the lines before taken from that way).
+    let prev = new Array(n + 1).fill(Infinity), trail = [], found = null;
     prev[0] = 0;
-    for (let l = 1; l <= n; l++) {
+    for (let l = 1; l <= n && !found; l++) {
       const cur = new Array(n + 1).fill(Infinity), back = new Array(n + 1).fill(-1);
       for (let j = 1; j <= n; j++) {
         if (j < n && !open[j]) continue; // a line cannot end inside a tie
         for (let i = j - 1; i >= 0; i--) {
           if (i > 0 && !open[i]) continue;
-          const w = span(i, j);
-          if (w > box) break;
+          if (span(i, j) > box) break;
           if (prev[i] === Infinity) continue;
-          const short = box - w, last = j === n;
-          const above = l > 1 ? trail[l - 2][i] : -1; // where the line before this one starts
-          const stack = above >= 0 && keys[i] && keys[i] === keys[above] ? (RAG_STACK * box) ** 2 : 0;
-          const soft = !last && SOFT_END.has(keys[j - 1]) ? (RAG_SOFT * box) ** 2 : 0;
-          const phrase = !last && mid[j] ? mid[j] * (RAG_PHRASE * box) ** 2 : 0;
-          let shape = 0, spike = 0;
-          const lone = n > 1 && !last && j - i <= 2 && w < (mid[j] ? RAG_LONE_MIN : RAG_LONE_PHRASE) * box && LONE_SCRIPT.test(keys[i] || '') ? (RAG_LONE * box) ** 2 : 0; // (one or two words on a line under half the box)
-          const firstShort = l === 1 && i === 0 && !last && w < RAG_FIRST_MIN * box ? (RAG_FIRST * box) ** 2 : 0; // (a first line under RAG_FIRST_MIN of the box)
-          const orphan = last && n > 1 && w < RAG_LAST_FLOOR * box && LONE_SCRIPT.test(keys[i] || '') ? (RAG_LONE * box) ** 2 : 0; // (a last line under a quarter of the box)
-          const above2 = l > 2 && above >= 0 ? trail[l - 3][above] : -1;
-          if (above2 >= 0) { // the two lines before this one: i is where the first ends, `above` where the one before it ends
-            const w1 = span(above, i), w2 = span(above2, above), step = RAG_STEP * box;
-            if ((w - w1 > step && w1 - w2 > step) || (!last && w1 - w > step && w2 - w1 > step)) shape = (RAG_SHAPE * box) ** 2; // (lines that shrink into the last line are how a paragraph ends: no shape)
-            if (!last && w1 - w2 > RAG_SPIKE_STEP * box && w1 - w > RAG_SPIKE_STEP * box) spike = (RAG_SPIKE * box) ** 2; // (the line before this one sticks out past both — unless this one is the last: a short last line is how a paragraph ends)
-          }
-          let stair = 0;
-          const above3 = l > 3 && above2 >= 0 ? trail[l - 4][above2] : -1;
-          if (above3 >= 0) { // four lines: this one and the three before it
-            const a = span(above3, above2), b = span(above2, above), c = span(above, i), st = RAG_STAIR_STEP * box;
-            if ((b - a > st && c - b > st && w - c > st) || (a - b > st && b - c > st && c - w > st)) stair = (RAG_STAIR * box) ** 2;
-          }
-          const heavy = last && above >= 0 && w - span(above, i) > RAG_STEP * box ? (RAG_HEAVY * box) ** 2 : 0; // (a last line longer than the one above it)
-          const cost = prev[i] + stack + soft + phrase + shape + spike + lone + firstShort + orphan + stair + heavy + (last ? (w < box * RAG_LAST_MIN ? short * short : RAG_LAST * short * short) : short * short);
+          const above = l > 1 ? trail[l - 2][i] : -1, above2 = l > 2 && above >= 0 ? trail[l - 3][above] : -1, above3 = l > 3 && above2 >= 0 ? trail[l - 4][above2] : -1;
+          const cost = prev[i] + lineCost(i, j, l, above, above2, above3);
           if (cost < cur[j]) { cur[j] = cost; back[j] = i; }
         }
       }
       trail.push(back);
-      if (cur[n] < Infinity) { // the fewest lines that fit: take this one
-        const starts = [];
-        for (let j = n, k = trail.length - 1; k > 0; k--) { j = trail[k][j]; starts.unshift(j); }
-        return starts;
-      }
+      if (cur[n] < Infinity) { found = []; for (let j = n, k = trail.length - 1; k > 0; k--) { j = trail[k][j]; found.unshift(j); } }
       prev = cur;
     }
-    return null;
+    if (!found) return null;
+    // 2. The best of every way in that many lines. The line-by-line pass keeps one way to each word, but
+    // a shape, a stair, a heavy ending depend on the lines before, so it could drop the way that would
+    // have ended best (No. 3 on a 1920 desktop: "…twenty-first / century will not be those who /
+    // cannot read and write, but those / who cannot learn, unlearn, and relearn.", 72 70 76 92, a heavy
+    // last line, over ten ways its own rules rank higher; Bill, 2026-11-01). So every way is tried,
+    // dropped as soon as it costs more than the best found (its first answer to start with) or the
+    // words left cannot fill the lines left.
+    if (!desk) return found;
+    const L = found.length + 1;
+    const fewest = new Array(n + 1).fill(0); // the fewest lines words j… can take (filling each line in turn)
+    for (let j = n - 1; j >= 0; j--) { let end = -1; for (let e = j + 1; e <= n && span(j, e) <= box; e++) if (e === n || open[e]) end = e; fewest[j] = end < 0 ? Infinity : 1 + fewest[end]; }
+    const starts = [0];
+    const costOf = (st) => st.reduce((t, s, k) => t + lineCost(s, k + 1 < st.length ? st[k + 1] : n, k + 1, k > 0 ? st[k - 1] : -1, k > 1 ? st[k - 2] : -1, k > 2 ? st[k - 3] : -1), 0);
+    let best = costOf([0, ...found]), bestStarts = found;
+    const walk = (i, l, acc) => {
+      for (let j = i + 1; j <= n; j++) {
+        if (j < n && !open[j]) continue;
+        if (span(i, j) > box) break;
+        if ((j === n) !== (l === L)) continue;
+        if (j < n && (fewest[j] > L - l || n - j < L - l)) continue;
+        const c = acc + lineCost(i, j, l, l > 1 ? starts[l - 2] : -1, l > 2 ? starts[l - 3] : -1, l > 3 ? starts[l - 4] : -1);
+        if (c >= best) continue;
+        if (j === n) { best = c; bestStarts = starts.slice(1); continue; }
+        starts.push(j); walk(j, l + 1, c); starts.pop();
+      }
+    };
+    walk(0, 1, 0);
+    return bestStarts;
   }
   // A panel is its stage scaled to the panel's width (--s); the stage is as tall as the quote
   // needs, and never less than its minimum (css/admin.css), so nothing is cut and no room is
