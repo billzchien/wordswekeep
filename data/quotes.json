@@ -1230,5 +1230,38 @@
     "submittedAt": "2026-10-31T01:16:55.303Z",
     "font": "poet",
     "id": 40
+  },
+  {
+    "status": "live",
+    "text": "Keep internal conflicts within and keep what’s outside outside.",
+    "originalLanguage": {
+      "lang": "th",
+      "text": "ไฟในอย่านำออก ไฟนอกอย่านำเข้า"
+    },
+    "categories": [
+      "growth",
+      "community"
+    ],
+    "author": {
+      "kind": "acquaintance",
+      "name": "A family member",
+      "nativeName": null,
+      "country": "TH",
+      "origin": null
+    },
+    "source": {
+      "title": null,
+      "year": 2010,
+      "kind": "personal",
+      "link": null
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "I was taught this when I was growing up, but it really hit me when I became a teenager and started hearing my friends talk about their family problems. It made me understand why some things should stay within the family, and why you shouldn’t bring problems from the outside into it.",
+    "keptBy": null,
+    "approvedAt": "2026-11-06T14:16:51.560Z",
+    "submittedAt": "2026-11-06T05:44:52.611Z",
+    "font": "fig",
+    "id": 41
   }
 ]
