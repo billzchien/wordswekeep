@@ -1411,5 +1411,58 @@
     "submittedAt": "2026-11-09T03:06:06.415Z",
     "font": "grotesk",
     "id": 46
+  },
+  {
+    "status": "live",
+    "text": "Tell me every terrible thing you ever did, and let me love you anyway.",
+    "originalLanguage": null,
+    "categories": [
+      "romance"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Sade Andria Zabala",
+      "nativeName": null,
+      "country": "PH",
+      "origin": null
+    },
+    "source": {
+      "title": null,
+      "year": 2013,
+      "kind": "social",
+      "link": null
+    },
+    "context": "Often passed around with Edgar Allan Poe’s name attached, but he never wrote it; it is a modern line from the early-2010s Tumblr poetry scene, most often traced to the Filipino poet Sade Andria Zabala. Whoever wrote it, it has traveled far because of the second half: not “love me despite,” but an offer to hear everything first.",
+    "annotations": [],
+    "reflection": "Real love isn’t about perfection or gazing from afar. It isn’t about believing everything is perfect or right or beautiful. Real love knows everything and loves still, loves stronger for understanding the entirety, loves without reservation because it understands and knows and accepts. Lots of people say they love you, but how many actually want to know?",
+    "keptBy": null,
+    "approvedAt": "2026-11-09T03:35:19.232Z",
+    "submittedAt": "2026-11-09T03:27:54.144Z",
+    "font": "instrument",
+    "id": 47
+  },
+  {
+    "status": "live",
+    "text": "Be where your feet are.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "kind": "unknown",
+      "name": null,
+      "nativeName": null,
+      "country": null,
+      "origin": null
+    },
+    "source": null,
+    "context": "A saying that grew up in sports, where coaches use it to pull players out of the last play and the next one and back into this one. No one knows who said it first. It spread beyond the field through a 2019 TEDx talk by Alan Stein Jr. and the 2021 book of the same name by Scott O’Neil, who ran the Philadelphia 76ers.",
+    "annotations": [],
+    "reflection": "A simple reminder to stop worrying about tomorrow and appreciate the moment you’re living in.",
+    "keptBy": null,
+    "approvedAt": "2026-11-09T03:35:19.232Z",
+    "submittedAt": "2026-11-09T03:33:44.096Z",
+    "font": "headline",
+    "id": 48
   }
 ]
