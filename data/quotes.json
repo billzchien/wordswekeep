@@ -196,7 +196,7 @@
       "title": "Doctrine and Covenants",
       "year": null,
       "kind": "writing",
-      "link": "https://www.churchofjesuschrist.org/study/scriptures/dc-testament/dc/123?lang=eng"
+      "link": null
     },
     "context": null,
     "annotations": [],
@@ -204,7 +204,7 @@
     "keptBy": "Harbor",
     "submittedAt": "2026-06-27T11:14:12",
     "approvedAt": "2026-06-27T11:14:12",
-    "font": "poet",
+    "font": "goudy",
     "notFirst": true
   },
   {
@@ -1263,5 +1263,153 @@
     "submittedAt": "2026-11-06T05:44:52.611Z",
     "font": "fig",
     "id": 41
+  },
+  {
+    "status": "live",
+    "text": "The pressure is good for you.",
+    "originalLanguage": null,
+    "categories": [
+      "growth"
+    ],
+    "author": {
+      "kind": "unknown",
+      "name": null,
+      "nativeName": null,
+      "country": null,
+      "origin": null
+    },
+    "source": {
+      "title": null,
+      "year": null,
+      "kind": "other",
+      "link": null
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "This was the sentence on a poster I found and hung on my wall when I was in college. I was watching Knife Edge: Chasing Michelin Stars on Apple TV and the quote surfaced in my head again. We see how much stress and pressure the chefs are under wanting a Michelin star. It’s hard to watch their emotional journeys, but the pressure always pushes them to the next level, into greatness, and I deeply resonate with that. Whenever I’m the most uncomfortable, that’s when I step out of my comfort zone and create things that are way better than before. That’s how I learned to embrace the pressure and let it drive me forward.",
+    "keptBy": null,
+    "approvedAt": "2026-11-09T03:17:32.851Z",
+    "submittedAt": "2026-11-09T01:49:27.754Z",
+    "font": "headline",
+    "id": 42
+  },
+  {
+    "status": "live",
+    "text": "Great minds discuss ideas. Average minds discuss events. Small minds discuss people.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective",
+      "growth"
+    ],
+    "author": {
+      "kind": "unknown",
+      "name": null,
+      "nativeName": null,
+      "country": null,
+      "origin": null
+    },
+    "source": {
+      "title": null,
+      "year": 1931,
+      "kind": null,
+      "link": null
+    },
+    "context": "The idea goes back to the Victorian historian Henry Thomas Buckle, who, according to a friend’s 1901 memoir, sorted people by whether they talked about persons, things, or ideas. The tidy three-line version first turned up anonymously in American newspapers in 1931 and has been handed down unsigned ever since.",
+    "annotations": [],
+    "reflection": "I grew up in an environment where everyone talked about others behind their backs, and I always felt uncomfortable with it. When I heard this quote, I realized no one around me ever talked about ideas, ways to do things differently, how to reflect and improve, or actual solutions instead of just bitching about problems. It made me see that it really does take a strong mind to discuss ideas, and it helped me steer away from people who gossiped about others, including family members who were a negative influence and disrupted my peace of mind.",
+    "keptBy": null,
+    "approvedAt": "2026-11-09T03:17:32.851Z",
+    "submittedAt": "2026-11-09T02:37:15.461Z",
+    "font": "rondeau",
+    "id": 43
+  },
+  {
+    "status": "live",
+    "text": "If we hung our troubles on a line, you’d choose yours and I’d choose mine.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "kind": "character",
+      "name": "Mookie",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": {
+      "title": "How to Steal a Dog",
+      "year": 2007,
+      "kind": "book",
+      "link": "https://barbaraoconnor.com/books/how-to-steal-a-dog/",
+      "cover": "assets/covers/83b9b0735dc410a2f21c.webp"
+    },
+    "context": "Georgina, the narrator, is living in a car with her mother and brother and has hatched a plan to steal a dog for the reward money. Along the way she meets Mookie, a kind old drifter with no home of his own who fixes things for people in exchange for food and leaves a trail of advice behind him. When she wonders how he can be so cheerful, he tells her that everyone has troubles, and that if we could see each other’s laid out side by side, most of us would still pick up our own.",
+    "annotations": [],
+    "reflection": "I read this book aloud to my class every year, and the line gets me every time. It reminds me that there are others who have it worse than I do, just in different ways.",
+    "keptBy": "Jay",
+    "approvedAt": "2026-11-09T03:17:32.851Z",
+    "submittedAt": "2026-11-09T02:48:59.605Z",
+    "font": "sketch",
+    "id": 44
+  },
+  {
+    "status": "live",
+    "text": "Don’t be sorry. Be better.",
+    "originalLanguage": null,
+    "categories": [
+      "growth"
+    ],
+    "author": {
+      "kind": "character",
+      "name": "Kratos",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": {
+      "title": "God of War (video game)",
+      "year": 2018,
+      "kind": "other",
+      "link": null
+    },
+    "context": "Kratos, a god trying to raise his son Atreus after the death of the boy’s mother, says this when Atreus apologizes for a mistake. It is the whole of his parenting philosophy in four words: he has no use for guilt, only for what you do next. The line stuck with players and became the game’s most quoted moment.",
+    "annotations": [],
+    "reflection": "It applies when you’ve messed up and wronged someone else, because making a mistake is one thing, but making the same mistake twice proves you don’t care about that person. It also applies when you’re feeling sorry for yourself but failing to do anything about it. Stop the self-pity and whining if you haven’t even tried.",
+    "keptBy": "Wally",
+    "approvedAt": "2026-11-09T03:17:32.851Z",
+    "submittedAt": "2026-11-09T02:57:39.251Z",
+    "font": "fig",
+    "id": 45
+  },
+  {
+    "status": "live",
+    "text": "The journey changes you; it should change you. You take something with you. Hopefully, you leave something good behind.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective",
+      "growth"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Anthony Bourdain",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": {
+      "title": "No Reservations: Around the World on an Empty Stomach",
+      "year": 2007,
+      "kind": "book",
+      "link": "https://www.amazon.com/clp/B0DYKBX48M?lv=shuf&channelId=500"
+    },
+    "context": "From the introduction to the book Bourdain wrote alongside his travel show No Reservations. The full passage begins “Travel isn’t always pretty. It isn’t always comfortable. Sometimes it hurts, it even breaks your heart. But that’s okay,” and goes on to say the journey leaves marks on your memory, your heart and your body. He is talking about travel, but the keeper, like many readers, hears it as a description of life itself.",
+    "annotations": [],
+    "reflection": "He was talking about travel, but I apply it more generally to life. Tony was such a study in opposites: bombastic, flawed, hilarious, brilliant, imperfect, someone who wrestled with his demons until the end and was never completely palatable despite the fame and accolades, yet who drew in so many people from all over the world. I think this captures the human condition so well.",
+    "keptBy": null,
+    "approvedAt": "2026-11-09T03:17:32.851Z",
+    "submittedAt": "2026-11-09T03:06:06.415Z",
+    "font": "grotesk",
+    "id": 46
   }
 ]
