@@ -2664,17 +2664,38 @@
     const input = host.querySelector('input'), btn = host.querySelector('.combo-btn'), icon = btn.querySelector('.icon');
     if (select) { input.readOnly = true; host.classList.add('combo--select'); input.removeAttribute('aria-autocomplete'); } // `select`: picked from the list only, never typed into (js/form.js → combo)
     let list = null, bar = null, value = '', kept = '', hover = -1, shown = [], silent = false;
+    // iOS (as js/form.js → combo): cancelling pointerdown, to keep the field focused, also
+    // cancels the click a tap makes, so a row is picked on pointerup; and a list closed within a
+    // moment of a touch stays in place, invisible, for SHIELD_MS, so the tap's late click and
+    // focus never land on the field under the finger.
+    const SHIELD_MS = 400;
+    let lastTouch = 0;
+    host.addEventListener('touchstart', () => { lastTouch = performance.now(); }, { passive: true });
     const drawBar = () => { if (!list || !bar) return; const { scrollHeight: sh, clientHeight: ch, scrollTop: st, offsetTop: top } = list; if (sh <= ch + 1) { bar.hidden = true; return; } bar.hidden = false; const h = Math.max(24, (ch / sh) * ch); bar.style.top = `${top + (st / (sh - ch)) * (ch - h)}px`; bar.style.height = `${h}px`; };
     const setValue = (v, lbl) => { value = v; if (v) kept = v; input.value = lbl || ''; host.classList.toggle('has-value', !!v); icon.className = 'icon ' + (v && !keep ? 'icon-x' : 'icon-chevron'); btn.setAttribute('aria-label', v && !keep ? 'Clear' : 'Open'); if (!silent) onChange(v); };
-    const close = () => { if (!list) return; list.remove(); list = null; hover = -1; if (bar) { bar.remove(); bar = null; } host.classList.remove('is-open'); input.setAttribute('aria-expanded', 'false'); };
+    const close = () => {
+      if (!list) return;
+      const l = list, b = bar;
+      list = null; bar = null; hover = -1;
+      if (performance.now() - lastTouch < 1000) { l.style.opacity = '0'; if (b) b.hidden = true; setTimeout(() => { l.remove(); if (b) b.remove(); }, SHIELD_MS); }
+      else { l.remove(); if (b) b.remove(); }
+      host.classList.remove('is-open'); input.setAttribute('aria-expanded', 'false');
+    };
     const render = (q) => {
       const s = q.trim().toLowerCase();
       const options = all();
       shown = s ? [...options.filter((o) => o.label.toLowerCase().startsWith(s)), ...options.filter((o) => !o.label.toLowerCase().startsWith(s) && o.label.toLowerCase().includes(s))] : options;
       if (!list) {
         list = document.createElement('div'); list.className = 'combo-list'; list.setAttribute('role', 'listbox');
-        list.addEventListener('pointerdown', (e) => e.preventDefault());
-        list.addEventListener('click', (e) => { const it = e.target.closest('.combo-item'); if (it) pick(Number(it.dataset.i)); });
+        let down = null;
+        list.addEventListener('pointerdown', (e) => { e.preventDefault(); down = { x: e.clientX, y: e.clientY }; });
+        list.addEventListener('pointerup', (e) => {
+          const it = e.target.closest('.combo-item');
+          const moved = down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8; // a scroll, not a tap
+          down = null;
+          if (it && !moved) { e.preventDefault(); pick(Number(it.dataset.i)); }
+        });
+        list.addEventListener('click', (e) => { const it = e.target.closest('.combo-item'); if (it && list) pick(Number(it.dataset.i)); }); // keyboard / assistive tech
         host.appendChild(list);
         bar = document.createElement('div'); bar.className = 'combo-bar'; host.appendChild(bar);
         list.addEventListener('scroll', drawBar, { passive: true });
