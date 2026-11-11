@@ -1496,5 +1496,90 @@
     "submittedAt": "2026-11-11T00:17:44.985Z",
     "font": "briega",
     "id": 49
+  },
+  {
+    "status": "live",
+    "text": "The opposite of love is not hate, but indifference.",
+    "originalLanguage": {
+      "lang": "de",
+      "text": "Der Gegensatz von Liebe ist nicht Haß, sondern Gleichgültigkeit."
+    },
+    "categories": [
+      "romance"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Wilhelm Stekel",
+      "nativeName": null,
+      "country": "AT",
+      "origin": null
+    },
+    "source": {
+      "title": "The Beloved Ego",
+      "year": 1921,
+      "kind": "book",
+      "link": "https://archive.org/details/belovedegofounda00stekuoft"
+    },
+    "context": "Wilhelm Stekel was a Viennese psychologist and one of Freud’s earliest followers. The line appears in his 1921 book The Beloved Ego, translated from German by Rosalie Gabler. It is usually credited to Elie Wiesel, who made the idea famous in a 1986 interview the year he won the Nobel Peace Prize, extending it to art, faith and life: the opposite of each, he said, is indifference.",
+    "annotations": [],
+    "reflection": "This has helped me tremendously when it comes to moving forward after a relationship. Hating them is not the way. Let go. See them for what they are, all of them, without eyes filled with hatred, and walk away.",
+    "keptBy": null,
+    "approvedAt": "2026-11-11T03:20:50.404Z",
+    "submittedAt": "2026-11-11T03:07:44.606Z",
+    "font": "rondeau",
+    "id": 50
+  },
+  {
+    "status": "live",
+    "text": "The price of loving someone very much is never loving anyone again.",
+    "originalLanguage": null,
+    "categories": [
+      "romance"
+    ],
+    "author": {
+      "kind": "unknown",
+      "name": null,
+      "nativeName": null,
+      "country": null,
+      "origin": null
+    },
+    "source": {
+      "title": null,
+      "year": 2024,
+      "kind": "social",
+      "link": null
+    },
+    "context": "Shared widely online under Fyodor Dostoevsky’s name, but it has not been found in any of his books or letters, and it only began circulating around 2024. Whoever wrote it, people read it two ways: as devotion to one person, or as the cost of a heartbreak.",
+    "annotations": [],
+    "reflection": "I’m separated after more than 43 years, and I doubt I will ever trust anyone with my heart again. I’m not sure I could ever love anyone like I loved him.",
+    "keptBy": null,
+    "approvedAt": "2026-11-11T03:20:50.404Z",
+    "submittedAt": "2026-11-11T03:11:54.921Z",
+    "font": "author",
+    "id": 51
+  },
+  {
+    "status": "live",
+    "text": "Love is blind, but marriage is an eye-opener.",
+    "originalLanguage": null,
+    "categories": [
+      "romance"
+    ],
+    "author": {
+      "kind": "unknown",
+      "name": null,
+      "nativeName": null,
+      "country": null,
+      "origin": null
+    },
+    "source": null,
+    "context": "“Love is blind” is one of the oldest sayings in English, used by Chaucer in the 1300s and several times by Shakespeare. The second half is a later joke at its expense, passed around unsigned in newspapers and wedding toasts ever since.",
+    "annotations": [],
+    "reflection": "Daydreaming and fantasizing about someone is one thing, but living with them and spending every waking (and sleeping) moment with them is another.",
+    "keptBy": null,
+    "approvedAt": "2026-11-11T03:20:50.404Z",
+    "submittedAt": "2026-11-11T03:15:58.216Z",
+    "font": "round",
+    "id": 52
   }
 ]
