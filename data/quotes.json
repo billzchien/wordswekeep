@@ -1464,5 +1464,37 @@
     "submittedAt": "2026-11-09T03:33:44.096Z",
     "font": "headline",
     "id": 48
+  },
+  {
+    "status": "live",
+    "text": "Be patient toward all that is unsolved in your heart and try to love the questions themselves.",
+    "originalLanguage": {
+      "lang": "de",
+      "text": "Geduld haben gegen alles Ungelöste in Ihrem Herzen und zu versuchen, die Fragen selbst liebzuhaben."
+    },
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Rainer Maria Rilke",
+      "nativeName": null,
+      "country": "AT",
+      "origin": null
+    },
+    "source": {
+      "title": "Letters to a Young Poet",
+      "year": 1903,
+      "kind": "writing",
+      "link": null
+    },
+    "context": "From the fourth of ten letters Rilke wrote to Franz Xaver Kappus, a nineteen-year-old military cadet who had sent him poems and asked whether he should become a writer. Rilke was only twenty-seven himself. He goes on: “Perhaps you will then gradually, without noticing it, live along some distant day into the answer.”",
+    "annotations": [],
+    "reflection": "Only now am I slowly coming to believe that fate is sometimes more thoughtful than we assume. The people who aren’t yours, the places that don’t suit you: it will gently pull you out of them, in ways that seem absurd or even humiliating at the time, and set you down where you were meant to be. So much of life turns out to be a blessing in disguise.\n\nOnce I understood this, I stopped rushing to ask fate for answers. What I can do is take care of what’s in front of me: eat well, rest on time, read a few pages before bed. Once the heart settles back into these small, concrete things, the fears that emotion had magnified slowly shrink too.",
+    "keptBy": "Noah",
+    "approvedAt": "2026-11-11T00:23:02.407Z",
+    "submittedAt": "2026-11-11T00:17:44.985Z",
+    "font": "briega",
+    "id": 49
   }
 ]
