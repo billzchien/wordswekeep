@@ -1339,18 +1339,18 @@
   // · Someone known, oneself: the name as typed ("My grandmother", "Bill") · the country.
   // · A fictional character: the name · "Fictional character" · the country (of the film, show or
   //   book). · Other (a band, a brand, scripture…): the name · the country, if any.
-  // · A saying: where it is from, "Chinese proverb". · Not sure: "Unknown".
+  // · A saying: where it is from, "Chinese proverb". · Not sure: "somewhere" (Words from somewhere).
   // Every row wraps like the source's when it is too long; names go through nativeRuns like
   // anything typed (their script's Noto; Arabic and Hebrew right to left).
   function whoRows(a) {
     const row = (html, cls = 'n-source') => `<span class="${cls}">${html}</span>`;
     const kind = a.kind || 'person', country = a.country ? regionName(a.country) : '';
-    if (kind === 'unknown') return row('Unknown');
+    if (kind === 'unknown') return row('somewhere'); // "Words from somewhere" (Bill, 2026-11-10; it was "Unknown")
     if (kind === 'saying') return row(`${esc(a.origin || 'A')} proverb`);
     const name = (a.name || '').trim(), native = kind === 'person' ? (a.nativeName || '').trim() : '';
     let html = name ? row(nativeRuns(esc(kind === 'acquaintance' ? name.charAt(0).toUpperCase() + name.slice(1) : name))) : '';
     if (native) html += row(nativeRuns(esc(native)), `n-source${name ? ' n-native-name' : ''}`);
-    if (!html) html = row('Unknown'); // (a person with no name at all: not let through by the form)
+    if (!html) html = row('somewhere'); // (a person with no name at all: not let through by the form)
     if (kind === 'character') html += row('Fictional character', 'n-row'); // (Bill, 2026-10-17; its country is the film's, show's or book's)
     if (country) html += row(esc(country), 'n-row');
     return html;
