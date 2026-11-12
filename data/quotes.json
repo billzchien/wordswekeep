@@ -1527,7 +1527,16 @@
     "approvedAt": "2026-11-11T03:20:50.404Z",
     "submittedAt": "2026-11-11T03:07:44.606Z",
     "font": "rondeau",
-    "id": 50
+    "id": 50,
+    "thoughts": [
+      {
+        "quote": 50,
+        "text": "Yes, absolutely. Hate and love and the opposite end of the same spectrum, meaning they take just as much energy except hate is not self-sustainable. It only drains us.",
+        "name": null,
+        "submittedAt": "2026-11-12T01:07:04.148Z",
+        "approvedAt": "2026-11-12T01:07:44.331Z"
+      }
+    ]
   },
   {
     "status": "live",
@@ -1581,5 +1590,34 @@
     "submittedAt": "2026-11-11T03:15:58.216Z",
     "font": "round",
     "id": 52
+  },
+  {
+    "status": "live",
+    "text": "We accept the love we think we deserve.",
+    "originalLanguage": null,
+    "categories": [
+      "romance"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Stephen Chbosky",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": {
+      "title": "The Perks of Being a Wallflower",
+      "year": 1999,
+      "kind": "book",
+      "link": "https://youtu.be/RO2sFDQnXQc?si=jcc4nYlLiUqsXLZa&t=29"
+    },
+    "context": "Charlie, the teenage narrator, asks his English teacher why nice people so often choose the wrong people to date, thinking of his sister and of Sam, the girl he loves. This is his teacher’s answer. The line returns in the 2012 film, which Chbosky also wrote and directed.",
+    "annotations": [],
+    "reflection": "It’s so true! If you don’t love yourself, you won’t feel deserving of the best kind of love. And if you accept love that isn’t sincere and sure of you, it will make you feel you don’t deserve to be fully loved. Loving yourself is key to spreading that love, and to making your people see how beautiful and special they are.",
+    "keptBy": null,
+    "approvedAt": "2026-11-12T01:15:46.431Z",
+    "submittedAt": "2026-11-12T01:13:40.460Z",
+    "font": "fig",
+    "id": 53
   }
 ]
