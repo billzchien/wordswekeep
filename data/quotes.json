@@ -1634,5 +1634,58 @@
         "approvedAt": "2026-11-12T01:19:05.817Z"
       }
     ]
+  },
+  {
+    "status": "live",
+    "text": "We do not see things as they are, we see them as we are.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Anaïs Nin",
+      "nativeName": null,
+      "country": "FR",
+      "origin": null
+    },
+    "source": {
+      "title": "Seduction of the Minotaur",
+      "year": 1961,
+      "kind": "book",
+      "link": null
+    },
+    "context": "In Nin’s novel, Lillian, an American pianist in Mexico, is thinking about how differently she and a friend see the same people when she remembers “the talmudic words.” The line is not in the Talmud, though. Versions of it had been circulating in English since at least an 1801 sermon, and no one knows who said it first. Nin’s novel is what made it famous.",
+    "annotations": [],
+    "reflection": "A good reminder of how I was interpreting events, and what that said about where my head was. It also helped me understand the people around me, the good and the bad.",
+    "keptBy": "Landon",
+    "approvedAt": "2026-11-12T01:46:40.945Z",
+    "submittedAt": "2026-11-12T01:32:17.937Z",
+    "font": "instrument",
+    "id": 54
+  },
+  {
+    "status": "live",
+    "text": "If you’re faced with a forced landing, fly the thing as far into the crash as possible.",
+    "originalLanguage": null,
+    "categories": [
+      "drive"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Bob Hoover",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": null,
+    "context": "Bob Hoover was a World War II fighter pilot, a test pilot who flew chase for Chuck Yeager’s first supersonic flight, and for decades the best-known air show pilot in America. He survived several crash landings of his own. His advice to pilots means: never stop flying the airplane. Even when the landing is going to be bad, you keep control all the way down, because every second of control makes the outcome better.",
+    "annotations": [],
+    "reflection": "My first flight instructor quoted this to me. Even when all seems lost and you can’t change the general outcome, you can still make decisions that change the nature of it. I’ve never had to use it in an actual plane crash, but it applies to many things in life.",
+    "keptBy": null,
+    "approvedAt": "2026-11-12T01:46:40.945Z",
+    "submittedAt": "2026-11-12T01:42:57.759Z",
+    "font": "king",
+    "id": 55
   }
 ]
