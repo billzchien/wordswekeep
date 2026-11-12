@@ -1609,7 +1609,13 @@
       "title": "The Perks of Being a Wallflower",
       "year": 1999,
       "kind": "book",
-      "link": "https://youtu.be/RO2sFDQnXQc?si=jcc4nYlLiUqsXLZa&t=29"
+      "link": "https://youtu.be/RO2sFDQnXQc?si=jcc4nYlLiUqsXLZa&t=29",
+      "crop": {
+        "x": 0.0954,
+        "y": 0.0186,
+        "w": 0.2621,
+        "h": 0.8272
+      }
     },
     "context": "Charlie, the teenage narrator, asks his English teacher why nice people so often choose the wrong people to date, thinking of his sister and of Sam, the girl he loves. This is his teacher’s answer. The line returns in the 2012 film, which Chbosky also wrote and directed.",
     "annotations": [],
@@ -1618,6 +1624,15 @@
     "approvedAt": "2026-11-12T01:15:46.431Z",
     "submittedAt": "2026-11-12T01:13:40.460Z",
     "font": "fig",
-    "id": 53
+    "id": 53,
+    "thoughts": [
+      {
+        "quote": 53,
+        "text": "It also calls out every terrible relationship you’ve ever tolerated as a self-inflicted sentence.",
+        "name": null,
+        "submittedAt": "2026-11-12T01:18:04.120Z",
+        "approvedAt": "2026-11-12T01:19:05.817Z"
+      }
+    ]
   }
 ]
