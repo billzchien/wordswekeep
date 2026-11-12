@@ -1653,7 +1653,8 @@
       "title": "Seduction of the Minotaur",
       "year": 1961,
       "kind": "book",
-      "link": null
+      "link": null,
+      "cover": "assets/covers/09a804382fa6aca79abc.webp"
     },
     "context": "In Nin’s novel, Lillian, an American pianist in Mexico, is thinking about how differently she and a friend see the same people when she remembers “the talmudic words.” The line is not in the Talmud, though. Versions of it had been circulating in English since at least an 1801 sermon, and no one knows who said it first. Nin’s novel is what made it famous.",
     "annotations": [],
@@ -1661,7 +1662,7 @@
     "keptBy": "Landon",
     "approvedAt": "2026-11-12T01:46:40.945Z",
     "submittedAt": "2026-11-12T01:32:17.937Z",
-    "font": "instrument",
+    "font": "author",
     "id": 54
   },
   {
