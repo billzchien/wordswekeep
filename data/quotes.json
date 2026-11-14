@@ -1688,5 +1688,70 @@
     "submittedAt": "2026-11-12T01:42:57.759Z",
     "font": "king",
     "id": 55
+  },
+  {
+    "status": "live",
+    "text": "Ain’t no shame in holding on to grief, as long as you make room for other things, too.",
+    "originalLanguage": null,
+    "categories": [
+      "growth"
+    ],
+    "author": {
+      "kind": "character",
+      "name": "Bubbles",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": {
+      "title": "The Wire",
+      "year": 2008,
+      "kind": "film",
+      "link": "https://youtu.be/5L6-O3tW4WE?si=Z9cktQtV_ecDHC-y&t=198",
+      "crop": {
+        "x": 0.4349,
+        "y": 0,
+        "w": 0.4225,
+        "h": 0.9999
+      }
+    },
+    "context": "Bubbles is a Baltimore addict who has spent the series trying to get clean, and who blames himself for the death of Sherrod, a boy he had taken in. Marking a year of sobriety, he stands up at his recovery meeting and speaks about Sherrod for the first time. This is how he ends: he will not pretend the grief is gone, only that it no longer fills the whole room.",
+    "annotations": [],
+    "reflection": "After losing a good friend, then my grandmother, and then my mother in quick succession, this quote stays with me forever.",
+    "keptBy": null,
+    "approvedAt": "2026-11-14T00:30:06.141Z",
+    "submittedAt": "2026-11-14T00:25:37.010Z",
+    "font": "stone",
+    "id": 56
+  },
+  {
+    "status": "live",
+    "text": "No one is coming to save you.",
+    "originalLanguage": null,
+    "categories": [
+      "drive"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Nathaniel Branden",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": {
+      "title": "The Six Pillars of Self-Esteem",
+      "year": 1994,
+      "kind": "book",
+      "link": null,
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Publication126/v4/0a/dc/15/0adc151d-df12-0bf4-ffd7-534813508b17/9791222000985.jpg/600x600bb.jpg"
+    },
+    "context": "Branden, a psychotherapist, used “No one is coming” in his therapy groups as a lesson in self-responsibility. In the book he writes it in the first person: no one is coming to save me, no one is coming to make life right for me, and if I don’t do something, nothing is going to get better. He tells of a client who once objected, “But you came,” and his reply: “Correct, and I came to tell you that no one is coming.” The line has since spread as a saying of its own, usually addressed to “you.”",
+    "annotations": [],
+    "reflection": "Something I really needed to hear when I was in a real low spot. I wanted someone to come along and make it better, or tell me I was justified in feeling the way I did, but the truth is, it’s up to you to make your life better, to find joy and create happiness. Once I heard and understood this, it gave me the motivation to stop dwelling and actively work my way out of it and into a better life. So far, it’s been a success!",
+    "keptBy": "Chris",
+    "approvedAt": "2026-11-14T00:30:06.141Z",
+    "submittedAt": "2026-11-14T00:27:24.028Z",
+    "font": "poet",
+    "id": 57
   }
 ]
