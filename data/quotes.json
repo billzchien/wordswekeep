@@ -1707,13 +1707,7 @@
       "title": "The Wire",
       "year": 2008,
       "kind": "film",
-      "link": "https://youtu.be/5L6-O3tW4WE?si=Z9cktQtV_ecDHC-y&t=198",
-      "crop": {
-        "x": 0.4349,
-        "y": 0,
-        "w": 0.4225,
-        "h": 0.9999
-      }
+      "link": null
     },
     "context": "Bubbles is a Baltimore addict who has spent the series trying to get clean, and who blames himself for the death of Sherrod, a boy he had taken in. Marking a year of sobriety, he stands up at his recovery meeting and speaks about Sherrod for the first time. This is how he ends: he will not pretend the grief is gone, only that it no longer fills the whole room.",
     "annotations": [],
