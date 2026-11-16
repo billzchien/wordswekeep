@@ -1717,5 +1717,35 @@
     "submittedAt": "2026-11-14T00:27:24.028Z",
     "font": "poet",
     "id": 57
+  },
+  {
+    "status": "live",
+    "text": "May your stress turn into a fart and leave your body.",
+    "originalLanguage": null,
+    "categories": [
+      "growth",
+      "community"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Ian Thio’s grandma",
+      "nativeName": null,
+      "country": "SG",
+      "origin": null
+    },
+    "source": {
+      "title": null,
+      "year": 2026,
+      "kind": "social",
+      "link": "https://www.instagram.com/reel/DfE6-r-T_Bj/?cplk=d3JpZWRzOGhmaTlw"
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "This video came into my feed and I burst out laughing, and I also felt very blessed to receive it. Such wise words from an Asian grandma, said in a humorous and heartwarming way.",
+    "keptBy": null,
+    "approvedAt": "2026-11-16T03:05:55.530Z",
+    "submittedAt": "2026-11-16T03:04:39.866Z",
+    "font": "kid",
+    "id": 58
   }
 ]
