@@ -164,7 +164,38 @@
     seen()[id] = Math.floor(Date.now() / 60000);
     try { localStorage.setItem(SEEN_KEY, JSON.stringify(seenIds)); } catch (e) {}
   };
-  const deal = (list) => { const s = seen(); return shuffle(list).sort((a, b) => (s[a.id] || 0) - (s[b.id] || 0)); }; // (sort keeps the shuffle within each)
+  const deal = (list) => { const s = seen(); return spreadFaces(shuffle(list).sort((a, b) => (s[a.id] || 0) - (s[b.id] || 0))); }; // (sort keeps the shuffle within each)
+  // No face twice in a row (Bill, 2026-11-17): a quote set in the face of one of the last
+  // FACE_SPREAD before it swaps for the nearest later quote that is not — so ↑ and ↓ never show
+  // the same face back to back, nor (when the deck allows) two apart. When no later quote will
+  // do, the rule loosens to the one before, then gives up (a category all in one face). The
+  // first quote stays put; the deck goes round, so the last is kept off the first's face too.
+  const FACE_SPREAD = 2;
+  function spreadFaces(list) {
+    const a = list.slice(), face = (q) => fontOf(q, tier(q.text));
+    const fits = (f, p) => face(a[p - 1]) !== f && face(a[p]) !== f; // between p - 1 and p
+    for (let i = 1; i < a.length; i++) {
+      for (let k = Math.min(FACE_SPREAD, i); k >= 1; k--) {
+        const near = new Set(a.slice(i - k, i).map(face));
+        if (!near.has(face(a[i]))) break;
+        const j = a.findIndex((q, n) => n > i && !near.has(face(q)));
+        if (j > 0) { a.splice(i, 0, a.splice(j, 1)[0]); break; }
+        if (k > 1) continue;
+        // Nothing later will do (the end of the deck, one face left): this quote goes back into
+        // a gap where it fits, and the next takes its place.
+        const p = a.findIndex((q, n) => n >= 1 && n < i && fits(face(a[i]), n));
+        if (p > 0) { a.splice(p, 0, a.splice(i, 1)[0]); i--; }
+      }
+    }
+    const n = a.length;
+    if (n > 2 && face(a[n - 1]) === face(a[0])) { // round the end: the last moves to a gap where it fits
+      const last = a[n - 1], f = face(last);
+      for (let p = 1; p < n - 1; p++) {
+        if (fits(f, p) && face(a[n - 2]) !== face(a[0])) { a.splice(n - 1, 1); a.splice(p, 0, last); break; }
+      }
+    }
+    return a;
+  }
   const $ = (id) => document.getElementById(id);
   const app = $('app'), deck = $('deck'), track = $('track'), notes = $('notes');
   const mqMobile = window.matchMedia('(max-width: 599px)');
@@ -545,8 +576,13 @@
   let RAG_SIZE_MIN = 0.85, RAG_FEW_WORDS = 5, RAG_STEP_TIERS = new Set(['s', 'xs']); // Bill's values (2026-10-30): down to 85%, Long and XLong only (a Medium quote, often a display face, keeps its size)
   const NO_STEP = LOCAL && /[?&]nostep\b/.test(location.search);
   if (LOCAL) { const u = new URLSearchParams(location.search); if (u.get('stepmin')) RAG_SIZE_MIN = +u.get('stepmin'); if (u.get('fewwords')) RAG_FEW_WORDS = +u.get('fewwords'); if (u.get('steptiers')) RAG_STEP_TIERS = new Set(u.get('steptiers').split(',')); }
+  // A narrow tablet (600–767; Bill, 2026-11-17, No. 49 at 622: 90 97 66 75 68 59): the tablet's sizes in a
+  // column not much wider than a phone's leave under three words a line, so there every tier but
+  // XShort / Short steps down the same way (Medium included).
+  const mqNarrowTab = window.matchMedia('(min-width: 600px) and (max-width: 767px)'), NARROW_TAB_TIERS = new Set(['m', 's', 'xs']);
   function stepDown(quoteEl) {
-    if (NO_STEP || !mqMobile.matches || !track.contains(quoteEl) || quoteEl.style.getPropertyValue('--q-grow') || NO_SPACE.test(quoteEl.textContent) || !RAG_STEP_TIERS.has(quoteEl.dataset.tier)) return; // (Chinese, Japanese, Thai: no words to count, and their rag is set by other rules)
+    const tiers = mqNarrowTab.matches ? NARROW_TAB_TIERS : RAG_STEP_TIERS;
+    if (NO_STEP || !(mqMobile.matches || mqNarrowTab.matches) || !track.contains(quoteEl) || quoteEl.style.getPropertyValue('--q-grow') || NO_SPACE.test(quoteEl.textContent) || !tiers.has(quoteEl.dataset.tier)) return; // (Chinese, Japanese, Thai: no words to count, and their rag is set by other rules)
     const words = (quoteEl.textContent.match(/\S+/g) || []).length, lines = lineCount(quoteEl);
     const reads = (n) => words / n >= RAG_FEW_WORDS;
     if (lines < RAG_FEW_FROM || (!quoteEl._shaped && reads(lines))) return;
@@ -3960,11 +3996,11 @@
       const wanted = parseInt(kept, 10);
       const found = state.list.findIndex((q) => q.id === wanted);
       // A quote marked "Don't show as the first quote" in the library (`notFirst`) is never the
-      // one a visitor lands on — unless its own address was opened. It trades places with the
-      // first quote in the deck that may be.
+      // one a visitor lands on — unless its own address was opened. The first quote in the deck
+      // that may be comes to the front.
       if (found < 0 && state.list.length && state.list[0].notFirst) {
         const ok = state.list.findIndex((q) => !q.notFirst);
-        if (ok > 0) [state.list[0], state.list[ok]] = [state.list[ok], state.list[0]];
+        if (ok > 0) { state.list.unshift(state.list.splice(ok, 1)[0]); state.list = spreadFaces(state.list); } // (moved to the front, then the faces spread again round it)
       }
       state.idx = found >= 0 ? found : 0;
       renderDeck();
