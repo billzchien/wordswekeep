@@ -1756,5 +1756,149 @@
         "approvedAt": "2026-11-16T03:10:17.491Z"
       }
     ]
+  },
+  {
+    "status": "live",
+    "text": "We can’t shame ourselves into change. We can only love ourselves into evolution.",
+    "originalLanguage": null,
+    "categories": [
+      "growth"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Unknown",
+      "nativeName": null,
+      "country": null,
+      "origin": null
+    },
+    "source": null,
+    "context": null,
+    "annotations": [],
+    "reflection": "There is so much shame in this world.",
+    "keptBy": null,
+    "approvedAt": "2026-11-17T03:04:31.383Z",
+    "submittedAt": "2026-11-16T14:12:18.560Z",
+    "font": "poet",
+    "id": 59
+  },
+  {
+    "status": "live",
+    "text": "If you can think it, it can happen.",
+    "originalLanguage": null,
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "kind": "self",
+      "name": "Rachael",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": null,
+    "context": null,
+    "annotations": [],
+    "reflection": "We manifest our reality - all things are possible - both good and bad - choose what you focus on.",
+    "keptBy": "Rachael",
+    "approvedAt": "2026-11-17T03:04:31.383Z",
+    "submittedAt": "2026-11-16T15:55:20.221Z",
+    "font": "sketch",
+    "id": 60
+  },
+  {
+    "status": "live",
+    "text": "Better dead than boring.",
+    "originalLanguage": {
+      "lang": "es",
+      "text": "Antes muerta que sencilla."
+    },
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "María Isabel",
+      "nativeName": null,
+      "country": "ES",
+      "origin": null
+    },
+    "source": {
+      "title": "YouTube",
+      "year": 2004,
+      "kind": "other",
+      "link": "https://www.youtube.com/watch?v=AV3LlZzwr-g",
+      "crop": {
+        "x": 0.3993,
+        "y": 0.004,
+        "w": 0.2846,
+        "h": 0.8982
+      }
+    },
+    "context": "“Antes muerta que sencilla” (literally “I’d rather be dead than plain”) is a Spanish song written and originally recorded in 2004 by Spanish singer María Isabel. It is also a popular hyperbolic phrase used humorously to mean preferring a bold, glamorous, or dressed-up look over something plain.",
+    "annotations": [],
+    "reflection": "Just a reminder to stay curious, show up with enthusiasm, and be somebody who others want to spend time with because of your zest for life.",
+    "keptBy": "K",
+    "approvedAt": "2026-11-17T03:04:31.383Z",
+    "submittedAt": "2026-11-16T16:37:43.651Z",
+    "font": "fig",
+    "id": 61
+  },
+  {
+    "status": "live",
+    "text": "Allowed to become.",
+    "originalLanguage": null,
+    "categories": [
+      "growth"
+    ],
+    "author": {
+      "kind": "self",
+      "name": "ty",
+      "nativeName": null,
+      "country": "US",
+      "origin": null
+    },
+    "source": {
+      "title": null,
+      "year": 2026,
+      "kind": "personal",
+      "link": null
+    },
+    "context": "“Allowed to become” are words I find myself repeating when walls of doubt resurface. I have always been terrible at patting myself on the back, for reassurance and celebration. Hearing the words,\n\n“I’m allowed to become ‘x’ and I’m allowed to become ‘y’.”\n\nRemind me of my innate balance and flexibility. They cheer me on. My life still feels like a question mark, my career still a blur. I continue planting my heel on the back of my surfboard.",
+    "annotations": [],
+    "reflection": "Growth grants new perspective. New perspective grants growth.",
+    "keptBy": "ty",
+    "approvedAt": "2026-11-17T03:04:31.383Z",
+    "submittedAt": "2026-11-16T17:31:54.668Z",
+    "font": "king",
+    "id": 62
+  },
+  {
+    "status": "live",
+    "text": "If you can’t get out of it, lean into it.",
+    "originalLanguage": null,
+    "categories": [
+      "growth"
+    ],
+    "author": {
+      "kind": "unknown",
+      "name": null,
+      "nativeName": null,
+      "country": null,
+      "origin": null
+    },
+    "source": {
+      "title": null,
+      "year": 2026,
+      "kind": "other",
+      "link": null
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "When you come to a point where there are things you can’t change, you can shift your perspective by integrating them, finding ways to still shape who you are and what you want.",
+    "keptBy": null,
+    "approvedAt": "2026-11-17T03:04:31.383Z",
+    "submittedAt": "2026-11-16T18:20:15.630Z",
+    "font": "stone",
+    "id": 63
   }
 ]
