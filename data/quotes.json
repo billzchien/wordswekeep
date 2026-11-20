@@ -1408,7 +1408,7 @@
     "keptBy": null,
     "approvedAt": "2026-11-09T03:35:19.232Z",
     "submittedAt": "2026-11-09T03:27:54.144Z",
-    "font": "instrument",
+    "font": "auserif",
     "id": 47
   },
   {
@@ -1900,5 +1900,67 @@
     "submittedAt": "2026-11-16T18:20:15.630Z",
     "font": "stone",
     "id": 63
+  },
+  {
+    "status": "live",
+    "text": "You either lose the fear or you lose the opportunity.",
+    "originalLanguage": null,
+    "categories": [
+      "growth"
+    ],
+    "author": {
+      "kind": "character",
+      "name": "Anonymous",
+      "nativeName": null,
+      "country": null,
+      "origin": null
+    },
+    "source": {
+      "title": null,
+      "year": 2025,
+      "kind": "social",
+      "link": null
+    },
+    "context": null,
+    "annotations": [],
+    "reflection": "I started saying yes quicker without over-analyzing an opportunity and letting my brain talk me out of it. Every time I want to do something but it scares me, I think of this quote and it helps me leap into action.",
+    "keptBy": "Soum",
+    "approvedAt": "2026-11-20T04:28:31.315Z",
+    "submittedAt": "2026-11-19T03:19:44.746Z",
+    "font": "round",
+    "id": 64
+  },
+  {
+    "status": "live",
+    "text": "You have a right to perform your prescribed duties, but you are not entitled to the fruits of your actions. Never consider yourself to be the cause of the results of your activities, nor be attached to inaction.",
+    "originalLanguage": {
+      "lang": "hi",
+      "text": "कर्मण्येवाधिकारस्ते मा फलेषु कदाचन । मा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि ॥"
+    },
+    "categories": [
+      "perspective"
+    ],
+    "author": {
+      "kind": "person",
+      "name": "Krishna",
+      "nativeName": null,
+      "country": "IN",
+      "origin": null
+    },
+    "source": {
+      "title": "Bhagavad Gita: Chapter 2, Verse 47",
+      "year": null,
+      "kind": "book",
+      "link": "https://www.holy-bhagavad-gita.org/chapter/2/verse/47/",
+      "cover": "https://is1-ssl.mzstatic.com/image/thumb/Publication/6b/37/92/mzi.gvrbylph.jpg/600x600bb.jpg"
+    },
+    "context": "One of the most popular and important verses of the Hindu scripture (Bhagavad Gita), it reminds us that our duty is just to do our action/duty (karma), and not be attached to the result. But at the same time, it also advises us to not be attached to inaction and relying on luck/destiny alone.",
+    "annotations": [],
+    "reflection": "It helps me understand that my duty is to take action, whatever it is I’m doing. As a student, it was my duty to study, learn, work hard. As an older sister, it’s my duty to be a good sibling, a support system, etc. The world is too result-focused/everything we do must be optimised for some end result that will make you happy. But maybe the joy is in the journey, so do your action and don’t worry about the result too much.",
+    "keptBy": "SG",
+    "approvedAt": "2026-11-20T04:28:31.315Z",
+    "submittedAt": "2026-11-19T04:12:39.066Z",
+    "font": "goudy",
+    "id": 65
   }
 ]
