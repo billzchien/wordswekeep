@@ -1445,7 +1445,55 @@
     // with the note titled "/Note/", from 2026-10-04).
     let body = q.reflection ? `<div>${paragraphs(q.reflection)}</div>` : '';
     if (q.context) body += `<div class="n-context"><p>Context/</p><div>${paragraphs(q.context)}</div></div>`;
-    return body + thoughtsHTML(q);
+    return body + relatedHTML(q) + thoughtsHTML(q);
+  }
+
+  /* ---------- Related quotes (Figma 717:6, since 2026-11-21) ----------
+     Quotes the library has linked to this one (its edit view → Related), under the context and
+     before the thoughts: "Related/", then each as its number — a dashed link, as the menu's — over
+     its whole words in quotation marks, indented as the keeper's name, the opening mark hung in
+     the margin. A link holds both ways: a quote lists the ones named on it (`related`, public
+     numbers) and the ones that name it; only quotes on the site show, lowest number first. A tap
+     on the number opens that quote's notes (toRelated). */
+  function relatedOf(q) {
+    const own = new Set((Array.isArray(q.related) ? q.related : []).map(Number));
+    return state.all.filter((x) => x.id !== q.id && (own.has(x.id) || (Array.isArray(x.related) && x.related.map(Number).includes(q.id))));
+  }
+  function relatedHTML(q) {
+    const list = relatedOf(q);
+    if (!list.length) return '';
+    return `<div class="n-related"><p>Related/</p>${list.map((r) => `<div class="n-rel"><p><span class="n-rel-no" role="link" tabindex="0" data-related="${r.id}">No. ${r.id}</span></p><div class="n-indent n-indent--kept"><p class="n-rel-q">“${nativeRuns(esc(r.text))}”</p></div></div>`).join('')}</div>`;
+  }
+  // Notes to notes: what is on the sheet fades out (RELATED_OUT_MS), the sheet takes the other
+  // quote — its own palette, the notes back at their top — and fades in (css .notes.is-leaving /
+  // .is-entering, 0.4s). The deck moves to that quote too, so Close lands on it. A quote the
+  // menu's category has left out of the deck is put in after the current one.
+  const RELATED_OUT_MS = 200, RELATED_IN_MS = 400;
+  let relatedTimer = 0;
+  function toRelated(id) {
+    const q = state.all.find((x) => x.id === id);
+    if (!q || q === current() || modeBusy || langBusy || state.animating || state.mode !== 'notes') return;
+    const swap = () => {
+      let i = state.list.indexOf(q);
+      if (i < 0) { i = state.idx + 1; state.list.splice(i, 0, q); }
+      state.idx = i;
+      state.original = false;
+      closeOverlays({ instant: true });
+      renderDeck();
+      applyMode('notes');
+    };
+    if (reduceMotion.matches) return swap();
+    modeBusy = true; // Close waits for the swap
+    clearTimeout(relatedTimer);
+    notes.classList.remove('is-entering');
+    notes.classList.add('is-leaving');
+    setTimeout(() => {
+      swap();
+      notes.classList.remove('is-leaving');
+      notes.classList.add('is-entering');
+      modeBusy = false;
+      relatedTimer = setTimeout(() => notes.classList.remove('is-entering'), RELATED_IN_MS + 50);
+    }, RELATED_OUT_MS);
   }
 
   /* Notes' fonts, fetched before Notes is pressed (Bill, 2026-10-10: the best performance at every
@@ -1462,7 +1510,7 @@
       if (!q) return;
       const hant = quoteHant;
       quoteHant = quoteIsHant(q); // (as renderNotes sets it: which Chinese a run is drawn in)
-      $('nWarm').innerHTML = `<p>Words from Kept by Context/ Thoughts/ Add thoughts + ${esc(THANKS)}</p><div class="n-meta">${notesFrom(q)}</div><p>${notesKept(q)}</p><div class="n-body">${notesBody(q)}</div>`;
+      $('nWarm').innerHTML = `<p>Words from Kept by Context/ Related/ Thoughts/ Add thoughts + ${esc(THANKS)}</p><div class="n-meta">${notesFrom(q)}</div><p>${notesKept(q)}</p><div class="n-body">${notesBody(q)}</div>`;
       quoteHant = hant;
     }, WARM_MS);
   }
@@ -1537,6 +1585,7 @@
     }
   }
   $('nBody').addEventListener('click', (e) => {
+    const rel = e.target.closest('[data-related]'); if (rel) { toRelated(Number(rel.dataset.related)); return; }
     const root = e.target.closest('.n-add'); if (!root) return;
     if (e.target.closest('.n-add-open')) {
       const box = root.querySelector('.n-add-box');
@@ -4353,6 +4402,7 @@
   document.addEventListener('auxclick', (e) => { const el = e.target.closest('[data-href]'); if (el && e.button === 1) follow(el, e); });
   document.addEventListener('keydown', (e) => { // a span with role="link" (the notes' source) answers Enter like a link
     if (e.key === 'Enter' && e.target.matches && e.target.matches('span[data-href]')) follow(e.target, e);
+    if (e.key === 'Enter' && e.target.matches && e.target.matches('span[data-related]')) toRelated(Number(e.target.dataset.related));
   });
 
   /* ---------- Add words: hand over to the form ---------- */

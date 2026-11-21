@@ -135,6 +135,19 @@
                 <div class="fw"><input class="field" id="fKeptBy" type="text" placeholder="Name" autocomplete="off" aria-label="Name of who keeps the words"></div>
               </div>
             </div>
+            <!-- Related quotes (since 2026-11-21): closed, "Related +" opens the picker (#pick, below); with any,
+                 the title, each as a read-only field ("No. 3" and its words) with a × to take it off, and
+                 "Add more related +" (js/admin.js → Related). -->
+            <div class="sec sec--opt" id="relSec">
+              <div class="sec-head">
+                <button type="button" class="more" id="relOpen"><span>Related</span><span class="icon icon-plus"></span></button>
+                <p class="sec-title">Related</p>
+              </div>
+              <div class="fold" id="relWrap" hidden><div class="sec-body">
+                <div class="stack rel-list" id="relRows"></div>
+                <button type="button" class="more" id="relMore"><span>Add more related</span><span class="icon icon-plus"></span></button>
+              </div></div>
+            </div>
           </div>
         </div>
         <!-- The quote's face (Figma 314:5424): the faces drawn for its length, and the quote set in
@@ -258,6 +271,21 @@
         <div class="popup-btns">
           <button type="button" class="btn btn--sm" id="popupNo">Not yet</button>
           <button type="button" class="btn btn--primary btn--sm" id="popupYes">Remove</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Related quotes: pick from the live ones (js/admin.js → openPick). A table as the Quotes list's:
+         a checkbox, the number, the words; several may be ticked. -->
+    <div class="popup-layer" id="pick" hidden>
+      <div class="popup pick" role="dialog" aria-modal="true" aria-label="Related quotes">
+        <div class="pick-table">
+          <div class="pick-head"><span></span><p>No.</p><p>Quote</p></div>
+          <div class="pick-rows" id="pickRows" role="group" aria-label="Quotes"></div>
+        </div>
+        <div class="popup-btns">
+          <button type="button" class="btn btn--sm" id="pickNo">Not yet</button>
+          <button type="button" class="btn btn--primary btn--sm" id="pickYes">Done</button>
         </div>
       </div>
     </div>

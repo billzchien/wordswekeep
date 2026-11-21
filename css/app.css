@@ -581,6 +581,7 @@ ul { list-style: none; }
    2026-10-10; the form's "Need an idea", 2026-10-22): hairline dashed underline. */
 .ann,
 .cat-desc [data-href],
+.n-rel-no,
 .pv-mail,
 .send-note [data-href],
 .dup-note [data-href],
@@ -591,7 +592,7 @@ ul { list-style: none; }
   box-decoration-break: clone; /* an underlined phrase may now wrap: each line gets its own full underline */
   background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 4px) left bottom 0.08em / 100% 1px no-repeat;
 }
-@media (min-resolution: 2dppx) { .ann, .cat-desc [data-href], .pv-mail, .send-note [data-href], .dup-note [data-href], #startOver, .idea-label > span { background-size: 100% 0.5px; } }
+@media (min-resolution: 2dppx) { .ann, .cat-desc [data-href], .n-rel-no, .pv-mail, .send-note [data-href], .dup-note [data-href], #startOver, .idea-label > span { background-size: 100% 0.5px; } }
 /* An annotated word's underline sits ANN_BELOW (0.16em) under the baseline in every face (Bill, 2026-10-19,
    md/checks/ann-space): at the foot of the face's own box it fell 0.07em (Stone) to 0.25em (Goudy) under it.
    js/app.js → annDrops measures each quote's face: --ann-drop lifts the line from the box's foot, --ann-pad
@@ -612,6 +613,21 @@ ul { list-style: none; }
 .n-body p + p { margin-top: 1em; } /* between paragraphs (1.067em until 2026-10-09) */
 .n-context { display: flex; flex-direction: column; gap: 1em; } /* "Context/" to its words (0.533em until 2026-10-09) */
 .n-context p + p { margin-top: 1em; }
+
+/* ---------- Related quotes (Figma 717:6, since 2026-11-21) ----------
+   Under the context, before the thoughts: "Related/", then each linked quote — its number, a
+   dashed link as the menu's, in the palette's colour (lining figures, as "No. 8" at the top), over
+   its words, indented as the keeper's name with the opening quotation mark hung in the margin.
+   A tap on the number: the sheet's contents fade out, the other quote's notes fade in
+   (js/app.js → toRelated). */
+.n-related { display: flex; flex-direction: column; gap: 1em; } /* "Related/" → the first, and one → the next: 1em (Figma 15) */
+.n-rel p { white-space: normal; }
+.n-rel { display: flex; flex-direction: column; gap: 4px; } /* the number → its words: 4px (Bill, 2026-11-21: they sat too close) */
+.n-rel-no { font-feature-settings: "ss01" 1, "ss07" 1, "dlig" 1, "lnum" 1, "pnum" 1; }
+.n-rel-q { text-indent: -0.45em; } /* the opening mark outside the words' left edge */
+.notes.is-leaving > * { opacity: 0 !important; transition: opacity 0.2s var(--ease) !important; }
+.notes.is-entering { transition: background-color 0.4s var(--ease); }
+.notes.is-entering > * { animation: fade-in 0.4s var(--ease) both; }
 
 /* ---------- Thoughts (Figma 525:759, since 2026-10-09) ----------
    Under the context: the approved thoughts, titled "Thoughts/", oldest first — each a name (or

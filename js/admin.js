@@ -757,6 +757,8 @@
     reflection: q.reflection || '', keptBy: q.keptBy || '',
     font: fontFor(q.font, tier(q.text || '')), // the face the archive shows it in
     notFirst: !!q.notFirst, // "Don't show as the first quote"
+    related: relatedIds(q), // the numbers of the quotes shown under it as "Related/"
+    relatedNot: [...(q.relatedNot || [])], // suggested ones taken off: never filled in again
   });
   function fromDraft(d, q) {
     const t = (s) => s.trim();
@@ -778,6 +780,8 @@
     q.keptBy = t(d.keptBy) || null;
     q.font = d.font;
     if (d.notFirst) q.notFirst = true; else delete q.notFirst; // only ever present when set
+    if (d.related && d.related.length) q.related = [...d.related]; else delete q.related; // likewise
+    if (d.relatedNot && d.relatedNot.length) q.relatedNot = [...d.relatedNot]; else delete q.relatedNot;
     return q;
   }
   // The language of the original words, as a two-letter code. Other scripts are told apart by
@@ -916,6 +920,7 @@
     $('editDate').textContent = f.tab === 'live' ? (f.q.dirty || !f.q.approvedAt ? unpublished(f.q) || 'Not published' : `Published: ${fmtDate(f.q.approvedAt)}`) : `Submitted: ${fmtDate(f.q.submittedAt)}`;
     fill(edit.draft);
     updateDirty();
+    autoRelated(f.q);
     const list = sorted('quotes'), i = list.findIndex((x) => x.key === key);
     $('prevBtn').disabled = i <= 0; $('nextBtn').disabled = i >= list.length - 1;
     $('prevBtn').dataset.key = i > 0 ? list[i - 1].key : ''; $('nextBtn').dataset.key = i < list.length - 1 ? list[i + 1].key : '';
@@ -942,7 +947,7 @@
   $('nextBtn').addEventListener('click', () => { if ($('nextBtn').dataset.key) { stepDir = 1; leaveTo(stepTo($('nextBtn').dataset.key)); } });
   document.addEventListener('keydown', (e) => {
     if (admin.dataset.view === 'thoughts' && th && !popupResolve && (e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); if (thDirty()) saveThoughts(); return; } // ⌘S saves the thoughts and stays
-    if (admin.dataset.view !== 'edit' || popupResolve || !edit) return;
+    if (admin.dataset.view !== 'edit' || popupResolve || pickSel || !edit) return;
     const mod = e.metaKey || e.ctrlKey;
     if (mod && e.key === 's') { e.preventDefault(); if (edit.tab === 'live' && isDirty()) saveEdit(); }
     if (mod && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); if (crop.on) { if (!e.shiftKey) cropUndo(); return; } if (e.shiftKey) redo(); else undo(); } // the form's own history, not the field's (while cropping: the window's)
@@ -967,6 +972,7 @@
   function saveEdit() {
     const f = findItem(edit.key); if (!f) return;
     fromDraft(edit.draft, f.q);
+    unlinkRelated(f.q);
     if (!f.q.dirty) f.q.updated = true; // on the site as it was: an update, not a new quote
     f.q.dirty = true; store.publishDirty = true;
     edit.orig = clone(edit.draft);
@@ -1931,6 +1937,129 @@
   // A cover that will not load is no use: its tile goes.
   $('fCovers').addEventListener('error', (e) => { const t = e.target.closest && e.target.closest('.cover-pick'); if (t && t.getAttribute('aria-checked') !== 'true') t.remove(); }, true);
 
+  /* ---------- Related quotes (since 2026-11-21) ----------
+     Quotes shown under this one's notes as "Related/" (js/app.js → relatedHTML). Stored on the
+     quote as `related`, the public numbers. A link holds both ways: the site, and this view, show
+     a quote's own list and every quote that lists it — so adding No. 26 here also shows this one
+     on No. 26, and taking it off here takes this one off No. 26's list too (unlinkRelated, on
+     Save). Only live quotes can be picked: a pending one has no number yet (it can pick, though).
+     Closed: "Related +" opens the picker. With any: each as a read-only field, "No. 3" and its
+     words, with a ×; "Add more related +" opens the picker again, the ones already there ticked. */
+  const relatedIds = (q) => store.live.filter((x) => x !== q && ((q.related || []).includes(x.id) || (q.status === 'live' && (x.related || []).includes(q.id)))).map((x) => x.id).sort((a, b) => a - b);
+  function unlinkRelated(q) {
+    if (q.status !== 'live') return;
+    const keep = new Set(q.related || []);
+    store.live.forEach((x) => {
+      if (x === q || !(x.related || []).includes(q.id) || keep.has(x.id)) return;
+      x.related = x.related.filter((n) => n !== q.id);
+      if (!x.related.length) delete x.related;
+      thTouched(x); // it goes to the site with the next Publish
+    });
+  }
+  /* Suggested (Bill, 2026-11-21): what the system finds by itself.
+     · the same source — the same link (linkKey) or the same source name with the same author (or
+       none given on either side), as the form's "already in the collection" (js/form.js → sameSource);
+     · the same author — a known person, a character or "other", by name;
+     · similar words — a share of three-word runs in common (RELATED_SHARE; SAME_SHARE is a repeat).
+     The picker lists them first, each with its reason. The same source is also FILLED IN as the
+     quote opens (autoRelated): a change to review, with a toast, as autoPlace's — taken off with
+     its ×, it is remembered on the quote (`relatedNot`) and never filled in again, from either side. */
+  const RELATED_SHARE = 0.3;
+  const WHY = { source: 'Same source', author: 'Same author', words: 'Similar words' };
+  function linkKey(raw) { // js/form.js → linkKey: change both
+    let u;
+    try { u = new URL((raw || '').trim()); } catch (e) { return ''; }
+    const host = u.hostname.toLowerCase().replace(/^(www|m)\./, '');
+    const yt = host === 'youtu.be' ? u.pathname.slice(1) : /(^|\.)youtube\.com$/.test(host) ? (u.searchParams.get('v') || (u.pathname.match(/^\/(shorts|embed|live)\/([^/]+)/) || [])[2]) : '';
+    if (yt) return `yt:${yt}`;
+    if (host === 'music.apple.com' && u.searchParams.get('i')) return `am:${u.searchParams.get('i')}`;
+    return host + u.pathname.replace(/\/+$/, '').toLowerCase();
+  }
+  const nameKey = (s) => unitsOf(s).join(' ');
+  function relatedWhy(q, x) {
+    if (!q || !x || q === x) return '';
+    const s = q.source, t = x.source;
+    const who = nameKey(q.author && q.author.name), theirs = nameKey(x.author && x.author.name);
+    if (s && t && s.kind !== 'personal' && t.kind !== 'personal') {
+      const a = linkKey(s.link);
+      if (a && a === linkKey(t.link)) return 'source';
+      const title = nameKey(s.title);
+      if (title && title === nameKey(t.title) && (!who || !theirs || who === theirs)) return 'source';
+    }
+    const known = (a) => ['person', 'character', 'other'].includes((a && a.kind) || 'person');
+    if (who && who === theirs && known(q.author) && known(x.author)) return 'author';
+    const mine = [q.text, q.originalLanguage && q.originalLanguage.text], other = [x.text, x.originalLanguage && x.originalLanguage.text];
+    if (mine.some((a) => other.some((b) => a && b && likeness(a, b) >= RELATED_SHARE))) return 'words';
+    return '';
+  }
+  const suggestedFor = (q) => store.live.map((x) => ({ x, why: relatedWhy(q, x) })).filter((r) => r.why);
+  function autoRelated(q) {
+    const d = edit.draft;
+    const add = suggestedFor(q).filter((r) => r.why === 'source' && !d.related.includes(r.x.id) && !d.relatedNot.includes(r.x.id) && !(q.status === 'live' && (r.x.relatedNot || []).includes(q.id))).map((r) => r.x.id);
+    if (!add.length) return;
+    mark(); d.related = [...d.related, ...add].sort((a, b) => a - b);
+    renderRel(); setRelOpen(true, false); updateDirty();
+    toast(`Related: No. ${add.join(', No. ')} filled in, from the same source. Check before you save.`);
+  }
+  function setRelOpen(open, animate = true) {
+    $('relSec').classList.toggle('is-open', open);
+    (animate ? fold : foldNow)($('relWrap'), open);
+  }
+  function renderRel() {
+    $('relRows').innerHTML = edit.draft.related.map((id) => {
+      const x = store.live.find((y) => y.id === id);
+      return `<div class="fw fw--closable"><input class="field" type="text" readonly tabindex="-1" value="No. ${id}  ${esc(x ? x.text : '')}" aria-label="Related quote No. ${id}"><button type="button" class="fw-close rel-remove" data-id="${id}" aria-label="Remove No. ${id}"><span class="icon icon-x"></span></button></div>`;
+    }).join('');
+    $('relRows').querySelectorAll('.field').forEach((f) => { f.dir = 'auto'; fieldLook(f); });
+  }
+  function setRelated(ids) {
+    const next = [...ids].sort((a, b) => a - b), d = edit.draft;
+    if (JSON.stringify(next) === JSON.stringify(d.related)) return;
+    mark();
+    // One the system filled in (the same source), taken off: remembered, so it is not filled in
+    // again. Put back by hand: forgotten.
+    const self = findItem(edit.key)?.q;
+    const gone = d.related.filter((n) => !next.includes(n) && self && relatedWhy(self, store.live.find((x) => x.id === n)) === 'source');
+    d.relatedNot = [...new Set([...d.relatedNot, ...gone])].filter((n) => !next.includes(n)).sort((a, b) => a - b);
+    d.related = next;
+    renderRel(); setRelOpen(next.length > 0); updateDirty();
+  }
+  $('relRows').addEventListener('click', (e) => { const b = e.target.closest('.rel-remove'); if (b) setRelated(edit.draft.related.filter((n) => n !== Number(b.dataset.id))); });
+  // The picker: every live quote but this one, newest first as the Quotes list opens.
+  let pickSel = null; // the numbers ticked, while it is open
+  function openPick() {
+    const self = findItem(edit.key)?.q;
+    pickSel = new Set(edit.draft.related);
+    const why = new Map(suggestedFor(self).map((r) => [r.x.id, r.why]));
+    const row = (x) => `
+      <div class="pick-row" role="checkbox" tabindex="0" aria-checked="${pickSel.has(x.id)}" data-id="${x.id}">
+        <span class="chk-box" aria-hidden="true"><span class="icon icon-check"></span></span><p class="num">${x.id}</p><div><p class="pick-q">${esc(x.text)}</p>${why.has(x.id) ? `<p class="pick-why">${WHY[why.get(x.id)]}</p>` : ''}</div>
+      </div>`;
+    const all = store.live.filter((x) => x !== self).sort((a, b) => b.id - a.id); // newest first, as the Quotes list opens
+    const first = all.filter((x) => why.has(x.id)).sort((a, b) => ['source', 'author', 'words'].indexOf(why.get(a.id)) - ['source', 'author', 'words'].indexOf(why.get(b.id)));
+    $('pickRows').innerHTML = first.length
+      ? `<p class="pick-sub">Suggested</p>${first.map(row).join('')}<p class="pick-sub">All quotes</p>${all.filter((x) => !why.has(x.id)).map(row).join('')}`
+      : all.map(row).join('');
+    $('pick').hidden = false;
+    $('pickRows').scrollTop = 0;
+    $('pickYes').focus();
+  }
+  function closePick(keep) {
+    if (!pickSel) return;
+    const ids = pickSel; pickSel = null;
+    $('pick').hidden = true;
+    if (keep && edit) setRelated(ids);
+  }
+  const pickToggle = (row) => { const id = Number(row.dataset.id), on = !pickSel.has(id); if (on) pickSel.add(id); else pickSel.delete(id); row.setAttribute('aria-checked', on); };
+  $('relOpen').addEventListener('click', openPick);
+  $('relMore').addEventListener('click', openPick);
+  $('pickRows').addEventListener('click', (e) => { const row = e.target.closest('.pick-row'); if (row && pickSel) pickToggle(row); });
+  $('pickRows').addEventListener('keydown', (e) => { const row = e.target.closest('.pick-row'); if (row && pickSel && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); pickToggle(row); } });
+  $('pickYes').addEventListener('click', () => closePick(true));
+  $('pickNo').addEventListener('click', () => closePick(false));
+  $('pick').addEventListener('click', (e) => { if (e.target === $('pick')) closePick(false); });
+  document.addEventListener('keydown', (e) => { if (pickSel && e.key === 'Escape') closePick(false); });
+
   // Annotations: closed ("Annotation +") until there is one; open = the rows, "Another +" once
   // every row is matched, and a × on the title line that drops them all (hidden once there are
   // two rows, which carry their own ×). A row: the Word field, → to check it (Enter too); a match
@@ -2032,6 +2161,8 @@
     font.set(d.font); lang.set(d.lang); drawFont();
     renderAnn();
     setAnnOpen(d.annotations.some((a) => a.word.trim() || a.explanation.trim()), false);
+    renderRel();
+    setRelOpen(d.related.length > 0, false);
     document.querySelectorAll('textarea.field').forEach((ta) => ta.dispatchEvent(new Event('scroll')));
   }
 
