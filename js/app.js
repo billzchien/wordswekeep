@@ -2374,6 +2374,7 @@
     musicSync(mode); // the music fades out as notes open, back in as they close
     if (still) return applyMode(mode);
     if (sound) music.effect('notes'); // its page flip + laser, timed to the drop (md/checks/sounds); after musicSync, which hands the iPhone back to 'auto'
+    if (mode === 'main') sfx('close'); // notes closing (Bill, 2026-11-22); the music is fading back in under it
     modeBusy = true;
     const toNotes = mode === 'notes';
     const mainWrap = () => track.querySelector('.slide[data-pos="0"] .q-wrap');
@@ -3174,6 +3175,7 @@
 
   function openAnnotation(el) {
     if (annBusy) return;
+    sfx('annotation');
     const a = current().annotations[+el.dataset.ann];
     const rect = el.getClientRects()[0];
     const overlay = $('annOverlay'), word = $('annWord'), text = $('annText'), back = $('annBack');
@@ -3306,6 +3308,7 @@
     if (info.state !== 'ok' || !thumb.isConnected) { videoBusy = false; if (thumb.isConnected) toast(music ? 'Music not available.' : 'Video not available.'); return; }
     if (info.id) video.id = info.id;
     if (info.vertical) video.orientation = 'vertical';
+    sfx('annotation'); // the annotation's click, as the player opens too (Bill, 2026-11-22); over (0.22s) before the player itself is in (MORPH_MS)
     videoThumb = thumb;
     const poster = music ? '' : posterOf(thumb); // music: a cover would not stretch into the player's banner — the morph is the container's grey
     const box = $('videoBox'), frame = $('videoFrame');
@@ -3585,6 +3588,7 @@
     const from = menuMark.shown;
     menuMark.shown = key;
     menuSymPlace(key);
+    if (!reduceMotion.matches) sfx('morph'); // (reduced motion: no redraw to go with)
     menuSymPlay(menuSym.model, (t) => menuSym.r.transition(SYM[from], SYM[key], t));
   }
 
@@ -3890,6 +3894,7 @@
 
   function applyFilter(key) {
     if (menuBusy || countFor(key) === 0) return;
+    sfx('enter');
     const changed = key !== state.filter;
     if (changed) {
       state.filter = key;
@@ -3915,6 +3920,7 @@
     // shows); a tap on the underlined row applies.
     if (state.preview === row.dataset.cat) return applyFilter(row.dataset.cat);
     state.preview = row.dataset.cat;
+    sfx('point');
     updateMenuPreview();
   });
   catList.addEventListener('mouseover', (e) => {
@@ -3922,6 +3928,7 @@
     const row = e.target.closest('[data-cat]');
     if (!row || !mqHoverDesktop.matches || state.preview === row.dataset.cat) return;
     state.preview = row.dataset.cat;
+    sfx('point'); // the pointer comes onto a row; the symbol's redraw (and its sound) follows once it rests there
     updateMenuPreview();
   });
   // Leaving the list goes back to the selected category — except to the right, toward the
@@ -4413,6 +4420,7 @@
   // (wwk-arrive = 'menu', js/form.js).
   const LEAVE_MENU_MS = 300;
   const NOTES_CUT_S = 0.05; // the music, cut as notes open with their sound (Bill, 2026-10-15): short enough to be a cut, long enough not to click
+  const ADD_SOUND_MS = 400; // the "add" sound's length: the page stays for it (it only plays with the music on, whose fade is longer still)
   const LEAVE_MUSIC_S = 0.6; // playing music fades out over this, and the page waits for it: a new page stops the old one's sound (Bill, 2026-10-13)
   // The page's "Add words", and on a phone the menu's (its list's last row).
   document.addEventListener('click', (e) => {
@@ -4428,7 +4436,8 @@
     const playing = !!music && music.state().playing;
     if (playing) music.stop(LEAVE_MUSIC_S);
     musicLeaving = true; musicSync();
-    setTimeout(() => { location.href = href; }, Math.max(playing ? LEAVE_MUSIC_S * 1000 : 0, reduceMotion.matches ? 0 : fromMenu ? LEAVE_MENU_MS : LEAVE_MS));
+    const sounding = sfx('add'); // its sound (Bill, 2026-11-22), 0.37s: the page waits for it too, as for the music
+    setTimeout(() => { location.href = href; }, Math.max(playing ? LEAVE_MUSIC_S * 1000 : 0, sounding ? ADD_SOUND_MS : 0, reduceMotion.matches ? 0 : fromMenu ? LEAVE_MENU_MS : LEAVE_MS));
   }, true); // (capturing: before `follow`, which would go at once)
   window.addEventListener('pageshow', () => app.classList.remove('is-leaving', 'is-leaving-menu')); // back button (bfcache)
 
@@ -4460,9 +4469,18 @@
     if (mode) musicMode = mode;
     if (musicWanted && musicUnlocked && musicMode === 'main' && !document.hidden && !musicLeaving) music.play(state.filter);
     else { music.stop(); music.trackName(state.filter).then(setPlayerName, () => {}); } // (playing, music.js names the track it picked)
+    // In notes with the player on, a desktop keeps the audio awake (silent), so the sounds there —
+    // an annotation, notes closing — start at the click; woken for them, the closing sound came a
+    // second late on Bill's Mac (2026-11-22). A tablet or phone lets it sleep as before (its
+    // audio session is shared with the notes' Spotify / YouTube players).
+    music.hold(musicDesktop && musicWanted && musicUnlocked && musicMode === 'notes' && !document.hidden && scanLevel < 1);
     drawPlayer();
   }
   const playerOn = () => musicWanted && musicUnlocked;
+  // The small sounds (Bill, 2026-11-22; js/music.js → EFFECTS): an annotation opening, notes
+  // closing, and in the menu a row pointed at, the symbol's redraw and the choice. Like the
+  // notes sound: only with the music on, and not for a browser that cannot keep up (watchScan).
+  function sfx(name) { return !!(music && playerOn() && scanLevel < 1 && music.effect(name)); }
   function drawPlayer() {
     const on = playerOn();
     player.classList.toggle('is-on', on);
@@ -4533,6 +4551,9 @@
       if (playerOn() && musicMode === 'main' && !document.hidden && !music.unlocked()) music.unlock(); // (not in notes: the music is meant to be asleep there)
     };
     ['pointerdown', 'keydown'].forEach((t) => document.addEventListener(t, firstGesture, true));
+    // In notes the audio is asleep: the press on the Notes button wakes it, so the closing sound,
+    // at the click a moment later, starts on audio already awake (Bill, 2026-11-22: it came late).
+    $('notesBtn').addEventListener('pointerdown', () => { if (playerOn() && state.mode === 'notes' && scanLevel < 1) music.warm(); });
     // Desktop tries at once: a browser that lets this site play sound (Chrome, for a site often
     // listened to; Safari set to "Allow All Auto-Play") fades it in on landing. One that does not
     // keeps the audio held, and the first click or key starts it, above.

@@ -106,6 +106,18 @@
 
   let want = null;        // { key, on } — the last thing asked for; anything older is dropped
   let suspendTimer = 0;
+  // Held awake (app.js: in notes on a desktop, the player on): the audio is not put to sleep, so a
+  // sound there starts at once. Waking it took the speakers a moment on Bill's Mac — the closing
+  // sound came "a second later" (2026-11-22), as the bell once did on the form.
+  let held = false;
+  const hold = (on) => {
+    if (held === !!on) return;
+    held = !!on;
+    if (!ctx) return;
+    if (held) { if (ctx.state !== 'running') ctx.resume().catch(() => {}); return; }
+    clearTimeout(suspendTimer);
+    suspendTimer = setTimeout(() => { if (!held && !(want && want.on) && (!voice || !voice.on)) ctx.suspend().catch(() => {}); }, Math.max(effectsUntil - performance.now(), 0) + 100); // (not while the music is on its way back: play() may still be loading its track)
+  };
 
   // Play `key`'s music (fading in), or cross over to it from what is playing.
   const play = async (key) => {
@@ -136,7 +148,7 @@
     session('auto'); // at once: the page's other players are not held to it while the music fades
     emit();
     clearTimeout(suspendTimer);
-    suspendTimer = setTimeout(() => { if (!voice || !voice.on) ctx.suspend().catch(() => {}); }, s * 1000 + 100);
+    suspendTimer = setTimeout(() => { if (!held && (!voice || !voice.on)) ctx.suspend().catch(() => {}); }, s * 1000 + 100);
   };
 
   // The browser lets sound start only after a click, tap or key (autoplay rules): true once it may.
@@ -156,9 +168,27 @@
   //   notes      app.js, as notes open, only while the music is on
   //   submitted  form.js, as "Words submitted" comes in, always; `wake`: it may find the context
   //              asleep (the form has no music; its click woke it a moment before), so it wakes it
-  const EFFECTS = { notes: { volume: 0.15 }, submitted: { volume: 0.4, wake: true } }; // Bill, 2026-10-15, on the files' level (md/checks/sounds)
-  const effectBufs = {};
-  let effectsAsked = false, effectTimer = 0;
+  //   annotation, close, enter, morph, point  app.js (sfx), only while the music is on: an
+  //              annotation opening, notes closing, a menu item chosen, the menu's symbol
+  //              redrawing, the pointer coming onto a menu row. Starting volumes: each one's
+  //              loudest moment matched to the notes sound's at 0.15; tuned on md/checks/sounds/more.html.
+  //              `wake`: in notes the context is asleep, and as notes close it is only just waking.
+  //              `solo`: a new one fades the last out (a redraw can start before the last sound ends).
+  const EFFECTS = {
+    notes: { volume: 0.15 }, submitted: { volume: 0.4, wake: true }, // Bill, 2026-10-15, on the files' level (md/checks/sounds)
+    annotation: { volume: 0.11, wake: true }, close: { volume: 0.11, wake: true, offset: 0.12 },
+    // add (Bill's file and volume, 2026-11-22, later the same day): "Add words" pressed. (Two more
+    // he tried and took out again: a link's underline under the pointer — tried on the form's
+    // "Another idea" too — and the quote changing.)
+    add: { volume: 0.08 },
+    enter: { volume: 0.08 }, morph: { volume: 0.05, solo: true }, point: { volume: 0.03 }, // all five: Bill, 2026-11-22, by ear on md/checks/sounds/more.html (close from 120ms too)
+  };
+  // `offset`: the sound starts this far into its file, over OFFSET_IN_S — close swells for 0.29s
+  // before its peak, which read as late against notes closing (Bill, 2026-11-22).
+  const OFFSET_IN_S = 0.015;
+  const SOLO_OUT_S = 0.04;
+  const effectBufs = {}, soloGain = {};
+  let effectsAsked = false, effectTimer = 0, effectsUntil = 0;
   const loadEffects = () => {
     if (effectsAsked) return;
     effectsAsked = true;
@@ -170,32 +200,54 @@
     if (!buf || !ctx) return false; // (true once it plays: the form times its slide on it)
     if (ctx.state !== 'running') { if (!fx.wake) return false; ctx.resume().catch(() => {}); } // (started on a waking context, it plays as it wakes)
     const src = ctx.createBufferSource(), gain = ctx.createGain();
-    src.buffer = buf; gain.gain.value = fx.volume ?? 0.15;
+    const vol = fx.volume ?? 0.15, off = Math.min(fx.offset || 0, buf.duration);
+    src.buffer = buf; gain.gain.value = vol;
+    if (off) { gain.gain.setValueAtTime(0, ctx.currentTime); gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + OFFSET_IN_S); }
     src.connect(gain).connect(ctx.destination);
-    src.onended = () => { src.disconnect(); gain.disconnect(); };
-    src.start();
+    src.onended = () => { src.disconnect(); gain.disconnect(); if (soloGain[name] === gain) soloGain[name] = null; };
+    if (fx.solo) {
+      const last = soloGain[name], now = ctx.currentTime;
+      if (last) { last.gain.setValueAtTime(last.gain.value, now); last.gain.linearRampToValueAtTime(0, now + SOLO_OUT_S); }
+      soloGain[name] = gain;
+    }
+    src.start(0, off);
     // The music's stop() hands the page back to 'auto' at once, which the iPhone's silent switch
     // mutes: the effect keeps 'playback' until it is over, then 'auto' unless the music is back.
     session('playback');
     // A music cut just before (stop with a short fade) would suspend the context under the effect.
+    // (Until the last of them is over: a short one started under a longer one must not cut it.)
+    effectsUntil = Math.max(effectsUntil, performance.now() + (buf.duration - off) * 1000);
+    const left = effectsUntil - performance.now();
     clearTimeout(suspendTimer);
-    suspendTimer = setTimeout(() => { if (!voice || !voice.on) ctx.suspend().catch(() => {}); }, buf.duration * 1000 + 100);
+    suspendTimer = setTimeout(() => { if (!held && (!voice || !voice.on)) ctx.suspend().catch(() => {}); }, left + 100);
     clearTimeout(effectTimer);
-    effectTimer = setTimeout(() => { if (!voice || !voice.on) session('auto'); }, buf.duration * 1000 + 50);
+    effectTimer = setTimeout(() => { if (!voice || !voice.on) session('auto'); }, left + 50);
     return true;
+  };
+
+  // Wakes the audio a moment ahead of a sound that would find it asleep (app.js: the press on
+  // "Close" in notes, before its click), and lets it sleep again if nothing comes.
+  const warm = () => {
+    if (!ctx || ctx.state === 'running') return;
+    ctx.resume().catch(() => {});
+    effectsUntil = Math.max(effectsUntil, performance.now() + 1000);
+    clearTimeout(suspendTimer);
+    suspendTimer = setTimeout(() => { if (!held && (!voice || !voice.on)) ctx.suspend().catch(() => {}); }, effectsUntil - performance.now() + 100);
   };
 
   const listeners = new Set();
   const emit = () => listeners.forEach((f) => f(api.state()));
 
   const api = {
-    play, stop, effect, loadEffects,
+    play, stop, effect, loadEffects, warm, hold,
     hasEffect: (name) => !!effectBufs[name] && !!ctx && ctx.state === 'running',
     prefetch: async (key) => { const t = await pick(key); lastFile[key] = undefined; decode(t.file).catch(() => {}); },
     unlock: () => { const c = context(); if (c.state !== 'running') return c.resume().catch(() => {}); return Promise.resolve(); },
     unlocked,
     setVolume: (v) => { VOLUME = v; if (master) master.gain.setTargetAtTime(v, ctx.currentTime, 0.05); },
     volume: () => VOLUME,
+    effectVolume: (name, v) => { if (EFFECTS[name] && v != null) EFFECTS[name].volume = v; return EFFECTS[name] && EFFECTS[name].volume; }, // (md/checks/sounds/more.html sets it)
+    effectOffset: (name, s) => { if (EFFECTS[name] && s != null) EFFECTS[name].offset = s; return (EFFECTS[name] && EFFECTS[name].offset) || 0; },
     state: () => ({ playing: !!(voice && voice.on), key: voice && voice.key, name: voice && voice.track.name }),
     trackName: async (key) => { const all = await manifest(); return (all[key] || all.all)[0].name; },
     on: (f) => listeners.add(f),
