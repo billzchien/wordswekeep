@@ -181,6 +181,7 @@
     // he tried and took out again: a link's underline under the pointer — tried on the form's
     // "Another idea" too — and the quote changing.)
     add: { volume: 0.08 },
+    language: { volume: 0.1, wake: true, solo: true }, // a quote changing to its other language (Bill, 2026-11-22: his "next quote" file; 0.1 by ear on md/checks/sounds/more.html)
     enter: { volume: 0.08 }, morph: { volume: 0.05, solo: true }, point: { volume: 0.03 }, // all five: Bill, 2026-11-22, by ear on md/checks/sounds/more.html (close from 120ms too)
   };
   // `offset`: the sound starts this far into its file, over OFFSET_IN_S — close swells for 0.29s

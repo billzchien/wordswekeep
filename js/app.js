@@ -2712,6 +2712,7 @@
     const inNotes = state.mode === 'notes';
     const render = () => (inNotes ? renderNotesQuote() : renderDeck());
     state.original = !state.original;
+    sfx('language'); // (Bill, 2026-11-22) at the press, which sets the change off; with reduced motion too, on the instant change
     if (reduceMotion.matches) return render();
 
     langBusy = true;
