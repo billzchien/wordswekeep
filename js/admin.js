@@ -117,8 +117,6 @@
       latin: 'A1-107 10C-113 116-11B 11E-11F 122-123 12A-12B 12E-131 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-173 178-17E 192 218-21B 2010-2027 202F-203A 2044 205F 20A9 20AC' },
     { value: 'kid',        label: 'Kid',       not: [],
       latin: 'A1-107 10C-113 116-11B 11E-11F 122-123 12A-12B 12E-131 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-173 178-17E 192 218-21B 2010-2027 202F-203A 2044 205F 20A9 20AC' },
-    { value: 'briega',     label: 'Briega',    not: [],
-      latin: 'A1-A3 A5 A7-AB AD-B0 B4 B6-B8 BA-BB BF-148 14A-17E 18F 1F4-1F5 1FC-1FF 218-21B 237 1E80-1E85 1E9E 1EF2-1EF3 2011 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203B 2042 2051 2055 205C-205D 20AC' },
     { value: 'king',       label: 'King',      not: [],
       latin: 'A1-A3 A5 A7-AB AD-B0 B4 B6-B8 BA-BB BF-148 14A-17E 18F 1F4-1F5 1FC-1FF 218-21B 237 1E80-1E85 1E9E 1EF2-1EF3 2011 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2032-2033 2039-203A 20AA 20AC' },
     { value: 'auserif',    label: 'Auserif',   not: [],
@@ -126,7 +124,7 @@
     { value: 'headline',   label: 'Headline',  not: [],
       latin: 'A1-A3 A5 AB AD BB BF-CF D1-D6 D8-DD E0-EF F1-F6 F8-FD FF-101 106-107 10C-10D 110-113 12A-12B 141-144 14C-14D 152-153 15A-15B 160-161 16A-16B 178-17A 17D-17E 2010-2014 2018-2019 201C-201D 202F 205F 20AC' },
   ];
-  const FONT_FILES = ['grotesk', 'poet', 'sketch', 'author', 'fig', 'stone', 'rondeau', 'curly', 'kid', 'briega', 'king', 'auserif', 'headline'];
+  const FONT_FILES = ['grotesk', 'poet', 'sketch', 'author', 'fig', 'stone', 'rondeau', 'curly', 'kid', 'king', 'auserif', 'headline'];
   // An original-language quote written in Latin letters (Spanish, French, Vietnamese, pinyin…)
   // is set in the quote's own face when the face has every character it needs; anything else —
   // another script, or a letter the face lacks — is set in Noto. `latin`: what a face has beyond
@@ -2025,31 +2023,72 @@
     renderRel(); setRelOpen(next.length > 0); updateDirty();
   }
   $('relRows').addEventListener('click', (e) => { const b = e.target.closest('.rel-remove'); if (b) setRelated(edit.draft.related.filter((n) => n !== Number(b.dataset.id))); });
-  // The picker: every live quote but this one, newest first as the Quotes list opens.
+  // The picker: every live quote but this one, newest first as the Quotes list opens. Its search
+  // is the Quotes list's (hit): every word typed must be found in a quote — its number, its words,
+  // author, source, categories. A quote ticked and then searched out of sight stays ticked.
   let pickSel = null; // the numbers ticked, while it is open
+  let pickQuery = '';
   function openPick() {
-    const self = findItem(edit.key)?.q;
     pickSel = new Set(edit.draft.related);
+    setPickSearch(false);
+    drawPick();
+    $('pick').hidden = false;
+    $('pickRows').scrollTop = 0;
+    $('pickYes').focus();
+  }
+  function drawPick() {
+    const self = findItem(edit.key)?.q;
+    const terms = fold_(pickQuery).split(/\s+/).filter(Boolean);
     const why = new Map(suggestedFor(self).map((r) => [r.x.id, r.why]));
     const row = (x) => `
       <div class="pick-row" role="checkbox" tabindex="0" aria-checked="${pickSel.has(x.id)}" data-id="${x.id}">
         <span class="chk-box" aria-hidden="true"><span class="icon icon-check"></span></span><p class="num">${x.id}</p><div><p class="pick-q">${esc(x.text)}</p>${why.has(x.id) ? `<p class="pick-why">${WHY[why.get(x.id)]}</p>` : ''}</div>
       </div>`;
-    const all = store.live.filter((x) => x !== self).sort((a, b) => b.id - a.id); // newest first, as the Quotes list opens
+    const all = store.live.filter((x) => x !== self && terms.every((w) => hit(x, 'quotes', w))).sort((a, b) => b.id - a.id); // newest first, as the Quotes list opens
     const first = all.filter((x) => why.has(x.id)).sort((a, b) => ['source', 'author', 'words'].indexOf(why.get(a.id)) - ['source', 'author', 'words'].indexOf(why.get(b.id)));
-    $('pickRows').innerHTML = first.length
-      ? `<p class="pick-sub">Suggested</p>${first.map(row).join('')}<p class="pick-sub">All quotes</p>${all.filter((x) => !why.has(x.id)).map(row).join('')}`
+    const rest = all.filter((x) => !why.has(x.id));
+    $('pickRows').innerHTML = !all.length ? '<p class="pick-none">Nothing found.</p>'
+      : first.length ? `<p class="pick-sub">Suggested</p>${first.map(row).join('')}${rest.length ? `<p class="pick-sub">All quotes</p>${rest.map(row).join('')}` : ''}`
       : all.map(row).join('');
-    $('pick').hidden = false;
-    $('pickRows').scrollTop = 0;
-    $('pickYes').focus();
   }
   function closePick(keep) {
     if (!pickSel) return;
     const ids = pickSel; pickSel = null;
     $('pick').hidden = true;
+    setPickSearch(false);
     if (keep && edit) setRelated(ids);
   }
+  // The search, as the list's (setSearch / search): the button opens the field and closes it
+  // again, closing empties it; Escape in the field closes the search, not the picker. Once words
+  // are typed the rows hold the height they had (pickHold): fewer rows would make the centred
+  // pop-up shorter, and the field would move under the typing.
+  function pickHold(on) { const r = $('pickRows'); r.style.height = on ? `${r.getBoundingClientRect().height}px` : ''; } // (the exact height: a rounded one moves it a part of a pixel)
+  function setPickSearch(open) {
+    const field = $('pickField');
+    $('pickSearch').classList.toggle('is-open', open);
+    $('pickSearchBtn').setAttribute('aria-expanded', open);
+    field.tabIndex = $('pickEnd').tabIndex = open ? 0 : -1;
+    if (open) { field.focus({ preventScroll: true }); return; }
+    field.blur();
+    if (pickQuery || field.value) { field.value = ''; pickSearch(); }
+    pickHold(false);
+  }
+  function pickSearch() {
+    if (pickSel && !$('pickRows').style.height) pickHold(true);
+    pickQuery = $('pickField').value;
+    $('pickSearch').classList.toggle('is-filled', !!pickQuery);
+    if (!pickSel) return;
+    drawPick();
+    $('pickRows').scrollTop = 0;
+  }
+  $('pickSearchBtn').addEventListener('click', () => setPickSearch(!$('pickSearch').classList.contains('is-open')));
+  $('pickField').addEventListener('input', pickSearch);
+  $('pickField').addEventListener('keydown', (e) => {
+    if (composing(e)) return;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setPickSearch(false); $('pickSearchBtn').focus({ preventScroll: true }); }
+    if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } // a phone's keyboard goes away
+  });
+  $('pickEnd').addEventListener('click', () => { const f = $('pickField'); if (f.value) { f.value = ''; pickSearch(); } f.focus({ preventScroll: true }); });
   const pickToggle = (row) => { const id = Number(row.dataset.id), on = !pickSel.has(id); if (on) pickSel.add(id); else pickSel.delete(id); row.setAttribute('aria-checked', on); };
   $('relOpen').addEventListener('click', openPick);
   $('relMore').addEventListener('click', openPick);

@@ -30,17 +30,6 @@
     "leadingXL": 1.2,
     "tracking": -5
   },
-  "briega": {
-    "scale": {
-      "xl": 1,
-      "l": 1,
-      "m": 1,
-      "s": 1
-    },
-    "leading": 1.18,
-    "leadingXL": 1.1,
-    "tracking": -1.5
-  },
   "curly": {
     "scale": {
       "xl": 1.4,

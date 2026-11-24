@@ -276,11 +276,20 @@
     </div>
 
     <!-- Related quotes: pick from the live ones (js/admin.js → openPick). A table as the Quotes list's:
-         a checkbox, the number, the words; several may be ticked. -->
+         a checkbox, the number, the words; several may be ticked. The search is the Quotes list's
+         (the icon at the end of the head opens the field), and finds what it finds there. -->
     <div class="popup-layer" id="pick" hidden>
       <div class="popup pick" role="dialog" aria-modal="true" aria-label="Related quotes">
         <div class="pick-table">
-          <div class="pick-head"><span></span><p>No.</p><p>Quote</p></div>
+          <div class="pick-head"><span></span><p>No.</p><p>Quote</p>
+            <div class="search" id="pickSearch" role="search">
+              <button type="button" class="search-btn" id="pickSearchBtn" aria-label="Search" aria-expanded="false" aria-controls="pickSearchBox"><span class="icon icon-search"></span></button>
+              <div class="search-box" id="pickSearchBox">
+                <input class="search-field" id="pickField" type="text" placeholder="Search" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search the quotes" tabindex="-1">
+                <button type="button" class="search-end" id="pickEnd" aria-label="Clear the search" tabindex="-1"><span class="icon icon-arrow"></span><span class="icon icon-x"></span></button>
+              </div>
+            </div>
+          </div>
           <div class="pick-rows" id="pickRows" role="group" aria-label="Quotes"></div>
         </div>
         <div class="popup-btns">

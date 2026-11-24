@@ -86,8 +86,6 @@
       latin: 'A1-107 10C-113 116-11B 11E-11F 122-123 12A-12B 12E-131 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-173 178-17E 192 218-21B 2010-2027 202F-203A 2044 205F 20A9 20AC' },
     { key: 'kid',        name: 'Kid',       not: [],
       latin: 'A1-107 10C-113 116-11B 11E-11F 122-123 12A-12B 12E-131 136-137 139-13E 141-148 14C-14D 150-15B 15E-165 16A-16B 16E-173 178-17E 192 218-21B 2010-2027 202F-203A 2044 205F 20A9 20AC' },
-    { key: 'briega',     name: 'Briega',    not: [],
-      latin: 'A1-A3 A5 A7-AB AD-B0 B4 B6-B8 BA-BB BF-148 14A-17E 18F 1F4-1F5 1FC-1FF 218-21B 237 1E80-1E85 1E9E 1EF2-1EF3 2011 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2039-203B 2042 2051 2055 205C-205D 20AC' },
     { key: 'king',       name: 'King',      not: [],
       latin: 'A1-A3 A5 A7-AB AD-B0 B4 B6-B8 BA-BB BF-148 14A-17E 18F 1F4-1F5 1FC-1FF 218-21B 237 1E80-1E85 1E9E 1EF2-1EF3 2011 2013-2014 2018-201A 201C-201E 2020-2022 2026 2030 2032-2033 2039-203A 20AA 20AC' },
     { key: 'auserif',    name: 'Auserif',   not: [],
@@ -144,7 +142,7 @@
   }
   const RTL_SCRIPTS = new Set(['arab', 'hebr']);
   const DEFAULT_FONT = 'instrument', LONG_FONT = 'goudy'; // a quote with no face of its own: Instrument, or Goudy when it is long
-  const FONT_FILES = ['grotesk', 'poet', 'sketch', 'author', 'fig', 'stone', 'rondeau', 'curly', 'kid', 'briega', 'king', 'auserif', 'headline']; // the licensed faces, by name (the Google fonts come from the same Worker, by css2)
+  const FONT_FILES = ['grotesk', 'poet', 'sketch', 'author', 'fig', 'stone', 'rondeau', 'curly', 'kid', 'king', 'auserif', 'headline']; // the licensed faces, by name (the Google fonts come from the same Worker, by css2)
 
   // A shuffled copy (Fisher–Yates). The deck is dealt once per visit / per category, so ↑ and ↓
   // stay consistent within it, but the order is never the archive's numbering.
@@ -1459,10 +1457,12 @@
     const own = new Set((Array.isArray(q.related) ? q.related : []).map(Number));
     return state.all.filter((x) => x.id !== q.id && (own.has(x.id) || (Array.isArray(x.related) && x.related.map(Number).includes(q.id))));
   }
+  // Its words run on as one paragraph (a poem's lines too: .n-rel p), with no orphan: the last
+  // two words stay together (noOrphans; Bill, 2026-11-24: "…that is given / us.").
   function relatedHTML(q) {
     const list = relatedOf(q);
     if (!list.length) return '';
-    return `<div class="n-related"><p>Related/</p>${list.map((r) => `<div class="n-rel"><p><span class="n-rel-no" role="link" tabindex="0" data-related="${r.id}">No. ${r.id}</span></p><div class="n-indent n-indent--kept"><p class="n-rel-q">“${nativeRuns(esc(r.text))}”</p></div></div>`).join('')}</div>`;
+    return `<div class="n-related"><p>Related/</p>${list.map((r) => `<div class="n-rel"><p><span class="n-rel-no" role="link" tabindex="0" data-related="${r.id}">No. ${r.id}</span></p><div class="n-indent n-indent--kept"><p class="n-rel-q">“${nativeRuns(esc(noOrphans(r.text.replace(/\s*\n\s*/g, ' '))))}”</p></div></div>`).join('')}</div>`;
   }
   // Notes to notes: what is on the sheet fades out (RELATED_OUT_MS), the sheet takes the other
   // quote — its own palette, the notes back at their top — and fades in (css .notes.is-leaving /
