@@ -629,6 +629,36 @@ ul { list-style: none; }
 .notes.is-entering { transition: background-color 0.4s var(--ease); }
 .notes.is-entering > * { animation: fade-in 0.4s var(--ease) both; }
 
+/* ---------- Notes: on to the next quote's notes (since 2026-11-24; js/app.js → notesGo) ----------
+   A tablet and up, where the quote is pinned: the page's arrows stay in notes, bottom right, in
+   the palette's colour; they leave with the other controls while a word's note or a video is open.
+   While the sheet drops in or away a copy of them rides on it (.arrows-ghost, js → arrowsOnSheet). */
+@media (min-width: 600px) {
+  .app[data-mode="notes"]:not(.is-revealing) .arrows { display: flex; }
+  .app.is-dim .arrows { opacity: 0; pointer-events: none; }
+  .app.is-into-thoughts > .arrows { animation: fade-in var(--chrome-in) var(--ease) both; }
+}
+.arrows-ghost { z-index: 4; pointer-events: none; }
+/* A phone, where everything scrolls together: "Next", bottom right — on Close's right edge and as far
+   from the bottom as "Add words" is on the page. It does not scroll with the notes: like Close it
+   stays put, and it is only there once the notes have been read to their end (.is-at-end, js →
+   syncNext; notes that fit the window have it from the start). While the sheet drops in or away a
+   copy rides on it, as the arrows' does. */
+.n-next { display: none; }
+@media (max-width: 599px) {
+  .n-next { display: inline-block; right: var(--m); bottom: 20px; color: var(--fg); opacity: 0; pointer-events: none; transition: opacity 0.3s var(--ease); }
+  .app[data-mode="notes"].is-at-end:not(.is-dim) > .n-next { opacity: 1; pointer-events: auto; }
+  .app.is-revealing > .n-next, .app:not([data-mode="notes"]) > .n-next { visibility: hidden; transition: none; }
+  .notes > .n-next { opacity: 1; z-index: 4; } /* the copy on the sheet */
+}
+/* What was on the sheet, leaving on a copy of it (js → notesGo): no colour of its own, the sheet's shows through. */
+.notes-ghost { background: transparent; pointer-events: none; }
+/* Between two quotes' notes the colour changes as a plain sheet of the new one fading in under the notes
+   (js → notesGo, tint), which have none of their own meanwhile: opacity only, never an animated
+   background-color on the notes (it crashed the tab in Chrome 158). */
+.notes-tint { position: absolute; inset: 0; z-index: 10; pointer-events: none; } /* before the notes, on their level: under them */
+.notes.is-tinting { background: transparent; }
+
 /* ---------- Thoughts (Figma 525:759, since 2026-10-09) ----------
    Under the context: the approved thoughts, titled "Thoughts/", oldest first — each a name (or
    "A fellow human") with its words indented as the keeper's name is — then "Add thoughts +" (the

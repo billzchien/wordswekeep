@@ -1313,8 +1313,8 @@
       setTimeout(() => icon.getAnimations().forEach((a) => { if (a.playState === 'finished') a.cancel(); }), ARROW_ROLL_MS + 30);
     };
   }
-  $('prevBtn').addEventListener('click', (e) => press(e.currentTarget, -1));
-  $('nextBtn').addEventListener('click', (e) => press(e.currentTarget, 1));
+  $('prevBtn').addEventListener('click', (e) => (state.mode === 'notes' ? notesGo(-1, e.currentTarget) : press(e.currentTarget, -1)));
+  $('nextBtn').addEventListener('click', (e) => (state.mode === 'notes' ? notesGo(1, e.currentTarget) : press(e.currentTarget, 1)));
 
   // A mouse click leaves focus on the button, so the next arrow-key press would draw a focus
   // ring around it. Drop focus after pointer clicks; Tab navigation keeps its (quiet) ring.
@@ -1390,14 +1390,20 @@
     return html;
   }
 
+  let themeNext = null;
+  function pickTheme(q) {
+    const cats = q.categories.length ? q.categories : ['perspective'];
+    const pool = cats.length > 1 ? cats.filter((k) => k !== lastTheme.get(q.id)) : cats;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
   function renderNotes() {
     const q = current();
     quoteHant = quoteIsHant(q);
     const cats = q.categories.length ? q.categories : ['perspective'];
     // The palette is one of the quote's categories, drawn at random each time notes open, and
     // never the same as the previous time for this quote — so a second look gets another colour.
-    const pool = cats.length > 1 ? cats.filter((k) => k !== lastTheme.get(q.id)) : cats;
-    const theme = pool[Math.floor(Math.random() * pool.length)];
+    const theme = themeNext || pickTheme(q); // (themeNext: chosen ahead by notesGo, which tints toward it before the swap)
+    themeNext = null;
     lastTheme.set(q.id, theme);
     // The notes layer and its Close link carry the palette themselves, so the layer can be
     // revealed over the still-grey page.
@@ -1494,6 +1500,157 @@
       modeBusy = false;
       relatedTimer = setTimeout(() => notes.classList.remove('is-entering'), RELATED_IN_MS + 50);
     }, RELATED_OUT_MS);
+  }
+
+  /* ---------- Notes: on to the next quote's notes, or back (since 2026-11-24; Bill) ----------
+     Where the quote is pinned and the notes scroll over it (a tablet and up): the page's arrows
+     stay in notes, bottom right, in the palette's colour. Pressed (or the left / right key), the
+     sheet takes the next quote of the deck at once, the notes back at their top, and what was on
+     it leaves on a copy (.notes-ghost, no colour of its own). Both go in the same order, one part
+     after the other (NAV.stagger): the quote · "Words from" · the notes' column · the
+     categories and the thumbnail. Each old part fades and blurs out, shrinking a little (NAV.out,
+     .blur, .scaleOut); each new one fades and blurs in from a little larger (NAV.in, .scaleIn),
+     the first as the old quote is gone (NAV.inAt) — the later old
+     parts are still leaving then, so the sheet is never empty. The categories' symbols draw in, as
+     when notes open. The sheet's colour, Close and the arrows go from the one palette to the other
+     over the whole of it, straight (a sheet of the new colour fading in under the notes: tint). The
+     pressed arrow rolls as on the page: out as the change starts, back in with the new quote.
+     A phone, where everything scrolls together: no arrows, but "Next" at the foot of the notes,
+     bottom right, on Close's right edge. Pressed, the whole page goes on scrolling up — the next
+     quote's notes follow from below — while the colour changes; Close stays where it is
+     (NAV_SLIDE_MS). All of it as Web Animations of opacity, filter, transform and colour, started
+     once: nothing is written into the page while it moves. */
+  // Out: each old part's fade (ms), to this blur (px) and this size. In: each new part's fade, from that
+  // blur and from its own size; the first starts `inAt` after the press. `stagger`: one part to the next.
+  // The sizes are of the whole sheet about the middle of the window: leaving, it sinks back (0.9);
+  // arriving, it comes from in front (1.05). (Bill's numbers, 2026-11-24, from a tuning panel on a test page.)
+  const NAV = { out: 300, in: 300, inAt: 300, stagger: 100, blur: 20, scaleOut: 0.9, scaleIn: 1.05 };
+  const NAV_SLIDE_MS = 700;
+  const NAV_ORDER = ['#nQuoteWrap', '.n-from', '#nCol', '#nCats, #nVideoPin']; // who goes first, out and in
+  // A palette's two colours as the browser computes them (to tint from one to the other).
+  const paletteOf = (theme) => {
+    const probe = document.createElement('i');
+    probe.dataset.theme = theme;
+    probe.style.cssText = 'display:none;background:var(--bg);color:var(--fg)';
+    app.appendChild(probe);
+    const cs = getComputedStyle(probe), out = { bg: cs.backgroundColor, fg: cs.color };
+    probe.remove();
+    return out;
+  };
+  let navRuns = []; // the new notes' parts coming in
+  let tintRun = 0;
+  function endTint() { // the notes take their own colour back
+    app.querySelectorAll(':scope > .notes-tint').forEach((el) => el.remove());
+    notes.classList.remove('is-tinting');
+  }
+  function notesGo(dir, btn) {
+    if (state.mode !== 'notes' || modeBusy || langBusy || state.animating || state.list.length < 2) return;
+    if (!$('annOverlay').hidden || !$('videoOverlay').hidden || !$('menu').hidden) return;
+    const i = mod(state.idx + dir, state.list.length), q = state.list[i];
+    const theme = pickTheme(q);
+    const swap = () => {
+      state.idx = i;
+      state.original = false;
+      themeNext = theme;
+      closeOverlays({ instant: true });
+      renderDeck();
+      applyMode('notes');
+    };
+    if (reduceMotion.matches || !Element.prototype.animate) return swap();
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur(); // (out of the thoughts box: its keyboard goes)
+    const from = paletteOf(app.dataset.theme), to = paletteOf(theme), easing = easeCurve();
+    const tint = (ms) => { // the sheet, Close and the arrows, from the one palette to the other
+      // The sheet's colour is not animated itself: sheets of the colours on the way lie under the
+      // notes (which have none of their own meanwhile) and fade in one over the other — opacity
+      // only. (An animated background-color crashed the tab in Chrome 158, Bill, 2026-11-24: "Aw,
+      // Snap", error 5, each time at the same check in Chrome's style code for animated paint.)
+      // Straight from the one colour to the other (Bill, 2026-11-24: by way of the colours between them
+      // on the wheel — navy to green through teal — he saw "another color" before the final one).
+      const sheet = (color) => { const el = document.createElement('div'); el.className = 'notes-tint'; el.style.backgroundColor = color; notes.before(el); return el; };
+      if (!app.querySelector(':scope > .notes-tint')) sheet(from.bg); // (pressed again mid-way: the new sheets go over what is showing)
+      notes.classList.add('is-tinting');
+      sheet(to.bg).animate([{ opacity: 0 }, { opacity: 1 }], { duration: ms, easing: 'ease-in-out', fill: 'both' });
+      const run = ++tintRun;
+      setTimeout(() => { if (run === tintRun) endTint(); }, ms + 30);
+      [$('notesBtn'), $('nNext'), app.querySelector(':scope > .arrows')].forEach((el) => el.animate([{ color: from.fg }, { color: to.fg }], { duration: ms, easing: 'ease-in-out' }));
+    };
+    // What is on the sheet now leaves on a copy of it (no colour of its own: the sheet's shows through).
+    const leavingCopy = () => {
+      const ghost = notes.cloneNode(true);
+      ghost.removeAttribute('id');
+      ghost.classList.remove('is-entering', 'is-leaving', 'is-scrolling');
+      ghost.classList.add('notes-ghost');
+      ghost.setAttribute('aria-hidden', 'true');
+      ghost.inert = true;
+      notes.after(ghost); // after the notes: their ids are found first
+      ghost.scrollTop = notes.scrollTop;
+      return ghost;
+    };
+    if (mqMobile.matches) { // a phone: the page scrolls on, up into the next quote's notes
+      modeBusy = true; // Close waits for the change
+      const h = notes.clientHeight, timing = { duration: NAV_SLIDE_MS, easing, fill: 'both' };
+      const ghost = leavingCopy();
+      const fade = app.querySelector(':scope > .n-topfade');
+      fade.style.setProperty('--bg', from.bg); // the top fade leaves in the colour it had
+      swap();
+      tint(NAV_SLIDE_MS);
+      ghost.animate([{ transform: 'translateY(0px)' }, { transform: `translateY(${-dir * h}px)` }], timing);
+      const parts = [...notes.children].map((el) => el.animate([{ translate: `0 ${dir * h}px` }, { translate: '0 0px' }], timing)); // (the sheet stays: its colour is the page's)
+      requestAnimationFrame(() => setTimeout(() => {
+        ghost.remove();
+        parts.forEach((a) => a.cancel());
+        fade.style.removeProperty('--bg');
+        modeBusy = false;
+      }, NAV_SLIDE_MS + 20));
+      return;
+    }
+    // The pressed arrow rolls out of its box, the way it points (as on the page: press).
+    const icon = btn && btn.querySelector('.arrow-crop .icon');
+    const roll = { duration: ARROW_ROLL_MS, easing, fill: 'both' };
+    if (icon) { icon.getAnimations().forEach((a) => a.cancel()); icon.animate([{ translate: '0 0' }, { translate: `0 ${dir * 100}%` }], roll); }
+    // Every part grows or shrinks about the middle of the window, so the sheet moves as one.
+    const mid = (el) => { const r = el.getBoundingClientRect(); return `${(innerWidth / 2 - r.left).toFixed(1)}px ${(innerHeight / 2 - r.top).toFixed(1)}px`; };
+    const pose = (el, opacity, filter, scale) => ({ opacity, filter, scale, transformOrigin: mid(el) });
+    const blur = `blur(${NAV.blur}px)`;
+    const partsOf = (root) => NAV_ORDER.map((sel) => [...root.querySelectorAll(sel)]);
+    // Each part leaves from wherever it stands (pressed again mid-way: still coming in).
+    const stands = partsOf(notes).map((els) => els.map((el) => { const cs = getComputedStyle(el); return { opacity: cs.opacity, filter: cs.filter === 'none' ? 'blur(0px)' : cs.filter, scale: cs.scale === 'none' ? '1' : cs.scale }; }));
+    const ghost = leavingCopy();
+    swap();
+    navRuns.forEach((a) => a.cancel());
+    partsOf(ghost).forEach((els, n) => els.forEach((el, k) => { const was = stands[n][k] || { opacity: 1, filter: 'blur(0px)', scale: '1' }; el.animate([pose(el, was.opacity, was.filter, was.scale), pose(el, 0, blur, NAV.scaleOut)], { delay: n * NAV.stagger, duration: NAV.out, easing, fill: 'both' }); }));
+    navRuns = partsOf(notes).flatMap((els, n) => els.map((el) => el.animate([pose(el, 0, blur, NAV.scaleIn), pose(el, 1, 'blur(0px)', 1)], { delay: NAV.inAt + n * NAV.stagger, duration: NAV.in, easing, fill: 'backwards' })));
+    const last = NAV_ORDER.length - 1;
+    $('nCats').querySelectorAll('svg.sym').forEach((svg, k) => drawNoteSym(svg, NAV.inAt + last * NAV.stagger + k * NOTE_SYM_STAGGER_MS)); // the categories' symbols draw in as they come
+    tint(NAV.inAt + last * NAV.stagger + NAV.in);
+    modeBusy = true; // Close, and the next press, wait until the new quote starts to come in
+    requestAnimationFrame(() => {
+      setTimeout(() => ghost.remove(), last * NAV.stagger + NAV.out + 30);
+      setTimeout(() => {
+        if (icon) {
+          icon.getAnimations().forEach((a) => a.cancel());
+          icon.animate([{ translate: `0 ${dir * -100}%` }, { translate: '0 0' }], roll);
+          setTimeout(() => icon.getAnimations().forEach((a) => { if (a.playState === 'finished') a.cancel(); }), ARROW_ROLL_MS + 30);
+        }
+        modeBusy = false;
+      }, NAV.inAt);
+    });
+  }
+  $('nNext').addEventListener('click', () => notesGo(1));
+  // While the sheet drops in or away, the notes' arrows ride on it as a copy (cropped by the same
+  // edge as everything on it); the page's own, in ink, are under it. A phone: "Next", if it is there.
+  function arrowsOnSheet() {
+    if (mqMobile.matches && !app.classList.contains('is-at-end')) return null;
+    const real = mqMobile.matches ? $('nNext') : app.querySelector(':scope > .arrows'), copy = real.cloneNode(true);
+    if (mqMobile.matches) { copy.removeAttribute('id'); copy.tabIndex = -1; copy.style.right = 'auto'; copy.style.left = `${real.offsetLeft}px`; }
+    copy.classList.add('arrows-ghost');
+    copy.setAttribute('aria-hidden', 'true');
+    copy.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+    copy.querySelectorAll('button').forEach((el) => { el.tabIndex = -1; });
+    copy.style.bottom = 'auto';
+    copy.style.top = `${notes.scrollTop + real.offsetTop}px`;
+    notes.appendChild(copy);
+    return copy;
   }
 
   /* Notes' fonts, fetched before Notes is pressed (Bill, 2026-10-10: the best performance at every
@@ -1689,8 +1846,13 @@
   // colour, and the notes must keep AA over it. Each palette fades only as far as AA needs — the
   // more the quote shows, the more depth (Bill, 2026-10-10; css/app.css). All of it fades, so the
   // blur is evenly faint. Desktop and tablet only: on a phone it scrolls away with the notes.
+  // A phone's "Next" is there once the notes have been read to their end (or fit the window).
+  const NEXT_END_PX = 24;
+  function syncNext() { if (app.classList.contains('is-revealing')) return; /* (the sheet's parts are moving: it is measured as they land) */ app.classList.toggle('is-at-end', state.mode === 'notes' && notes.scrollHeight - notes.scrollTop - notes.clientHeight <= NEXT_END_PX); }
+  if (typeof ResizeObserver === 'function') new ResizeObserver(syncNext).observe($('nCol')); // (the thoughts box unfolding, fonts, a turn of the phone)
   let scrollIdle, pinBlur = -1, pinDim = -1;
   notes.addEventListener('scroll', () => {
+    syncNext();
     app.classList.toggle('is-scrolled', notes.scrollTop > 2); // the mobile top fade only exists once something can slide under it
     // Blur in half-pixel steps, and only touch the style when the step changes: a blur filter is
     // re-rasterized whenever its value changes, and once the cap is reached (200px down) nothing
@@ -2034,8 +2196,9 @@
       $('nPin').style.setProperty('--pin-dim', 1);
       pinBlur = 0; pinDim = 1;
       layoutNotes();
+      syncNext();
     } else {
-      app.classList.remove('is-scrolled');
+      app.classList.remove('is-scrolled', 'is-at-end');
       delete app.dataset.theme;
       delete notes.dataset.theme;
       delete $('notesBtn').dataset.theme;
@@ -2396,7 +2559,10 @@
       $('notesBtn').textContent = 'Notes';
       delete $('notesBtn').dataset.theme;
     }
-    document.querySelectorAll('.scan-edge, .quote-float-layer').forEach((el) => el.remove());
+    document.querySelectorAll('.scan-edge, .quote-float-layer, .arrows-ghost, .notes-ghost').forEach((el) => el.remove());
+    navRuns.forEach((a) => a.cancel()); navRuns = []; // (a change between notes still coming in: whole at once)
+    endTint();
+    const sheetArrows = arrowsOnSheet(); // (the notes' arrows, on the sheet while it moves)
     app.classList.add('is-revealing'); // grey page underneath, notes frame (own palette) on top
     // The start state is set here as plain inline styles, in place before the first paint; the
     // drop itself is run by the browser (dropAnimations, below). A browser-run clip-path animation
@@ -2553,11 +2719,13 @@
       if (layer) layer.remove();
       if (!toNotes) applyMode('main'); // re-renders the grey page's quote, visible again
       if (scanEdge) scanEdge.remove();
+      if (sheetArrows) sheetArrows.remove();
       notes.style.clipPath = '';
       cancelAnimationFrame(dropFrame);
       drops.forEach((a) => a.cancel()); // (after the end state is written in: never a frame uncropped)
       if (judgeScan) judgeScan();
       app.classList.remove('is-revealing');
+      syncNext();
       modeBusy = false;
     }, Math.max(REVEAL_MS, scanEnds) + 20));
   }
@@ -3385,7 +3553,7 @@
   function syncChromeColor() {
     const root = document.documentElement;
     const inNotes = !menuEl.hidden ? false : !!app.dataset.theme;
-    const color = inNotes ? getComputedStyle(notes).backgroundColor : getComputedStyle(root).getPropertyValue('--paper').trim();
+    const color = inNotes ? paletteOf(app.dataset.theme).bg : getComputedStyle(root).getPropertyValue('--paper').trim(); // (the palette's own colour, not the notes' as drawn: between two notes they have none — notesGo)
     root.style.backgroundColor = document.body.style.backgroundColor = color;
     $('themeColor').setAttribute('content', color);
   }
@@ -3965,6 +4133,11 @@
       e.preventDefault();
       if (!e.repeat && !app.classList.contains('is-typing')) setMode(state.mode === 'notes' ? 'main' : 'notes'); // (while the quote types in, Notes is not there yet)
       return;
+    }
+    if (state.mode === 'notes' && !mqMobile.matches && !e.repeat && !e.metaKey && !e.ctrlKey && !e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !(e.target.matches && e.target.matches('input, textarea, select, [contenteditable]'))) {
+      e.preventDefault(); // notes: left / right change the quote (up / down scroll the notes); the pressed arrow rolls
+      const dir = e.key === 'ArrowRight' ? 1 : -1;
+      return notesGo(dir, $(dir > 0 ? 'nextBtn' : 'prevBtn'));
     }
     if (state.mode !== 'main' || !$('menu').hidden) return;
     // A held key changes the quote once: chained cut-ups are a long run of flashes.
